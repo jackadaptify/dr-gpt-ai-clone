@@ -110,7 +110,7 @@ export const streamChatResponse = async (
     newMessage: string,
     onChunk: (text: string) => void,
     systemPrompt?: string,
-    tools?: { webSearch?: boolean },
+    tools?: { webSearch?: boolean; imageGeneration?: boolean },
     chatId?: string,
     userProfile?: {
         nickname?: string;
@@ -122,6 +122,9 @@ export const streamChatResponse = async (
     // Check for media generation models
     const isImageModel = modelId.includes('image') || modelId.includes('flux') || modelId.includes('dall-e');
     const isVideoModel = modelId.includes('video') || modelId.includes('luma') || modelId.includes('kling') || modelId.includes('veo') || modelId.includes('sora');
+
+    // Override detection if imageGeneration tool is explicitly enabled
+    const shouldGenerateImage = tools?.imageGeneration || isImageModel;
 
     let fullResponse = '';
 
@@ -186,7 +189,7 @@ ${customInstructions}
 `;
     finalSystemPrompt = personalizationPrompt + (finalSystemPrompt ? `\n\n${finalSystemPrompt}` : '');
 
-    if (isImageModel) {
+    if (shouldGenerateImage) {
         fullResponse = await generateOpenRouterImage(modelId, newMessage, onChunk);
     } else if (isVideoModel) {
         fullResponse = await generateOpenRouterMedia(modelId, newMessage, onChunk);

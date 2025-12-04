@@ -204,6 +204,16 @@ function AppContent() {
         }
     }, [input]);
 
+    // Auto-focus textarea after generation completes
+    useEffect(() => {
+        if (!isGenerating && textareaRef.current) {
+            // Small delay to ensure DOM updates are complete
+            setTimeout(() => {
+                textareaRef.current?.focus();
+            }, 100);
+        }
+    }, [isGenerating]);
+
     // Scroll to bottom
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -341,14 +351,24 @@ function AppContent() {
             createChat(newChat); // Persist to Supabase
         }
 
+        // Capture input and attachments before clearing
+        const messageContent = input;
+        const messageAttachments = [...pendingAttachments];
+
         const userMessage: Message = {
             id: uuidv4(),
             role: Role.USER,
-            content: input,
+            content: messageContent,
             timestamp: Date.now(),
-            attachments: pendingAttachments,
+            attachments: messageAttachments,
             modelId: selectedModelId // Track model
         };
+
+        // CRITICAL: Clear input, attachments, and activeTools IMMEDIATELY
+        setInput('');
+        setPendingAttachments([]);
+        setActiveTools({ web: false, image: false, thinking: false }); // Reset tools NOW
+        setIsGenerating(true);
 
         // Save User Message to Supabase
         if (activeChatId) {
@@ -381,8 +401,11 @@ function AppContent() {
         // Determine Model ID based on Active Tools
         let targetModelId = selectedModelId;
         if (activeTools.image) {
-            if (!targetModelId.includes('imagen') && !targetModelId.includes('veo')) {
-                targetModelId = 'google/imagen-3'; // Use Valid OpenRouter ID
+            // Check if current model supports image generation
+            const currentModelCaps = availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities;
+            if (!currentModelCaps?.imageGeneration) {
+                // Fallback to a valid image generation model
+                targetModelId = 'google/gemini-2.0-flash-exp:free'; // Gemini 2.0 Flash supports image generation
             }
         }
 
@@ -414,7 +437,7 @@ function AppContent() {
             const fullResponse = await streamChatResponse(
                 apiModelId,
                 updatedHistory,
-                input,
+                messageContent, // ✅ Use captured content, not cleared input!
                 (chunk) => {
                     setChats(prev => prev.map(c => c.id === activeChatId ? {
                         ...c,
@@ -422,7 +445,7 @@ function AppContent() {
                     } : c));
                 },
                 selectedAgentId ? agents.find(a => a.id === selectedAgentId)?.systemPrompt : undefined,
-                { webSearch: activeTools.web },
+                { webSearch: activeTools.web, imageGeneration: activeTools.image },
                 activeChatId,
                 userProfile // Pass the profile data
             );
@@ -671,10 +694,11 @@ function AppContent() {
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={handleKeyDown}
-                                    placeholder="Pergunte algo ao Dr. GPT..."
-                                    className="w-full bg-transparent text-textMain placeholder-textMuted text-[15px] md:text-base px-6 py-4 max-h-48 overflow-y-auto resize-none outline-none"
+                                    placeholder={isGenerating ? "Aguarde a resposta..." : "Pergunte algo ao Dr. GPT..."}
+                                    className={`w-full bg-transparent text-textMain placeholder-textMuted text-[15px] md:text-base px-6 py-4 max-h-48 overflow-y-auto resize-none outline-none transition-opacity duration-200 ${isGenerating ? 'opacity-60 cursor-wait' : 'opacity-100'}`}
                                     rows={1}
                                     style={{ minHeight: '60px' }}
+                                    readOnly={isGenerating}
                                 />
 
                                 {/* Hidden File Input */}

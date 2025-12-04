@@ -136,102 +136,127 @@ export const generateOpenRouterImage = async (
             const { data: { session } } = await supabase.auth.getSession();
             const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/openrouter-chat`;
 
-            const response = await fetch(functionUrl, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    model: imageModel,
-                    messages: [{ role: 'user', content: `Generate an image of: ${prompt}` }],
-                    modalities: ['image', 'text'], // Critical for image generation
-                    stream: false // We want the full JSON with base64
-                }),
-            });
+            // Add timeout to prevent infinite blocking
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => {
+                controller.abort();
+                console.warn('Image generation request timed out after 60 seconds');
+            }, 60000); // 60 second timeout
 
-            if (response.status === 429) {
-                attempt++;
-                const delay = attempt * 2000; // 2s, 4s, 6s
-                if (attempt < maxRetries) {
-                    onChunk(`⚠️ Tráfego alto. Tentando novamente em ${delay / 1000}s... (Tentativa ${attempt}/${maxRetries})\n\n`);
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    continue;
-                }
-            }
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                let errorMessage = errorText;
-                try {
-                    const errorJson = JSON.parse(errorText);
-                    if (errorJson.error) errorMessage = errorJson.error.message || errorJson.error;
-                } catch (e) {
-                    // Use raw text
-                }
-                throw new Error(`Erro na Edge Function: ${errorMessage}`);
-            }
-
-            // Log raw response for debugging
-            const responseText = await response.text();
-            console.log('Raw response text:', responseText);
-            console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
-            let data;
             try {
-                data = JSON.parse(responseText);
-            } catch (parseError) {
-                console.error('JSON Parse Error:', parseError);
-                console.error('Failed to parse:', responseText.substring(0, 500));
-                throw new Error(`Resposta inválida do servidor: ${parseError instanceof Error ? parseError.message : 'Erro de parsing'}`);
+                const response = await fetch(functionUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        model: imageModel,
+                        messages: [{ role: 'user', content: `Generate an image of: ${prompt}` }],
+                        modalities: ['image', 'text'], // Critical for image generation
+                        stream: false // We want the full JSON with base64
+                    }),
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId); // Clear timeout if request completes
+
+                if (response.status === 429) {
+                    attempt++;
+                    const delay = attempt * 2000; // 2s, 4s, 6s
+                    if (attempt < maxRetries) {
+                        onChunk(`⚠️ Tráfego alto. Tentando novamente em ${delay / 1000}s... (Tentativa ${attempt}/${maxRetries})\n\n`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue;
+                    }
+                }
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    let errorMessage = errorText;
+                    try {
+                        const errorJson = JSON.parse(errorText);
+                        if (errorJson.error) errorMessage = errorJson.error.message || errorJson.error;
+                    } catch (e) {
+                        // Use raw text
+                    }
+                    throw new Error(`Erro na Edge Function: ${errorMessage}`);
+                }
+
+                // Log raw response for debugging
+                const responseText = await response.text();
+                console.log('Raw response text:', responseText);
+                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+                let data;
+                try {
+                    data = JSON.parse(responseText);
+                } catch (parseError) {
+                    console.error('JSON Parse Error:', parseError);
+                    console.error('Failed to parse:', responseText.substring(0, 500));
+                    throw new Error(`Resposta inválida do servidor: ${parseError instanceof Error ? parseError.message : 'Erro de parsing'}`);
+                }
+
+                console.log('Parsed OpenRouter Response:', JSON.stringify(data, null, 2));
+
+                let imageUrl: string | undefined;
+
+                // 1. Priority 1: Try to get from choices[0].message.images (Multimodal standard)
+                const message = data.choices?.[0]?.message;
+                if (message?.images && Array.isArray(message.images) && message.images.length > 0) {
+                    const firstImage = message.images[0];
+                    // Check structure: choices[0].message.images[0].image_url.url
+                    if (typeof firstImage === 'object' && firstImage?.image_url?.url) {
+                        imageUrl = firstImage.image_url.url;
+                    }
+                    // Fallback for legacy/other formats
+                    else if (typeof firstImage === 'string') {
+                        imageUrl = firstImage;
+                    }
+                }
+
+                // 2. Priority 2: Fallback to content Regex ONLY if no image found above
+                // AND content is not null/empty
+                if (!imageUrl && message?.content) {
+                    const content = message.content;
+                    // Regex to find markdown image: ![alt](url)
+                    const markdownMatch = content.match(/!\[.*?\]\((.*?)\)/);
+                    if (markdownMatch && markdownMatch[1]) {
+                        imageUrl = markdownMatch[1];
+                    }
+                    // Sometimes models just return the URL
+                    else if (content.startsWith('http') || content.startsWith('data:image')) {
+                        imageUrl = content.trim();
+                    }
+                }
+
+                if (imageUrl) {
+                    // Ensure it has the prefix if it's a raw base64 string without data URI scheme
+                    if (!imageUrl.startsWith('http') && !imageUrl.startsWith('data:')) {
+                        imageUrl = `data:image/png;base64,${imageUrl}`;
+                    }
+
+                    const markdown = `![Imagem Gerada](${imageUrl})\n\n*Gerado por ${imageModel}*`;
+                    onChunk(markdown);
+                    return markdown;
+                }
+
+                console.error("OpenRouter Response Structure:", JSON.stringify(data, null, 2));
+                throw new Error("Modelo não retornou imagem (verifique se o prompt é permitido).");
+
+            } catch (fetchError) {
+                clearTimeout(timeoutId); // Ensure timeout is cleared on error
+
+                // Handle AbortError (timeout)
+                if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+                    const timeoutMsg = `⏱️ Tempo limite excedido (60s). A geração de imagem foi cancelada.`;
+                    onChunk(timeoutMsg);
+                    return timeoutMsg;
+                }
+
+                // Re-throw to outer catch for retry logic
+                throw fetchError;
             }
-
-            console.log('Parsed OpenRouter Response:', JSON.stringify(data, null, 2));
-
-            let imageUrl: string | undefined;
-
-            // 1. Priority 1: Try to get from choices[0].message.images (Multimodal standard)
-            const message = data.choices?.[0]?.message;
-            if (message?.images && Array.isArray(message.images) && message.images.length > 0) {
-                const firstImage = message.images[0];
-                // Check structure: choices[0].message.images[0].image_url.url
-                if (typeof firstImage === 'object' && firstImage?.image_url?.url) {
-                    imageUrl = firstImage.image_url.url;
-                }
-                // Fallback for legacy/other formats
-                else if (typeof firstImage === 'string') {
-                    imageUrl = firstImage;
-                }
-            }
-
-            // 2. Priority 2: Fallback to content Regex ONLY if no image found above
-            // AND content is not null/empty
-            if (!imageUrl && message?.content) {
-                const content = message.content;
-                // Regex to find markdown image: ![alt](url)
-                const markdownMatch = content.match(/!\[.*?\]\((.*?)\)/);
-                if (markdownMatch && markdownMatch[1]) {
-                    imageUrl = markdownMatch[1];
-                }
-                // Sometimes models just return the URL
-                else if (content.startsWith('http') || content.startsWith('data:image')) {
-                    imageUrl = content.trim();
-                }
-            }
-
-            if (imageUrl) {
-                // Ensure it has the prefix if it's a raw base64 string without data URI scheme
-                if (!imageUrl.startsWith('http') && !imageUrl.startsWith('data:')) {
-                    imageUrl = `data:image/png;base64,${imageUrl}`;
-                }
-
-                const markdown = `![Imagem Gerada](${imageUrl})\n\n*Gerado por ${imageModel}*`;
-                onChunk(markdown);
-                return markdown;
-            }
-
-            console.error("OpenRouter Response Structure:", JSON.stringify(data, null, 2));
-            throw new Error("Modelo não retornou imagem (verifique se o prompt é permitido).");
 
         } catch (error) {
             if (attempt >= maxRetries - 1 || (error instanceof Error && !error.message.includes('429'))) {
@@ -242,7 +267,7 @@ export const generateOpenRouterImage = async (
             }
             // If it was a catchable error but we want to retry (unlikely for fetch unless network error), we could continue here.
             // But main 429 is handled above.
-            throw error;
+            attempt++;
         }
     }
     return "Erro desconhecido.";

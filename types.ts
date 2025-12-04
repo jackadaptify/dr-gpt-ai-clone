@@ -146,12 +146,12 @@ export const AVAILABLE_MODELS: AIModel[] = [
     description: 'Multimodal equilibrado (Geração 2)',
     provider: 'Google',
     modelId: 'google/gemini-2.0-flash-exp:free',
-    capabilities: { vision: true, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: true, reasoning: true, upload: true },
+    capabilities: { vision: true, imageGeneration: true, videoGeneration: false, audioGeneration: false, webSearch: true, reasoning: true, upload: true },
     details: {
-      function: 'Modelo multimodal equilibrado de segunda geração.',
+      function: 'Modelo multimodal equilibrado de segunda geração com suporte a geração de imagem.',
       inputTypes: ['Áudio', 'Imagens', 'Vídeo', 'Texto'],
-      outputTypes: ['Texto'],
-      features: ['Free Preview'],
+      outputTypes: ['Texto', 'Imagens'],
+      features: ['Free Preview', 'Image Generation'],
       pricing: { input: 'Grátis', output: 'Grátis' }
     }
   },
