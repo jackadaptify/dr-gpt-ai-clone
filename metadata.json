@@ -1,0 +1,5 @@
+{
+  "name": "DR GPT AI Clone",
+  "description": "A dark-mode AI chat interface featuring sidebar navigation, folder organization, and Google Gemini integration.",
+  "requestFramePermissions": []
+}

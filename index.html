@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DR GPT</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            background: 'var(--bg-background)',
+            sidebar: 'var(--bg-sidebar)',
+            surface: 'var(--bg-surface)',
+            surfaceHighlight: 'var(--bg-surface-highlight)',
+            borderLight: 'var(--border-light)',
+            primary: '#10b981',
+            accent: '#34d399',
+            textMain: 'var(--text-main)',
+            textMuted: 'var(--text-muted)'
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          boxShadow: {
+            'glow': '0 0 25px -5px rgba(16, 185, 129, 0.15)',
+            'card-3d': 'var(--shadow-card-3d)',
+            'card-3d-hover': 'var(--shadow-card-3d-hover)',
+            'inner-depth': 'var(--shadow-inner-depth)',
+            'convex': 'var(--shadow-convex)',
+            'concave': 'var(--shadow-concave)',
+          },
+          backgroundImage: {
+            'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+            'metal-gradient': 'linear-gradient(180deg, #27272a 0%, #18181b 100%)',
+            'glass-gradient': 'linear-gradient(180deg, rgba(30,30,30,0.6) 0%, rgba(10,10,10,0.8) 100%)',
+          }
+        },
+      },
+    }
+  </script>
+  <style>
+    :root {
+      /* Light Mode Defaults - Flat & Clean */
+      --bg-background: #ffffff;
+      --bg-sidebar: #f9f9f9;
+      --bg-surface: #ffffff;
+      --bg-surface-highlight: #f3f3f3;
+      --border-light: #e5e5e5;
+      --text-main: #0f0f0f;
+      --text-muted: #6b7280;
+
+      /* Flattened Shadows for Light Mode */
+      --shadow-card-3d: none;
+      --shadow-card-3d-hover: 0 2px 8px rgba(0, 0, 0, 0.05);
+      --shadow-inner-depth: none;
+      --shadow-convex: none;
+      --shadow-concave: none;
+
+      --glass-panel-bg: rgba(255, 255, 255, 0.9);
+      --glass-panel-border: transparent;
+    }
+
+    .dark {
+      /* Dark Mode Overrides - Premium & Depth */
+      --bg-background: #050505;
+      --bg-sidebar: rgba(10, 10, 10, 0.75);
+      --bg-surface: #121214;
+      --bg-surface-highlight: #222225;
+      --border-light: rgba(255, 255, 255, 0.08);
+      --text-main: #ececec;
+      --text-muted: #71717a;
+
+      --shadow-card-3d: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.06), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+      --shadow-card-3d-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.1), inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+      --shadow-inner-depth: inset 0 2px 4px 0 rgba(0, 0, 0, 0.6);
+      --shadow-convex: inset 0 1px 0 0 rgba(255, 255, 255, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+      --shadow-concave: inset 0 2px 4px 0 rgba(0, 0, 0, 0.3);
+
+      --glass-panel-bg: rgba(20, 20, 20, 0.6);
+      --glass-panel-border: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Modern Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #3f3f46;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #52525b;
+    }
+
+    body {
+      background-color: var(--bg-background);
+      color: var(--text-main);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Custom animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-fade-in-up {
+      animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes cursorBlink {
+
+      0%,
+      100% {
+        opacity: 1;
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.8);
+      }
+
+      50% {
+        opacity: 0.3;
+        box-shadow: 0 0 2px rgba(16, 185, 129, 0.2);
+      }
+    }
+
+    .animate-cursor-blink {
+      animation: cursorBlink 1s infinite;
+    }
+
+    .glass-panel {
+      background: var(--glass-panel-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-top: 1px solid var(--glass-panel-border);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      /* Subtle shadow border */
+    }
+  </style>
+  <script type="importmap">
+{
+  "imports": {
+    "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-markdown": "https://aistudiocdn.com/react-markdown@^10.1.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "remark-gfm": "https://aistudiocdn.com/remark-gfm@^4.0.1"
+  }
+}
+</script>
+  <link rel="stylesheet" href="/index.css">
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
+</html>
