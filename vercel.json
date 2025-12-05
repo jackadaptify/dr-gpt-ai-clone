@@ -1,0 +1,12 @@
+{
+    "rewrites": [
+        {
+            "source": "/api/openrouter/:path*",
+            "destination": "https://openrouter.ai/api/v1/:path*"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ]
+}
