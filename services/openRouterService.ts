@@ -15,11 +15,29 @@ export const createOpenRouterChatStream = async (
     systemPrompt?: string
 ): Promise<string> => {
     try {
-        // Prepare messages
-        const messages = history.map(msg => ({
+        // Mandatory System Message for Dr. GPT
+        const systemMessage = {
+            role: 'system',
+            content: `Você é o Dr. GPT, um assistente de IA focado em medicina e saúde.
+  
+  DIRETRIZES FUNDAMENTAIS:
+  1. IDIOMA: Responda ESTRITAMENTE em Português do Brasil (pt-BR). Mesmo que o usuário pergunte em inglês ou outro idioma, responda em Português.
+  2. TOM: Profissional, direto, técnico (quando necessário) e empático.
+  3. IDENTIDADE: Nunca diga "I am an AI developed by OpenAI". Diga que você é o Dr. GPT.
+  
+  Se o usuário enviar termos médicos em inglês, explique-os em português.`
+        };
+
+        // Prepare messages with System Message first
+        const messages = [systemMessage];
+
+        // Add history
+        messages.push(...history.map(msg => ({
             role: msg.role === Role.USER ? 'user' : 'assistant',
             content: msg.content
-        }));
+        })));
+
+        // Add new message
         messages.push({ role: 'user', content: newMessage });
 
         // Invoke Supabase Edge Function
