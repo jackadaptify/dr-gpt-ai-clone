@@ -14,6 +14,68 @@ import AdminPage from './components/Admin/AdminPage';
 import { modelHealthService, ModelHealth } from './services/modelHealthService';
 import { supabase } from './lib/supabase';
 import ModelSelector from './components/ModelSelector';
+import { Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail } from 'lucide-react';
+
+// POOL MESTRE DE SUGESTÕES
+const ALL_SUGGESTIONS = [
+    // CLÍNICO (A dor da incerteza e tempo)
+    {
+        title: "Hipóteses Diagnósticas",
+        text: "Atue como médico sênior. Baseado nos sintomas e histórico que vou colar, liste diagnósticos diferenciais ordenados por probabilidade e exames confirmatórios.",
+        icon: "Activity"
+    },
+    {
+        title: "Interação Medicamentosa",
+        text: "Vou listar os medicamentos do paciente. Verifique interações graves, contraindicações e ajustes de dose necessários baseados nas bulas recentes.",
+        icon: "ShieldAlert"
+    },
+    {
+        title: "Resumir Artigo/PDF",
+        text: "Vou colar um texto técnico. Resuma: Metodologia, Resultados principais (NNT/NNH) e aplicabilidade prática para o consultório.",
+        icon: "FileText"
+    },
+    {
+        title: "Protocolo de Emergência",
+        text: "Cite o passo a passo do protocolo mais atual (ACLS/ATLS/PALS) para a condição clínica que vou descrever.",
+        icon: "Siren"
+    },
+    {
+        title: "Evolução SOAP",
+        text: "Transforme minhas anotações soltas em uma Evolução Clínica formal no formato SOAP (Subjetivo, Objetivo, Avaliação, Plano).",
+        icon: "ClipboardList"
+    },
+
+    // MARKETING & GESTÃO (A dor de atrair pacientes e burocracia)
+    {
+        title: "Post para Instagram",
+        text: "Crie uma legenda educativa para Instagram sobre a doença que vou citar, com tom empático e focado em atrair pacientes particulares.",
+        icon: "Instagram"
+    },
+    {
+        title: "Responder Paciente (WhatsApp)",
+        text: "Escreva uma mensagem de pós-consulta elegante para perguntar a evolução do paciente e fidelizar, sem parecer invasivo.",
+        icon: "MessageCircle"
+    },
+    {
+        title: "Responder Avaliação Google",
+        text: "Escreva uma resposta profissional e grata para uma avaliação 5 estrelas que recebi no Google My Business.",
+        icon: "Star"
+    },
+    {
+        title: "Simplificar Laudo",
+        text: "Reescreva este laudo técnico em linguagem simples e analógica para que um paciente leigo possa entender a gravidade.",
+        icon: "Brain"
+    },
+    {
+        title: "Email para Convênio",
+        text: "Escreva uma carta de justificativa técnica para convênio médico autorizar o procedimento X para o paciente Y.",
+        icon: "Mail"
+    }
+];
+
+const ICON_MAP: Record<string, any> = {
+    Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail
+};
 
 const INITIAL_FOLDERS: Folder[] = [
     { id: '1', name: 'Pessoais' },
@@ -33,6 +95,9 @@ function AppContent() {
     const [selectedModelId, setSelectedModelId] = useState<string>(AVAILABLE_MODELS[0].id);
     const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
     const [agents, setAgents] = useState<Agent[]>([]);
+
+    // Rotating Suggestions Logic
+    const [suggestions, setSuggestions] = useState(() => [...ALL_SUGGESTIONS].sort(() => 0.5 - Math.random()).slice(0, 4));
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -650,27 +715,39 @@ function AppContent() {
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-3xl">
                                 {(selectedAgentId
-                                    ? (agents.find(a => a.id === selectedAgentId)?.iceBreakers || [])
-                                    : [
-                                        "Resuma este documento para mim",
-                                        "Crie um roadmap de produto SaaS",
-                                        "Escreva um post para LinkedIn sobre IA",
-                                        "Me dê 10 ideias de nomes para um app"
-                                    ]
-                                ).map((item, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setInput(item)}
-                                        className={`relative p-6 rounded-2xl text-left group transition-all duration-300 transform hover:-translate-y-1
+                                    ? (agents.find(a => a.id === selectedAgentId)?.iceBreakers || []).map(item => ({ title: item, text: '', icon: 'Brain' })) // Adapter for simple strings
+                                    : suggestions
+                                ).map((item: any, i: number) => {
+                                    const IconComponent = ICON_MAP[item.icon] || Brain;
+                                    return (
+                                        <button
+                                            key={i}
+                                            onClick={() => setInput(item.text || item.title)}
+                                            className={`relative p-5 rounded-2xl text-left group transition-all duration-300 transform hover:-translate-y-1 flex flex-col gap-3 h-full
                                 ${isDarkMode
-                                                ? 'bg-surface border border-borderLight shadow-card-3d hover:shadow-card-3d-hover'
-                                                : 'bg-surface border border-borderLight hover:border-gray-300 hover:shadow-sm'}
+                                                    ? 'bg-surface border border-borderLight shadow-card-3d hover:shadow-card-3d-hover hover:border-emerald-500/30'
+                                                    : 'bg-surface border border-borderLight hover:border-emerald-400 hover:shadow-md'}
                                 `}
-                                    >
-                                        {isDarkMode && <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>}
-                                        <h3 className={`font-bold mb-1.5 text-base transition-colors ${isDarkMode ? 'text-textMain group-hover:text-emerald-400 drop-shadow-md' : 'text-textMain'}`}>{item}</h3>
-                                    </button>
-                                ))}
+                                        >
+                                            {isDarkMode && <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>}
+
+                                            <div className="flex items-center gap-3">
+                                                <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-surfaceHighlight text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                    <IconComponent size={20} />
+                                                </div>
+                                                <h3 className={`font-bold text-sm transition-colors ${isDarkMode ? 'text-textMain group-hover:text-emerald-400' : 'text-textMain'}`}>
+                                                    {item.title}
+                                                </h3>
+                                            </div>
+
+                                            {item.text && (
+                                                <p className={`text-xs line-clamp-2 ${isDarkMode ? 'text-textMuted' : 'text-gray-500'}`}>
+                                                    {item.text}
+                                                </p>
+                                            )}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
                     ) : (
