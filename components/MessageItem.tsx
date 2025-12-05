@@ -9,7 +9,8 @@ interface MessageItemProps {
   isDarkMode: boolean;
 }
 
-const MessageItem: React.FC<MessageItemProps> = ({ message, isDarkMode }) => {
+// 🔧 FIX: Memoize to prevent re-renders of unchanged messages
+const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMode }) => {
   const isUser = message.role === Role.USER;
 
   // Download image handler
@@ -120,9 +121,11 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isDarkMode }) => {
               components={{
                 img({ node, ...props }) {
                   return (
-                    <div className="relative inline-block group/image my-4">
+                    <span className="relative inline-block group/image my-4">
                       <img
                         {...props}
+                        loading="lazy" // 🔧 FIX: Native lazy loading
+                        decoding="async" // 🔧 FIX: Async decode to prevent blocking
                         className="max-w-full h-auto rounded-lg shadow-md border border-borderLight"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
@@ -140,7 +143,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isDarkMode }) => {
                           <DownloadIcon />
                         </button>
                       )}
-                    </div>
+                    </span>
                   );
                 },
                 // Code Blocks 3D Style
@@ -224,6 +227,6 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, isDarkMode }) => {
       </div>
     </div>
   );
-};
+}); // 🔧 FIX: Close React.memo
 
 export default MessageItem;

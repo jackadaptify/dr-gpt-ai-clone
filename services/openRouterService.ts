@@ -119,11 +119,27 @@ export const chatCompletion = async (
     });
 };
 
+// Helper to convert Base64 to Blob
+const base64ToBlob = (base64: string, mimeType: string) => {
+    try {
+        const byteCharacters = atob(base64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        return new Blob([byteArray], { type: mimeType });
+    } catch (e) {
+        console.error('Error converting base64 to blob:', e);
+        return null;
+    }
+};
+
 export const generateOpenRouterImage = async (
     modelName: string,
     prompt: string,
     onChunk: (text: string) => void
-): Promise<string> => {
+): Promise<{ display: string; save: string }> => {
     // Use the model selected by the user (supports any OpenRouter image model)
     const imageModel = modelName;
     onChunk(`🎨 Gerando imagem com ${imageModel}...\n\n`);
@@ -183,10 +199,9 @@ export const generateOpenRouterImage = async (
                     throw new Error(`Erro na Edge Function: ${errorMessage}`);
                 }
 
-                // Log raw response for debugging
+                // Log raw response size for debugging (avoid logging full base64)
                 const responseText = await response.text();
-                console.log('Raw response text:', responseText);
-                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+                console.log('✅ RESPOSTA: Recebida', { size: responseText.length });
 
                 let data;
                 try {
@@ -196,8 +211,6 @@ export const generateOpenRouterImage = async (
                     console.error('Failed to parse:', responseText.substring(0, 500));
                     throw new Error(`Resposta inválida do servidor: ${parseError instanceof Error ? parseError.message : 'Erro de parsing'}`);
                 }
-
-                console.log('Parsed OpenRouter Response:', JSON.stringify(data, null, 2));
 
                 let imageUrl: string | undefined;
 
@@ -236,9 +249,28 @@ export const generateOpenRouterImage = async (
                         imageUrl = `data:image/png;base64,${imageUrl}`;
                     }
 
-                    const markdown = `![Imagem Gerada](${imageUrl})\n\n*Gerado por ${imageModel}*`;
-                    onChunk(markdown);
-                    return markdown;
+                    // 🚀 OPTIMIZATION: Convert Base64 to Blob URL for UI Display
+                    // This prevents the UI from freezing when rendering huge Base64 strings
+                    let displayUrl = imageUrl;
+                    if (imageUrl.startsWith('data:image')) {
+                        const base64Data = imageUrl.split(',')[1];
+                        const mimeType = imageUrl.split(';')[0].split(':')[1];
+                        const blob = base64ToBlob(base64Data, mimeType);
+                        if (blob) {
+                            displayUrl = URL.createObjectURL(blob);
+                            console.log('✅ Converted Base64 to Blob URL for display:', displayUrl);
+                        }
+                    }
+
+                    const displayMarkdown = `![Imagem Gerada](${displayUrl})\n\n*Gerado por ${imageModel}*`;
+                    const saveMarkdown = `![Imagem Gerada](${imageUrl})\n\n*Gerado por ${imageModel}*`;
+
+                    onChunk(displayMarkdown);
+
+                    return {
+                        display: displayMarkdown,
+                        save: saveMarkdown
+                    };
                 }
 
                 console.error("OpenRouter Response Structure:", JSON.stringify(data, null, 2));
@@ -251,7 +283,7 @@ export const generateOpenRouterImage = async (
                 if (fetchError instanceof Error && fetchError.name === 'AbortError') {
                     const timeoutMsg = `⏱️ Tempo limite excedido (60s). A geração de imagem foi cancelada.`;
                     onChunk(timeoutMsg);
-                    return timeoutMsg;
+                    return { display: timeoutMsg, save: timeoutMsg };
                 }
 
                 // Re-throw to outer catch for retry logic
@@ -263,14 +295,12 @@ export const generateOpenRouterImage = async (
                 console.error("Image Generation Error:", error);
                 const errorMsg = `❌ Erro ao gerar imagem: ${error instanceof Error ? error.message : 'Erro desconhecido'}`;
                 onChunk(errorMsg);
-                return errorMsg;
+                return { display: errorMsg, save: errorMsg };
             }
-            // If it was a catchable error but we want to retry (unlikely for fetch unless network error), we could continue here.
-            // But main 429 is handled above.
             attempt++;
         }
     }
-    return "Erro desconhecido.";
+    return { display: "Erro desconhecido.", save: "Erro desconhecido." };
 };
 
 export const generateOpenRouterMedia = async (

@@ -17,37 +17,37 @@ export const loadChatHistory = async (userId: string): Promise<ChatSession[]> =>
 
     console.log('Found chats:', chats?.length);
 
-    const chatsWithMessages = await Promise.all(chats.map(async (chat) => {
-        const { data: messages, error: msgError } = await supabase
-            .from('messages')
-            .select('*')
-            .eq('chat_id', chat.id)
-            .order('created_at', { ascending: true });
-
-        if (msgError) {
-            console.error(`Error loading messages for chat ${chat.id}:`, msgError);
-            return null;
-        }
-
-        console.log(`Loaded ${messages?.length} messages for chat ${chat.id}`);
-
-        return {
-            id: chat.id,
-            title: chat.title,
-            modelId: chat.model_id || 'gpt-4o', // Fix: Use correct column name model_id
-            messages: messages.map((m: any) => ({
-                id: m.id,
-                role: m.role as Role,
-                content: m.content,
-                timestamp: new Date(m.created_at).getTime(),
-                isStreaming: false,
-                modelId: m.model_id // Load model_id from DB
-            })),
-            updatedAt: new Date(chat.created_at).getTime()
-        } as ChatSession;
+    return chats.map(chat => ({
+        id: chat.id,
+        title: chat.title,
+        modelId: chat.model_id || 'gpt-4o',
+        messages: [], // 🚀 Lazy Load: Start empty
+        updatedAt: new Date(chat.created_at).getTime()
     }));
+};
 
-    return chatsWithMessages.filter((c): c is ChatSession => c !== null);
+export const loadMessagesForChat = async (chatId: string): Promise<Message[]> => {
+    console.log(`Loading messages for chat ${chatId}...`);
+    const { data: messages, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('chat_id', chatId)
+        .order('created_at', { ascending: false }) // Get latest first
+        .limit(50); // Load last 50 messages
+
+    if (error) {
+        console.error(`Error loading messages for chat ${chatId}:`, error);
+        return [];
+    }
+
+    return messages.reverse().map((m: any) => ({
+        id: m.id,
+        role: m.role as Role,
+        content: m.content,
+        timestamp: new Date(m.created_at).getTime(),
+        isStreaming: false,
+        modelId: m.model_id
+    }));
 };
 
 export const createChat = async (chat: ChatSession) => {
@@ -189,13 +189,19 @@ ${customInstructions}
 `;
     finalSystemPrompt = personalizationPrompt + (finalSystemPrompt ? `\n\n${finalSystemPrompt}` : '');
 
+    let contentToSave = '';
+
     if (shouldGenerateImage) {
-        fullResponse = await generateOpenRouterImage(modelId, newMessage, onChunk);
+        const result = await generateOpenRouterImage(modelId, newMessage, onChunk);
+        fullResponse = result.display;
+        contentToSave = result.save;
     } else if (isVideoModel) {
         fullResponse = await generateOpenRouterMedia(modelId, newMessage, onChunk);
+        contentToSave = fullResponse;
     } else {
         // Default to Chat/Text
         fullResponse = await createOpenRouterChatStream(modelId, history, newMessage, onChunk, finalSystemPrompt);
+        contentToSave = fullResponse;
     }
 
     // Save to Supabase if chatId is provided
@@ -203,11 +209,11 @@ ${customInstructions}
         await saveMessage(chatId, {
             id: crypto.randomUUID(),
             role: Role.MODEL,
-            content: fullResponse,
+            content: contentToSave, // Save the Base64 version to DB
             timestamp: Date.now(),
             modelId: modelId // Save the model that generated this response
         });
     }
 
-    return fullResponse;
+    return fullResponse; // Return the Blob URL version to UI
 };

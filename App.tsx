@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import MessageItem from './components/MessageItem';
 import { ChatSession, Message, Role, AVAILABLE_MODELS, Folder, Agent, AVAILABLE_AGENTS, Attachment, AIModel } from './types';
-import { streamChatResponse, saveMessage, loadChatHistory, createChat, updateChat } from './services/chatService';
+import { streamChatResponse, saveMessage, loadChatHistory, createChat, updateChat, loadMessagesForChat } from './services/chatService';
 import { fetchOpenRouterModels, OpenRouterModel } from './services/openRouterService';
 import { agentService } from './services/agentService';
 import { IconMenu, IconSend, IconAttachment, IconGlobe, IconImage, IconBrain } from './components/Icons';
@@ -37,6 +37,7 @@ function AppContent() {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const scrollThrottleRef = useRef<number | null>(null); // 🔧 FIX: Throttle scroll updates
 
     const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
     const [activeTools, setActiveTools] = useState({
@@ -183,18 +184,31 @@ function AppContent() {
     // Load chats from Supabase
     // Load chats from Supabase
     useEffect(() => {
-        if (session?.user) {
+        if (session?.user?.id) {
+            console.log('🔄 Effect triggered: Loading chats for user', session.user.id);
             loadChatHistory(session.user.id).then(loadedChats => {
                 setChats(loadedChats);
-                if (loadedChats.length > 0) {
-                    // Optional: Select first chat or none
-                }
             });
 
             // Load active agents
             agentService.getActiveAgents().then(setAgents).catch(console.error);
         }
-    }, [session]);
+    }, [session?.user?.id]); // 🔧 FIX: Only reload if User ID changes
+
+    // 🚀 Lazy Load Messages
+    useEffect(() => {
+        if (currentChatId) {
+            const chat = chats.find(c => c.id === currentChatId);
+            if (chat && chat.messages.length === 0) {
+                console.log('📥 Lazy loading messages for chat:', currentChatId);
+                loadMessagesForChat(currentChatId).then(messages => {
+                    if (messages.length > 0) {
+                        setChats(prev => prev.map(c => c.id === currentChatId ? { ...c, messages } : c));
+                    }
+                });
+            }
+        }
+    }, [currentChatId, chats]);
 
     // Auto-resize textarea
     useEffect(() => {
@@ -214,14 +228,35 @@ function AppContent() {
         }
     }, [isGenerating]);
 
-    // Scroll to bottom
+    // Scroll to bottom (instant during generation to prevent UI freeze)
     const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        messagesEndRef.current?.scrollIntoView({
+            behavior: isGenerating ? 'auto' : 'smooth' // 🔧 FIX: Instant scroll during generation
+        });
     };
 
+    // 🔧 FIX: Throttle scroll to prevent UI freeze during streaming
     useEffect(() => {
-        scrollToBottom();
+        // Cancel previous throttle
+        if (scrollThrottleRef.current) {
+            cancelAnimationFrame(scrollThrottleRef.current);
+        }
+
+        // Throttle scroll to once per animation frame
+        scrollThrottleRef.current = requestAnimationFrame(() => {
+            scrollToBottom();
+            scrollThrottleRef.current = null;
+        });
+
+        // Cleanup
+        return () => {
+            if (scrollThrottleRef.current) {
+                cancelAnimationFrame(scrollThrottleRef.current);
+            }
+        };
     }, [chats, currentChatId, isGenerating]);
+
+
 
     useEffect(() => {
         if (isDarkMode) {
@@ -335,7 +370,7 @@ function AppContent() {
         let activeChatId = currentChatId;
         let isFirstMessage = false;
 
-        // Create chat if none exists
+        // 1. Create chat if none exists
         if (!activeChatId) {
             const newChat: ChatSession = {
                 id: uuidv4(),
@@ -351,9 +386,10 @@ function AppContent() {
             createChat(newChat); // Persist to Supabase
         }
 
-        // Capture input and attachments before clearing
+        // 2. Capture State BEFORE clearing inputs
         const messageContent = input;
         const messageAttachments = [...pendingAttachments];
+        const capturedTools = { ...activeTools };
 
         const userMessage: Message = {
             id: uuidv4(),
@@ -361,20 +397,21 @@ function AppContent() {
             content: messageContent,
             timestamp: Date.now(),
             attachments: messageAttachments,
-            modelId: selectedModelId // Track model
+            modelId: selectedModelId
         };
 
-        // CRITICAL: Clear input, attachments, and activeTools IMMEDIATELY
+        // 3. Clear UI immediately (Optimistic)
         setInput('');
         setPendingAttachments([]);
-        setActiveTools({ web: false, image: false, thinking: false }); // Reset tools NOW
+        setActiveTools({ web: false, image: false, thinking: false });
         setIsGenerating(true);
 
-        // Save User Message to Supabase
+        // 4. Save User Message
         if (activeChatId) {
             saveMessage(activeChatId, userMessage);
         }
 
+        // 5. Create Placeholder for AI Response
         const tempAiMessageId = uuidv4();
         const aiPlaceholderMessage: Message = {
             id: tempAiMessageId,
@@ -382,15 +419,15 @@ function AppContent() {
             content: '',
             timestamp: Date.now(),
             isStreaming: true,
-            modelId: selectedModelId // Track model
+            modelId: selectedModelId
         };
 
-        // Optimistic update
+        // Update UI with User Message + Empty AI Message
         setChats(prev => prev.map(chat => {
             if (chat.id === activeChatId) {
                 return {
                     ...chat,
-                    title: isFirstMessage ? (input.slice(0, 30) + (input.length > 30 ? '...' : '')) : chat.title,
+                    title: isFirstMessage ? (messageContent.slice(0, 30) + (messageContent.length > 30 ? '...' : '')) : chat.title,
                     messages: [...chat.messages, userMessage, aiPlaceholderMessage],
                     updatedAt: Date.now()
                 };
@@ -398,30 +435,21 @@ function AppContent() {
             return chat;
         }));
 
-        // Determine Model ID based on Active Tools
+        // 6. Logic to switch model if Image is requested
         let targetModelId = selectedModelId;
-        if (activeTools.image) {
-            // Check if current model supports image generation
+        if (capturedTools.image) {
             const currentModelCaps = availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities;
             if (!currentModelCaps?.imageGeneration) {
-                // Fallback to a valid image generation model
-                targetModelId = 'google/gemini-2.0-flash-exp:free'; // Gemini 2.0 Flash supports image generation
+                targetModelId = 'google/gemini-2.0-flash-exp:free'; // Fallback to a visual model
             }
         }
 
         try {
-            const currentModel = AVAILABLE_MODELS.find(m => m.id === selectedModelId);
-            const provider = currentModel?.provider || 'Google';
-
-            // Resolve Internal ID to API Model ID
-            // For dynamic models, selectedModelId is already the API ID (e.g. google/gemini...)
-            // For static models, we might need to look it up, but our new logic sets id = modelId for dynamic ones.
-            // However, let's keep the lookup for safety if we fallback to static.
+            // Identify API Model ID
             const targetModelDef = availableAndHealthyModels.find(m => m.id === targetModelId);
             const apiModelId = targetModelDef?.modelId || targetModelId;
 
-            // Generate AI response
-            // Read User Settings from LocalStorage (Frontend Source of Truth)
+            // Load User Profile from LocalStorage
             const userProfile = {
                 nickname: localStorage.getItem('drgpt_nickname') || undefined,
                 specialty: localStorage.getItem('drgpt_specialty') === 'Outra'
@@ -432,61 +460,59 @@ function AppContent() {
             };
 
             const currentChatMessages = chats.find(c => c.id === activeChatId)?.messages || [];
-            const updatedHistory = [...currentChatMessages, userMessage];
+            // Filter out the optimistic messages we just added to avoid duplication in history
+            const historyForStream = currentChatMessages.filter(m => m.id !== userMessage.id && m.id !== tempAiMessageId);
+            const updatedHistory = [...historyForStream, userMessage];
 
+            console.log('📡 API: Chamando endpoint REAL', { model: apiModelId, tools: capturedTools });
+
+            // 7. REAL API CALL (UNCOMMENTED AND FIXED)
             const fullResponse = await streamChatResponse(
                 apiModelId,
                 updatedHistory,
-                messageContent, // ✅ Use captured content, not cleared input!
+                messageContent,
                 (chunk) => {
+                    // Update UI on every chunk received
                     setChats(prev => prev.map(c => c.id === activeChatId ? {
                         ...c,
                         messages: c.messages.map(m => m.id === tempAiMessageId ? { ...m, content: m.content + chunk } : m)
                     } : c));
                 },
                 selectedAgentId ? agents.find(a => a.id === selectedAgentId)?.systemPrompt : undefined,
-                { webSearch: activeTools.web, imageGeneration: activeTools.image },
+                { webSearch: capturedTools.web, imageGeneration: capturedTools.image },
                 activeChatId,
-                userProfile // Pass the profile data
+                userProfile
             );
 
-            // Save AI message
+            console.log('✅ RESPOSTA: Recebida completa');
+
+            // 8. Finalize Message (Remove Streaming flag)
             const aiMessage: Message = {
                 id: tempAiMessageId,
                 role: Role.MODEL,
-                content: fullResponse,
+                content: fullResponse, // Ensure we use the full response returned
                 timestamp: Date.now(),
-                modelId: selectedModelId
+                modelId: selectedModelId,
+                isStreaming: false
             };
 
-            // Final update to remove streaming flag and ensure content is correct
             setChats(prev => prev.map(c => c.id === activeChatId ? {
                 ...c,
-                messages: c.messages.map(m => m.id === tempAiMessageId ? { ...aiMessage, isStreaming: false } : m)
+                messages: c.messages.map(m => m.id === tempAiMessageId ? aiMessage : m)
             } : c));
 
-            // Persist chat
-            const updatedChat = chats.find(c => c.id === activeChatId);
-            if (updatedChat) {
-                // Manually construct the updated chat object to ensure we save the latest state
-                const chatToSave = {
-                    ...updatedChat,
-                    messages: [...updatedChat.messages, userMessage, { ...aiPlaceholderMessage, content: fullResponse, isStreaming: false }]
-                };
-                // Messages are saved individually via saveMessage and streamChatResponse
-                // We only need to update the title if it changed (which happens on first message)
-                if (isFirstMessage) {
-                    updateChat(activeChatId, { title: chatToSave.title, updatedAt: Date.now() });
-                } else {
-                    updateChat(activeChatId, { updatedAt: Date.now() });
-                }
+            // 9. Persist Chat Update (Updated At)
+            if (isFirstMessage) {
+                updateChat(activeChatId, { title: aiMessage.content.slice(0, 30) + '...', updatedAt: Date.now() });
+            } else {
+                updateChat(activeChatId, { updatedAt: Date.now() });
             }
 
         } catch (error) {
             console.error('Error generating response:', error);
             setChats(prev => prev.map(c => c.id === activeChatId ? {
                 ...c,
-                messages: c.messages.map(m => m.id === tempAiMessageId ? { ...m, content: "Desculpe, ocorreu um erro ao processar sua solicitação.", isStreaming: false } : m)
+                messages: c.messages.map(m => m.id === tempAiMessageId ? { ...m, content: "Erro de conexão com o Dr. GPT. Tente novamente.", isStreaming: false } : m)
             } : c));
         } finally {
             setIsGenerating(false);
