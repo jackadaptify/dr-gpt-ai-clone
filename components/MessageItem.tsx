@@ -117,25 +117,25 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
           <div className="prose dark:prose-invert prose-p:leading-7 prose-pre:bg-surface prose-pre:shadow-inner-depth prose-pre:border prose-pre:border-borderLight prose-pre:rounded-xl max-w-none text-[15px] text-textMain font-normal tracking-wide">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
-              urlTransform={(value) => value} // Allow all URLs including data:
               components={{
                 img({ node, ...props }) {
+                  const imgProps = props as any; // 🔧 FIX: Cast to any to avoid TS errors with react-markdown types
                   return (
                     <span className="relative inline-block group/image my-4">
                       <img
-                        {...props}
+                        {...imgProps}
                         loading="lazy" // 🔧 FIX: Native lazy loading
                         decoding="async" // 🔧 FIX: Async decode to prevent blocking
                         className="max-w-full h-auto rounded-lg shadow-md border border-borderLight"
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';
-                          console.error("Image load error:", props.src);
+                          console.error("Image load error:", imgProps.src);
                         }}
                       />
                       {/* Download button overlay */}
-                      {props.src && props.src.startsWith('data:image') && (
+                      {imgProps.src && imgProps.src.startsWith('data:image') && (
                         <button
-                          onClick={() => handleDownloadImage(props.src || '', props.alt)}
+                          onClick={() => handleDownloadImage(imgProps.src || '', imgProps.alt)}
                           className="absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-all duration-200 bg-surface/90 backdrop-blur-sm border border-borderLight rounded-lg p-2 shadow-lg hover:bg-surfaceHighlight hover:scale-110 active:scale-95"
                           title="Baixar imagem"
                           aria-label="Baixar imagem"

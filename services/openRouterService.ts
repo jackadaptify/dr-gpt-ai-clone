@@ -324,32 +324,13 @@ export interface OpenRouterModel {
 }
 
 export const fetchOpenRouterModels = async (): Promise<OpenRouterModel[]> => {
-    // This still exposes the key if we use it here. 
-    // Ideally we should proxy this too.
-    // For now, let's return an empty list or a warning if no key is present,
-    // but we won't break the build.
-    const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-    if (!apiKey) return [];
+    // SECURITY FIX: Removed client-side API key usage.
+    // For MVP, we will rely on the static AVAILABLE_MODELS list in types.ts
+    // or return an empty list here to force fallback to static models.
 
-    try {
-        const response = await fetch("https://openrouter.ai/api/v1/models", {
-            headers: {
-                "Authorization": `Bearer ${apiKey}`,
-                "HTTP-Referer": siteUrl,
-                "X-Title": siteName,
-            }
-        });
+    // If we really need dynamic models later, we must implement a Supabase Edge Function
+    // to proxy this request (e.g., /functions/v1/openrouter-models).
 
-        if (!response.ok) return [];
-
-        const data = await response.json();
-        return (data.data as OpenRouterModel[]).map(model => ({
-            id: model.id,
-            name: model.name,
-        }));
-
-    } catch (error) {
-        console.error("Error fetching OpenRouter models:", error);
-        return [];
-    }
+    console.log("Using static model list for security.");
+    return [];
 };
