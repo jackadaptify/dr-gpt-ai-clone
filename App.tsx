@@ -198,17 +198,22 @@ function AppContent() {
     const activeModelList = dynamicModels.length > 0 ? dynamicModels : AVAILABLE_MODELS;
 
     const availableAndHealthyModels = activeModelList.filter(m => {
-        // STRICT CURATION: Only show models that are in the enabledModels list
-        // If enabledModels is empty (first run), we might want to show defaults or nothing.
-        // Let's assume if it's empty, we show nothing or a default set.
-        // But the requirement is "Whitelist". So if it's not in the list, it's out.
+        // 🔧 FIX: Disable strict filtering to ensure models appear on Vercel
+        // The previous logic was hiding models that:
+        // 1. Weren't in the initial whitelist (enabledModels)
+        // 2. Failed the health check (e.g. 429 on free models)
 
+        // We want to show everything for now.
+        return true;
+
+        /* 
         const isEnabled = enabledModels.includes(m.id);
         if (!isEnabled) return false;
 
-        const health = modelHealth.find(h => h.id === m.id || h.id === m.modelId);
+        const health = modelHealthService.find(h => h.id === m.id || h.id === m.modelId);
         const isHealthy = health ? health.status !== 'offline' : true;
         return isHealthy;
+        */
     });
 
     // Load enabled models
