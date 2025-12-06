@@ -40,27 +40,10 @@ export const createOpenRouterChatStream = async (
         // Add new message
         messages.push({ role: 'user', content: newMessage });
 
-        // Invoke Supabase Edge Function
-        const { data, error } = await supabase.functions.invoke('openrouter-chat', {
-            body: {
-                model: modelName,
-                messages: messages,
-                systemPrompt: systemPrompt
-            },
-        });
-
-        if (error) throw error;
-
-        // The Edge Function returns a stream, but supabase-js invoke might buffer it if not handled carefully.
-        // However, for true streaming with supabase-js v2, we often need to access the raw response 
-        // or use a specific pattern. 
-        // Actually, supabase.functions.invoke returns a `data` which is the parsed JSON or Blob.
-        // To get a stream, we might need to use the raw URL if the SDK doesn't support it easily yet 
-        // or if it returns a ReadableStream.
-
-        // Let's try to handle 'data' as a stream if possible, but usually 'invoke' awaits the response.
-        // FIX: 'invoke' buffers by default. We need to use 'responseType: "stream"' if supported 
-        // or just use fetch directly to the function URL.
+        // Invoke Supabase Edge Function - REMOVED REDUNDANT CALL
+        // The previous call to supabase.functions.invoke was causing a double execution.
+        // It was also failing to handle the stream correctly, leading to 500 errors or timeouts.
+        // We now rely solely on the direct fetch below which is properly configured for streaming.
 
         // Using raw fetch to Supabase Function URL for reliable streaming
         const { data: { session } } = await supabase.auth.getSession();
