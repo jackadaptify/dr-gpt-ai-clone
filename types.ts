@@ -39,18 +39,32 @@ export interface Folder {
   icon?: React.ReactNode;
 }
 
+export interface SubscriptionPlan {
+  id: string;
+  slug: string;
+  name: string;
+  price_cents: number;
+  currency: string;
+  features: Record<string, any>;
+  is_active: boolean;
+}
+
 export interface User {
   id: string;
   email: string;
   full_name?: string;
   avatar_url?: string;
   role?: 'user' | 'admin';
+  billing_plan_id?: string;
+  billing_status?: string;
+  billing_current_period_end?: string;
+  plan?: SubscriptionPlan; // Populated via join or separate fetch
 }
 
 export interface Agent {
   id: string;
   name: string;
-  role: string;
+  role: string; // Restored role
   description: string;
   icon: string;
   systemPrompt: string;
