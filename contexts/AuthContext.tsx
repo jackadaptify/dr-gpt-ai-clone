@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { User } from '../types';
 import { authService } from '../services/authService';
+import { planService } from '../services/planService';
 import { supabase } from '../lib/supabase';
 
 interface AuthContextType {
@@ -33,10 +34,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     console.error('AuthContext: Error fetching profile:', error);
                 }
 
+                // Fetch plan details
+                const plan = await planService.getUserPlan(session.user.id);
+
                 // Explicitly merge role to ensure it overrides session role
                 const mergedUser = {
                     ...session.user,
                     ...profile,
+                    plan, // Add plan to user object
                     role: profile?.role || session.user.role // Prefer profile role
                 };
 
@@ -59,9 +64,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
                 if (error) console.error('AuthContext: Error fetching profile (auth change):', error);
 
+                // Fetch plan details
+                const plan = await planService.getUserPlan(session.user.id);
+
                 const mergedUser = {
                     ...session.user,
                     ...profile,
+                    plan, // Add plan to user object
                     role: profile?.role || session.user.role // Prefer profile role
                 };
 
