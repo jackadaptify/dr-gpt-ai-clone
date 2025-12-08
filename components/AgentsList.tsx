@@ -37,8 +37,12 @@ const AgentsList: React.FC<AgentsListProps> = ({ onSelectAgent, isDarkMode, agen
                                 : 'hover:bg-black/5 text-gray-600 hover:text-gray-900'}
                         `}
                     >
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${agent.color || 'from-gray-500 to-gray-700'} text-white shadow-sm group-hover:scale-105 transition-transform`}>
-                            {getIcon(agent.icon)}
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${agent.color || 'from-gray-500 to-gray-700'} text-white shadow-sm group-hover:scale-105 transition-transform overflow-hidden`}>
+                            {agent.avatarUrl ? (
+                                <img src={agent.avatarUrl} alt={agent.name} className="w-full h-full object-cover" />
+                            ) : (
+                                getIcon(agent.icon)
+                            )}
                         </div>
                         <div className="flex-1 min-w-0">
                             <div className={`text-sm font-semibold truncate ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>

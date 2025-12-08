@@ -260,8 +260,22 @@ function AppContent() {
                 setChats(loadedChats);
             });
 
-            // Load active agents
+            // Load active agents initially
             agentService.getActiveAgents().then(setAgents).catch(console.error);
+
+            // Reload agents when tab becomes visible (e.g. returning from Admin)
+            const handleVisibilityChange = () => {
+                if (document.visibilityState === 'visible') {
+                    console.log('👀 Tab visible: Reloading agents...');
+                    agentService.getActiveAgents().then(setAgents).catch(console.error);
+                }
+            };
+
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            return () => {
+                document.removeEventListener('visibilitychange', handleVisibilityChange);
+            };
         }
     }, [session?.user?.id]); // 🔧 FIX: Only reload if User ID changes
 
