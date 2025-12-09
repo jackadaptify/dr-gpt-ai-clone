@@ -701,34 +701,27 @@ function AppContent() {
                     {!activeChat || activeChat.messages.length === 0 ? (
                         // Welcome Screen with 3D Cards
                         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-4xl w-full animate-in fade-in zoom-in-95 duration-500">
-                            <div className="relative w-24 h-24 mb-8 group cursor-default">
-                                {/* 3D Logo Effect - Dark Mode Only */}
-                                {isDarkMode && <div className="absolute inset-0 bg-emerald-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>}
-                                <div className={`relative w-full h-full rounded-3xl flex items-center justify-center ${isDarkMode ? 'bg-surfaceHighlight shadow-card-3d border-t border-borderLight' : 'bg-surfaceHighlight'}`}>
-                                    {isDarkMode && <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>}
-                                    {/* Show Agent Icon if selected, else Dr. GPT Logo */}
-                                    {selectedAgentId ? (
-                                        agents.find(a => a.id === selectedAgentId)?.avatarUrl ? (
-                                            <img
-                                                src={agents.find(a => a.id === selectedAgentId)?.avatarUrl}
-                                                alt="Agent Avatar"
-                                                className="w-full h-full rounded-3xl object-cover"
-                                                style={{ objectPosition: agents.find(a => a.id === selectedAgentId)?.avatarPosition || 'center' }}
-                                            />
-                                        ) : (
-                                            <div className={`w-full h-full rounded-3xl flex items-center justify-center bg-gradient-to-br ${agents.find(a => a.id === selectedAgentId)?.color || 'from-emerald-500 to-teal-500'}`}>
-                                                <IconBrain className="w-12 h-12 text-white" />
-                                            </div>
-                                        )
-                                    ) : (
-                                        <span className={`text-5xl font-black bg-clip-text text-transparent drop-shadow-lg ${isDarkMode ? 'bg-gradient-to-br from-textMain to-textMuted' : 'bg-textMain'}`}>D</span>
-                                    )}
-                                </div>
-                            </div>
 
-                            <h2 className="text-4xl md:text-5xl font-bold text-textMain mb-6 tracking-tight drop-shadow-2xl">
-                                {selectedAgentId ? agents.find(a => a.id === selectedAgentId)?.name : 'DR'} <span className={`text-transparent bg-clip-text ${isDarkMode ? 'bg-gradient-to-r from-emerald-400 to-teal-200' : 'bg-textMain'}`}>{!selectedAgentId && 'GPT'}</span>
-                            </h2>
+
+                            <h1 className="text-4xl md:text-6xl font-extrabold text-textMain mb-6 tracking-tight drop-shadow-2xl">
+                                {selectedAgentId ? (
+                                    <>
+                                        <span className={`text-transparent bg-clip-text ${isDarkMode ? 'bg-gradient-to-r from-emerald-400 to-teal-200' : 'bg-gradient-to-r from-emerald-600 to-teal-500'}`}>
+                                            Olá, Doutor.
+                                        </span>
+                                        <br />
+                                        <span className="text-2xl md:text-4xl font-bold text-textMuted mt-2 block">
+                                            Sou o {agents.find(a => a.id === selectedAgentId)?.name}
+                                        </span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <span className={`text-transparent bg-clip-text ${isDarkMode ? 'bg-gradient-to-r from-emerald-400 to-teal-200' : 'bg-gradient-to-r from-emerald-600 to-teal-500'}`}>
+                                            Olá, Doutor.
+                                        </span>
+                                    </>
+                                )}
+                            </h1>
                             <p className="text-lg text-textMuted mb-12 max-w-xl leading-relaxed font-medium">
                                 {selectedAgentId ? agents.find(a => a.id === selectedAgentId)?.description : 'Seu hub de inteligência avançada.'}
                             </p>
@@ -743,28 +736,20 @@ function AppContent() {
                                         <button
                                             key={i}
                                             onClick={() => setInput(item.text || item.title)}
-                                            className={`relative p-5 rounded-2xl text-left group transition-all duration-300 transform hover:-translate-y-1 flex flex-col gap-3 h-full
+                                            className={`relative p-4 rounded-2xl text-left group transition-all duration-300 transform hover:-translate-y-1 flex items-center gap-4 h-full
                                 ${isDarkMode
-                                                    ? 'bg-surface border border-borderLight shadow-card-3d hover:shadow-card-3d-hover hover:border-emerald-500/30'
-                                                    : 'bg-surface border border-borderLight hover:border-emerald-400 hover:shadow-md'}
+                                                    ? 'bg-[#18181b] hover:bg-[#27272a] shadow-lg hover:shadow-emerald-500/10'
+                                                    : 'bg-white border border-gray-100 hover:border-emerald-400 hover:shadow-md'}
                                 `}
                                         >
                                             {isDarkMode && <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>}
 
-                                            <div className="flex items-center gap-3">
-                                                <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-surfaceHighlight text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
-                                                    <IconComponent size={20} />
-                                                </div>
-                                                <h3 className={`font-bold text-sm transition-colors ${isDarkMode ? 'text-textMain group-hover:text-emerald-400' : 'text-textMain'}`}>
-                                                    {item.title}
-                                                </h3>
+                                            <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-surfaceHighlight text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                <IconComponent size={24} />
                                             </div>
-
-                                            {item.text && (
-                                                <p className={`text-xs line-clamp-2 ${isDarkMode ? 'text-textMuted' : 'text-gray-500'}`}>
-                                                    {item.text}
-                                                </p>
-                                            )}
+                                            <h3 className={`font-bold text-base md:text-lg transition-colors ${isDarkMode ? 'text-textMain group-hover:text-emerald-400' : 'text-textMain'}`}>
+                                                {item.title}
+                                            </h3>
                                         </button>
                                     );
                                 })}
@@ -811,16 +796,16 @@ function AppContent() {
                             )}
 
                             {/* The "Carved" Input Slot */}
-                            <div className={`relative rounded-[28px] overflow-hidden ${isDarkMode ? 'bg-surfaceHighlight shadow-inner-depth border border-borderLight' : 'bg-surface border border-borderLight shadow-sm'}`}>
+                            <div className={`relative rounded-[28px] overflow-hidden transition-all duration-300 ${isDarkMode ? 'bg-[#18181b] border border-white/10 shadow-[0px_10px_30px_rgba(0,0,0,0.5)] hover:shadow-[0px_10px_30px_rgba(16,185,129,0.1)]' : 'bg-surface border border-borderLight shadow-sm hover:border-emerald-400'}`}>
                                 <textarea
                                     ref={textareaRef}
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     onKeyDown={handleKeyDown}
                                     placeholder={isGenerating ? "Aguarde a resposta..." : "Pergunte algo ao Dr. GPT..."}
-                                    className={`w-full bg-transparent text-textMain placeholder-textMuted text-[15px] md:text-base px-6 py-4 max-h-48 overflow-y-auto resize-none outline-none transition-opacity duration-200 ${isGenerating ? 'opacity-60 cursor-wait' : 'opacity-100'}`}
+                                    className={`w-full bg-transparent text-textMain placeholder-textMuted text-[16px] md:text-lg px-6 py-5 max-h-48 overflow-y-auto resize-none outline-none transition-opacity duration-200 ${isGenerating ? 'opacity-60 cursor-wait' : 'opacity-100'}`}
                                     rows={1}
-                                    style={{ minHeight: '60px' }}
+                                    style={{ minHeight: '72px' }}
                                     readOnly={isGenerating}
                                 />
 

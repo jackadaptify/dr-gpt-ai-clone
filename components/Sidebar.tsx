@@ -52,13 +52,9 @@ export default function Sidebar({
       `}>
         {/* Header */}
         <div className="p-4 space-y-4">
-          <div className="flex items-center gap-3 select-none">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-lg border-t border-white/20 ${isDarkMode ? 'bg-gradient-to-br from-emerald-500 to-emerald-700' : 'bg-emerald-600'}`}>
-              <span className="font-bold text-white text-sm">D</span>
-            </div>
-            <h1 className="text-lg font-bold tracking-tight text-textMain drop-shadow-md">
-              Dr. GPT <span className="text-emerald-500 text-xs align-top">PRO</span>
-            </h1>
+          <div className="flex items-center gap-1 py-4 select-none px-2">
+            <span className="text-2xl font-black tracking-wide text-white">DOUTOR</span>
+            <span className="text-2xl font-light tracking-wide text-gray-400">GPT</span>
           </div>
 
           <button
