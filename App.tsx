@@ -777,9 +777,11 @@ function AppContent() {
                     ) : (
                         // Message List
                         <div className="w-full flex-1 pb-48 pt-20">
-                            {activeChat.messages.map(msg => (
-                                <MessageItem key={msg.id} message={msg} isDarkMode={isDarkMode} />
-                            ))}
+                            <div className="max-w-3xl mx-auto">
+                                {activeChat.messages.map(msg => (
+                                    <MessageItem key={msg.id} message={msg} isDarkMode={isDarkMode} />
+                                ))}
+                            </div>
                             <div ref={messagesEndRef} />
                         </div>
                     )}
