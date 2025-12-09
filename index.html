@@ -167,7 +167,7 @@
       font-size: 16px;
       line-height: 1.75;
       /* O "Respiro" crucial */
-      color: #d1d5db;
+      color: #d4d4d8;
       /* Cinza claro (Zinc 300) - NÃO USE BRANCO PURO */
       -webkit-font-smoothing: antialiased;
       /* Deixa a fonte fina e chique */
@@ -178,8 +178,21 @@
     .ai-response b {
       color: #ffffff;
       /* Branco Puro para destacar */
-      font-weight: 600;
-      /* Semi-Bold */
+      font-weight: 700 !important;
+      /* BEM grosso */
+    }
+
+    /* Títulos Brancos */
+    .ai-response h1,
+    .ai-response h2,
+    .ai-response h3,
+    .ai-response h4,
+    .ai-response h5,
+    .ai-response h6 {
+      color: #ffffff !important;
+      font-weight: 700 !important;
+      margin-top: 1.5em;
+      margin-bottom: 0.5em;
     }
 
     /* Listas (Bolinhas e Números) */
@@ -193,6 +206,15 @@
     .ai-response li {
       margin-bottom: 0.5em;
       /* Espaço entre itens da lista */
+    }
+
+    /* Isso força o contraste que falta */
+    .prose strong,
+    .prose b {
+      font-weight: 700 !important;
+      /* Deixa BEM grosso */
+      color: #ffffff !important;
+      /* Branco Puro para destacar do cinza */
     }
   </style>
   <script type="importmap">
