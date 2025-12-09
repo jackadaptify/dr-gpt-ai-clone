@@ -703,6 +703,25 @@ function AppContent() {
                         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-4xl w-full animate-in fade-in zoom-in-95 duration-500">
 
 
+                            {selectedAgentId && (
+                                <div className="relative w-32 h-32 mb-8 group animate-in fade-in zoom-in-50 duration-500">
+                                    {isDarkMode && <div className="absolute inset-0 bg-emerald-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>}
+                                    <div className={`relative w-full h-full rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl ${isDarkMode ? 'bg-surfaceHighlight border border-white/10' : 'bg-white border border-gray-200'}`}>
+                                        {agents.find(a => a.id === selectedAgentId)?.avatarUrl ? (
+                                            <img
+                                                src={agents.find(a => a.id === selectedAgentId)?.avatarUrl}
+                                                alt="Agent Avatar"
+                                                className="w-full h-full object-cover"
+                                                style={{ objectPosition: agents.find(a => a.id === selectedAgentId)?.avatarPosition || 'center' }}
+                                            />
+                                        ) : (
+                                            <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${agents.find(a => a.id === selectedAgentId)?.color || 'from-emerald-500 to-teal-500'}`}>
+                                                <IconBrain className="w-12 h-12 text-white" />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
                             <h1 className="text-4xl md:text-6xl font-extrabold text-textMain mb-6 tracking-tight drop-shadow-2xl">
                                 {selectedAgentId ? (
                                     <>
