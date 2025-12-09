@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
     rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -75,7 +75,7 @@
       --bg-surface: #18181b;
       --bg-surface-highlight: #27272a;
       --border-light: transparent;
-      --text-main: #ececec;
+      --text-main: #E4E4E7;
       --text-muted: #a1a1aa;
 
       --shadow-card-3d: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -110,6 +110,7 @@
     body {
       background-color: var(--bg-background);
       color: var(--text-main);
+      font-family: 'Inter', sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       transition: background-color 0.3s ease, color 0.3s ease;

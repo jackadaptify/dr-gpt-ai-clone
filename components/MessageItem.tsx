@@ -114,114 +114,105 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
             </div>
           )}
 
-          <div className="prose dark:prose-invert prose-p:leading-7 prose-pre:bg-surface prose-pre:shadow-inner-depth prose-pre:border prose-pre:border-borderLight prose-pre:rounded-xl max-w-none text-[15px] text-textMain font-normal tracking-wide">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                img({ node, ...props }) {
-                  const imgProps = props as any; // 🔧 FIX: Cast to any to avoid TS errors with react-markdown types
-                  return (
-                    <span className="relative inline-block group/image my-4">
-                      <img
-                        {...imgProps}
-                        loading="lazy" // 🔧 FIX: Native lazy loading
-                        decoding="async" // 🔧 FIX: Async decode to prevent blocking
-                        className="max-w-full h-auto rounded-lg shadow-md border border-borderLight"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          console.error("Image load error:", imgProps.src);
-                        }}
-                      />
-                      {/* Download button overlay */}
-                      {imgProps.src && imgProps.src.startsWith('data:image') && (
-                        <button
-                          onClick={() => handleDownloadImage(imgProps.src || '', imgProps.alt)}
-                          className="absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-all duration-200 bg-surface/90 backdrop-blur-sm border border-borderLight rounded-lg p-2 shadow-lg hover:bg-surfaceHighlight hover:scale-110 active:scale-95"
-                          title="Baixar imagem"
-                          aria-label="Baixar imagem"
-                        >
-                          <DownloadIcon />
-                        </button>
-                      )}
-                    </span>
-                  );
-                },
-                // Code Blocks 3D Style
-                code({ node, className, children, ...props }) {
-                  const match = /language-(\w+)/.exec(className || '')
-                  return match ? (
-                    <div className="rounded-xl bg-surface border border-borderLight my-6 overflow-hidden shadow-2xl relative group/code">
-                      <div className="absolute top-0 left-0 w-full h-[1px] bg-white/10"></div>
-                      <div className="bg-surfaceHighlight px-4 py-2.5 text-xs text-textMuted border-b border-borderLight flex justify-between items-center shadow-sm">
-                        <div className="flex items-center gap-2">
-                          <div className="flex gap-1.5">
-                            <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/50"></div>
-                            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
-                            <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/50"></div>
-                          </div>
-                          <span className="font-mono font-medium ml-2 text-gray-500">{match[1]}</span>
-                        </div>
-                        <span className="text-[10px] uppercase opacity-50 font-bold tracking-wider">Terminal</span>
-                      </div>
-                      <pre className="p-5 overflow-x-auto text-sm font-mono leading-relaxed custom-scrollbar bg-black/5 shadow-inner">
-                        <code className={className} {...props}>
-                          {children}
-                        </code>
-                      </pre>
-                    </div>
-                  ) : (
-                    <code className="bg-surfaceHighlight px-1.5 py-0.5 rounded-md border border-borderLight text-sm font-mono text-emerald-500 shadow-sm" {...props}>
-                      {children}
-                    </code>
-                  )
-                },
-                // Tables 3D
-                table({ children }) {
-                  return (
-                    <div className="my-6 w-full overflow-hidden rounded-xl border border-borderLight overflow-x-auto shadow-card-3d bg-surface">
-                      <table className="min-w-full divide-y divide-borderLight text-sm text-left">
-                        {children}
-                      </table>
-                    </div>
-                  );
-                },
-                thead({ children }) {
-                  return (
-                    <thead className="bg-surfaceHighlight text-textMain font-bold shadow-sm">
-                      {children}
-                    </thead>
-                  );
-                },
-                tr({ children }) {
-                  return (
-                    <tr className="transition-colors hover:bg-surfaceHighlight/50">
-                      {children}
-                    </tr>
-                  );
-                },
-                p({ children }) {
-                  return <p className="mb-4 last:mb-0 text-textMain/90">{children}</p>
-                },
-                strong({ children }) {
-                  return <strong className="font-bold text-textMain">{children}</strong>
-                },
-                ul({ children }) {
-                  return <ul className="list-disc pl-4 space-y-2 mb-4 marker:text-emerald-500">{children}</ul>
-                },
-                ol({ children }) {
-                  return <ol className="list-decimal pl-4 space-y-2 mb-4 marker:text-emerald-500">{children}</ol>
-                }
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
-            {message.isStreaming && (
-              <div className="flex items-center gap-1 mt-2">
-                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></span>
+          <div className="prose dark:prose-invert leading-relaxed prose-p:leading-relaxed prose-li:leading-relaxed prose-pre:bg-surface prose-pre:shadow-inner-depth prose-pre:border prose-pre:border-borderLight prose-pre:rounded-xl max-w-none text-[15px] text-textMain font-normal tracking-wide">
+            {/* Thinking State */}
+            {message.isStreaming && !message.content && (
+              <div className="flex items-center gap-2 text-textMuted animate-pulse">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></div>
+                <span className="text-sm font-medium">Pensando...</span>
               </div>
             )}
+
+            <div className="relative">
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  img({ node, ...props }) {
+                    const imgProps = props as any; // 🔧 FIX: Cast to any to avoid TS errors with react-markdown types
+                    return (
+                      <span className="relative inline-block group/image my-4">
+                        <img
+                          {...imgProps}
+                          loading="lazy" // 🔧 FIX: Native lazy loading
+                          decoding="async" // 🔧 FIX: Async decode to prevent blocking
+                          className="max-w-full h-auto rounded-lg shadow-md border border-borderLight"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            console.error("Image load error:", imgProps.src);
+                          }}
+                        />
+                        {/* Download button overlay */}
+                        {imgProps.src && imgProps.src.startsWith('data:image') && (
+                          <button
+                            onClick={() => handleDownloadImage(imgProps.src || '', imgProps.alt)}
+                            className="absolute top-2 right-2 opacity-0 group-hover/image:opacity-100 transition-all duration-200 bg-surface/90 backdrop-blur-sm border border-borderLight rounded-lg p-2 shadow-lg hover:bg-surfaceHighlight hover:scale-110 active:scale-95"
+                            title="Baixar imagem"
+                            aria-label="Baixar imagem"
+                          >
+                            <DownloadIcon />
+                          </button>
+                        )}
+                      </span>
+                    );
+                  },
+                  // Code Blocks 3D Style
+                  code({ node, className, children, ...props }) {
+                    const match = /language-(\w+)/.exec(className || '')
+                    return match ? (
+                      <div className="rounded-xl bg-surface border border-borderLight my-6 overflow-hidden shadow-2xl relative group/code">
+                        <div className="absolute top-0 left-0 w-full h-[1px] bg-white/10"></div>
+                        <div className="bg-surfaceHighlight px-4 py-2.5 text-xs text-textMuted border-b border-borderLight flex justify-between items-center shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="flex gap-1.5">
+                              <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/50"></div>
+                              <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
+                              <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/50"></div>
+                            </div>
+                            <span className="font-mono font-medium ml-2 text-gray-500">{match[1]}</span>
+                          </div>
+                          <span className="text-[10px] uppercase opacity-50 font-bold tracking-wider">Terminal</span>
+                        </div>
+                        <pre className="p-5 overflow-x-auto text-sm font-mono leading-relaxed custom-scrollbar bg-black/5 shadow-inner">
+                          <code className={className} {...props}>
+                            {children}
+                          </code>
+                        </pre>
+                      </div>
+                    ) : (
+                      <code className="bg-surfaceHighlight px-1.5 py-0.5 rounded-md border border-borderLight text-sm font-mono text-emerald-500 shadow-sm" {...props}>
+                        {children}
+                      </code>
+                    )
+                  },
+                  // Tables 3D
+                  table({ children }) {
+                    return (
+                      <div className="my-6 w-full overflow-hidden rounded-xl border border-borderLight overflow-x-auto shadow-card-3d bg-surface">
+                        <table className="min-w-full divide-y divide-borderLight text-sm text-left">
+                          {children}
+                        </table>
+                      </div>
+                    );
+                  },
+                  thead({ children }) {
+                    return (
+                      <thead className="bg-surfaceHighlight text-textMain font-bold shadow-sm">
+                        {children}
+                      </thead>
+                    );
+                  },
+                  tr({ children }) {
+                    return (
+                      <tr className="transition-colors hover:bg-surfaceHighlight/50">
+                        {children}
+                      </tr>
+                    );
+                  }
+                }}
+              >
+                {message.content + (message.isStreaming ? ' ▍' : '')}
+              </ReactMarkdown>
+            </div>
           </div>
         </div>
       </div>
