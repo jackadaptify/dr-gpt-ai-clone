@@ -112,7 +112,8 @@ export const AgentManager: React.FC = () => {
                             iceBreakers: agentToSave.iceBreakers,
                             capabilities: agentToSave.capabilities,
                             knowledgeFiles: agentToSave.knowledgeFiles,
-                            avatarUrl: agentToSave.avatarUrl
+                            avatarUrl: agentToSave.avatarUrl,
+                            avatarPosition: agentToSave.avatarPosition
                         };
 
                         try {

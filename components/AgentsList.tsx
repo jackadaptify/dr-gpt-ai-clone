@@ -31,7 +31,7 @@ const AgentsList: React.FC<AgentsListProps> = ({ onSelectAgent, isDarkMode, agen
                     <button
                         key={agent.id}
                         onClick={() => onSelectAgent(agent)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left group border border-transparent
+                        className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-xl transition-all text-left group border border-transparent
                         ${isDarkMode
                                 ? 'hover:bg-white/5 hover:border-borderLight text-textMuted hover:text-textMain'
                                 : 'hover:bg-black/5 text-gray-600 hover:text-gray-900'}
@@ -39,13 +39,18 @@ const AgentsList: React.FC<AgentsListProps> = ({ onSelectAgent, isDarkMode, agen
                     >
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-gradient-to-br ${agent.color || 'from-gray-500 to-gray-700'} text-white shadow-sm group-hover:scale-105 transition-transform overflow-hidden`}>
                             {agent.avatarUrl ? (
-                                <img src={agent.avatarUrl} alt={agent.name} className="w-full h-full object-cover" />
+                                <img
+                                    src={agent.avatarUrl}
+                                    alt={agent.name}
+                                    className="w-full h-full object-cover"
+                                    style={{ objectPosition: agent.avatarPosition || 'center' }}
+                                />
                             ) : (
                                 getIcon(agent.icon)
                             )}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className={`text-sm font-semibold truncate ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
+                            <div className={`text-sm font-semibold whitespace-normal leading-tight ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>
                                 {agent.name}
                             </div>
                             <div className="text-[10px] truncate opacity-60">

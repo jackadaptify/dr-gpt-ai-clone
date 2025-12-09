@@ -145,26 +145,50 @@ export const AgentBuilder: React.FC<AgentBuilderProps> = ({ initialAgent, onSave
                         <div className="flex items-center gap-4">
                             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center bg-gradient-to-br ${agent.color || 'from-gray-500 to-gray-700'} shadow-lg overflow-hidden relative group`}>
                                 {agent.avatarUrl ? (
-                                    <img src={agent.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                                    <img
+                                        src={agent.avatarUrl}
+                                        alt="Avatar"
+                                        className="w-full h-full object-cover"
+                                        style={{ objectPosition: agent.avatarPosition || 'center' }}
+                                    />
                                 ) : (
                                     <Icons.IconRobot className="w-8 h-8 text-white" />
                                 )}
-                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" onClick={() => {
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer flex-col gap-1" onClick={() => {
                                     const url = prompt("Enter Avatar URL:");
                                     if (url) setAgent({ ...agent, avatarUrl: url });
                                 }}>
                                     <Icons.IconEdit className="w-4 h-4 text-white" />
+                                    <span className="text-[8px] text-white font-bold">URL</span>
                                 </div>
                             </div>
                             <div className="flex-1">
-                                <label className="block text-xs font-bold text-textMuted uppercase tracking-wider mb-1">Name</label>
-                                <input
-                                    type="text"
-                                    value={agent.name}
-                                    onChange={e => setAgent({ ...agent, name: e.target.value })}
-                                    className="w-full bg-transparent text-xl font-bold text-textMain placeholder-textMuted/50 outline-none border-b border-transparent focus:border-emerald-500 transition-colors"
-                                    placeholder="Name your GPT"
-                                />
+                                <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                        <label className="block text-xs font-bold text-textMuted uppercase tracking-wider mb-1">Name</label>
+                                        <input
+                                            type="text"
+                                            value={agent.name}
+                                            onChange={e => setAgent({ ...agent, name: e.target.value })}
+                                            className="w-full bg-transparent text-xl font-bold text-textMain placeholder-textMuted/50 outline-none border-b border-transparent focus:border-emerald-500 transition-colors"
+                                            placeholder="Name your GPT"
+                                        />
+                                    </div>
+                                    <div className="ml-4">
+                                        <label className="block text-xs font-bold text-textMuted uppercase tracking-wider mb-1">Position</label>
+                                        <select
+                                            value={agent.avatarPosition || 'center'}
+                                            onChange={e => setAgent({ ...agent, avatarPosition: e.target.value })}
+                                            className="bg-surfaceHighlight border border-borderLight rounded-lg px-2 py-1 text-xs text-textMain outline-none focus:border-emerald-500"
+                                        >
+                                            <option value="center">Center</option>
+                                            <option value="top">Top</option>
+                                            <option value="bottom">Bottom</option>
+                                            <option value="left">Left</option>
+                                            <option value="right">Right</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div>

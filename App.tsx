@@ -713,6 +713,7 @@ function AppContent() {
                                                 src={agents.find(a => a.id === selectedAgentId)?.avatarUrl}
                                                 alt="Agent Avatar"
                                                 className="w-full h-full rounded-3xl object-cover"
+                                                style={{ objectPosition: agents.find(a => a.id === selectedAgentId)?.avatarPosition || 'center' }}
                                             />
                                         ) : (
                                             <div className={`w-full h-full rounded-3xl flex items-center justify-center bg-gradient-to-br ${agents.find(a => a.id === selectedAgentId)?.color || 'from-emerald-500 to-teal-500'}`}>

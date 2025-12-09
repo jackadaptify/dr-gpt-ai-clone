@@ -76,6 +76,7 @@ export interface Agent {
   capabilities?: string[]; // New: Enabled capabilities
   knowledgeFiles?: { name: string; type: string; url: string }[]; // New: Uploaded files
   avatarUrl?: string; // New: Custom avatar URL
+  avatarPosition?: string; // New: CSS object-position
 }
 
 export interface ModelCapabilities {

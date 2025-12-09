@@ -16,7 +16,8 @@ const mapToAgent = (row: any): Agent => ({
     iceBreakers: row.ice_breakers || [],
     capabilities: row.capabilities || [],
     knowledgeFiles: row.knowledge_files || [],
-    avatarUrl: row.avatar_url
+    avatarUrl: row.avatar_url,
+    avatarPosition: row.avatar_position || 'center'
 });
 
 // Helper to map Agent type to DB row
@@ -45,6 +46,10 @@ const mapToDb = (agent: Partial<Agent>) => {
     if (agent.avatarUrl) {
         dbObj.avatar_url = agent.avatarUrl;
         delete dbObj.avatarUrl;
+    }
+    if (agent.avatarPosition) {
+        dbObj.avatar_position = agent.avatarPosition;
+        delete dbObj.avatarPosition;
     }
     // Remove fields not in DB
     delete dbObj.role;
