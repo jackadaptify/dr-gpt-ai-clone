@@ -5,7 +5,7 @@ import { ChatSession, Message, Role, AVAILABLE_MODELS, Folder, Agent, AVAILABLE_
 import { streamChatResponse, saveMessage, loadChatHistory, createChat, updateChat, loadMessagesForChat } from './services/chatService';
 import { fetchOpenRouterModels, OpenRouterModel } from './services/openRouterService';
 import { agentService } from './services/agentService';
-import { IconMenu, IconSend, IconAttachment, IconGlobe, IconImage, IconBrain } from './components/Icons';
+import { IconMenu, IconSend, IconAttachment, IconGlobe, IconImage, IconBrain, IconPlus } from './components/Icons';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthPage from './components/Auth/AuthPage';
@@ -14,6 +14,8 @@ import AdminPage from './components/Admin/AdminPage';
 import { modelHealthService, ModelHealth } from './services/modelHealthService';
 import { supabase } from './lib/supabase';
 import ModelSelector from './components/ModelSelector';
+import AttachmentMenu from './components/AttachmentMenu';
+import PromptsModal from './components/PromptsModal';
 import { Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail } from 'lucide-react';
 
 // POOL MESTRE DE SUGESTÕES
@@ -102,6 +104,9 @@ function AppContent() {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const attachmentButtonRef = useRef<HTMLButtonElement>(null);
+    const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
+    const [isPromptsModalOpen, setIsPromptsModalOpen] = useState(false);
     const scrollThrottleRef = useRef<number | null>(null); // 🔧 FIX: Throttle scroll updates
 
     const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
@@ -817,7 +822,7 @@ function AppContent() {
                             )}
 
                             {/* The "Carved" Input Slot */}
-                            <div className={`relative rounded-[28px] overflow-hidden transition-all duration-300 ${isDarkMode ? 'bg-[#18181b] border border-white/10 shadow-[0px_10px_30px_rgba(0,0,0,0.5)] hover:shadow-[0px_10px_30px_rgba(16,185,129,0.1)]' : 'bg-surface border border-borderLight shadow-sm hover:border-emerald-400'}`}>
+                            <div className={`relative rounded-[28px] overflow-visible transition-all duration-300 ${isDarkMode ? 'bg-[#18181b] border border-white/10 shadow-[0px_10px_30px_rgba(0,0,0,0.5)] hover:shadow-[0px_10px_30px_rgba(16,185,129,0.1)]' : 'bg-surface border border-borderLight shadow-sm hover:border-emerald-400'}`}>
                                 <textarea
                                     ref={textareaRef}
                                     value={input}
@@ -842,6 +847,42 @@ function AppContent() {
                                 {/* Toolbar inside the slot */}
                                 <div className="flex items-center justify-between px-4 pb-3 pt-2">
                                     <div className="flex items-center gap-2">
+                                        <div className="relative">
+                                            <AttachmentMenu
+                                                isOpen={isAttachmentMenuOpen}
+                                                onClose={() => setIsAttachmentMenuOpen(false)}
+                                                isDarkMode={isDarkMode}
+                                                triggerRef={attachmentButtonRef}
+                                                onSelect={(option) => {
+                                                    if (option === 'upload') {
+                                                        fileInputRef.current?.click();
+                                                    } else if (option === 'web_search') {
+                                                        setActiveTools(prev => ({ ...prev, web: !prev.web }));
+                                                    } else if (option === 'prompts') {
+                                                        setIsPromptsModalOpen(true);
+                                                    } else {
+                                                        console.log('Selected option:', option);
+                                                    }
+                                                }}
+                                            />
+                                            <button
+                                                ref={attachmentButtonRef}
+                                                onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
+                                                className={`
+                                                    flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border
+                                                    ${isAttachmentMenuOpen
+                                                        ? 'bg-emerald-500 text-white border-emerald-600 shadow-glow'
+                                                        : isDarkMode
+                                                            ? 'bg-surface hover:bg-surfaceHighlight text-textMuted hover:text-emerald-400 border-borderLight shadow-convex active:shadow-concave'
+                                                            : 'bg-gray-100 hover:bg-gray-200 text-gray-600 border-transparent'
+                                                    }
+                                                `}
+                                            >
+                                                <IconPlus className="w-3.5 h-3.5" />
+                                                <span>Adicionar</span>
+                                            </button>
+                                        </div>
+
                                         {(() => {
                                             const currentModel = availableAndHealthyModels.find(m => m.id === selectedModelId) || AVAILABLE_MODELS[0];
                                             const tools = [
@@ -890,20 +931,6 @@ function AppContent() {
                                     </div>
 
                                     <div className="flex items-center gap-3">
-                                        {(() => {
-                                            const currentModel = availableAndHealthyModels.find(m => m.id === selectedModelId) || AVAILABLE_MODELS[0];
-                                            if (currentModel.capabilities.vision || currentModel.capabilities.upload) {
-                                                return (
-                                                    <button
-                                                        onClick={() => fileInputRef.current?.click()}
-                                                        className="p-2 text-textMuted hover:text-textMain transition-colors"
-                                                    >
-                                                        <IconAttachment />
-                                                    </button>
-                                                );
-                                            }
-                                            return null;
-                                        })()}
                                         <button
                                             onClick={handleSendMessage}
                                             disabled={(!input.trim() && pendingAttachments.length === 0) || isGenerating}
@@ -923,6 +950,13 @@ function AppContent() {
                     </div>
                 </div>
             </div>
+
+            <PromptsModal
+                isOpen={isPromptsModalOpen}
+                onClose={() => setIsPromptsModalOpen(false)}
+                onSelectPrompt={(content) => setInput(content)}
+                isDarkMode={isDarkMode}
+            />
         </div>
     );
 }
