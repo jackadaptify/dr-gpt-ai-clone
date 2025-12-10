@@ -18,6 +18,7 @@ import AttachmentMenu from './components/AttachmentMenu';
 import PromptsModal from './components/PromptsModal';
 import ToolsMenu from './components/ToolsMenu';
 import AIScribeModal from './components/AIScribeModal';
+import AntiGlosaModal from './components/AntiGlosaModal';
 import { Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail, Mic, Pin, PinOff, Plus, Wrench, ChevronDown } from 'lucide-react';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 
@@ -149,6 +150,7 @@ function AppContent() {
     const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
     const [isPromptsModalOpen, setIsPromptsModalOpen] = useState(false);
     const [isAIScribeModalOpen, setIsAIScribeModalOpen] = useState(false);
+    const [isAntiGlosaModalOpen, setIsAntiGlosaModalOpen] = useState(false);
     const scrollThrottleRef = useRef<number | null>(null); // 🔧 FIX: Throttle scroll updates
 
     const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
@@ -966,6 +968,8 @@ function AppContent() {
                                                 onSelect={(option) => {
                                                     if (option === 'ai_scribe') {
                                                         setIsAIScribeModalOpen(true);
+                                                    } else if (option === 'anti_glosa') {
+                                                        setIsAntiGlosaModalOpen(true);
                                                     }
                                                 }}
                                                 isDarkMode={isDarkMode}
@@ -1049,6 +1053,32 @@ function AppContent() {
                 onGenerate={(text) => {
                     const prompt = `[AI SCRIBE ACTION]\n\nContexto: O médico ditou o seguinte resumo de consulta:\n"${text}"\n\nTarefa: Atue como um médico sênior escrevendo para outro médico. Seja conciso. Não use meta-comentários. Não interprete o óbvio. Transforme linguagem coloquial em termos técnicos diretamente (ex: 'dor na barriga' -> 'dor abdominal', sem explicar que trocou).\n\nIMPORTANTE: Se uma informação não estiver presente no áudio (ex: Exame Físico), simplesmente OMITA essa seção ou coloque 'Não se aplica'. Não gere listas do que 'faltou perguntar' e não peça desculpas por dados faltantes.\n\nCom base nisso, gere APENAS:\n\n1. Um Prontuário no formato SOAP (Subjetivo, Objetivo, Avaliação, Plano).\n2. Uma sugestão de Receita Médica (se mencionado medicamentos).\n3. Um texto para Atestado (se solicitado).\n\nFormato: Use markdown rico. Inicie com o título '# Resumo do Caso Clínico'. Use > Blockquotes para seções importantes. Use ### Headers para separar os documentos. Use **Bold** para destaque.`;
                     handleSendMessage(prompt, "🎤 Processando áudio do ditado...");
+                }}
+                isDarkMode={isDarkMode}
+            />
+
+            <AntiGlosaModal
+                isOpen={isAntiGlosaModalOpen}
+                onClose={() => setIsAntiGlosaModalOpen(false)}
+                onGenerate={(text) => {
+                    const prompt = `ROLE: Você é um Auditor Médico Sênior e Advogado Especialista em Direito à Saúde. Sua função é defender o médico prestador.
+
+TASK: Escreva uma CARTA DE JUSTIFICATIVA TÉCNICA (Recurso de Glosa) para uma operadora de saúde.
+
+INPUT: O usuário fornecerá o caso clínico e o motivo da negativa (ou o procedimento desejado) abaixo:
+"${text}"
+
+GUIDELINES:
+1.  **Tom de Voz:** Formal, firme, técnico e autoritativo. Não seja agressivo, seja assertivo.
+2.  **Estrutura:**
+    * Identificação do Paciente (anonimizada se não fornecida).
+    * Histórico Clínico Resumido (focando na gravidade/necessidade).
+    * Embasamento Científico (cite que o procedimento é "Padrão Ouro" na literatura se aplicável).
+    * Embasamento Legal (cite "Rol de Procedimentos da ANS" e "Lei 9.656/98" se o procedimento for de cobertura obrigatória).
+3.  **Fechamento:** "Diante do exposto, solicitamos a revisão da negativa e a autorização imediata do procedimento, sob pena de responsabilidade civil por eventuais complicações decorrentes da demora."
+
+OUTPUT FORMAT: Markdown limpo, pronto para copiar e colar em um e-mail ou word. Sem preâmbulos do tipo "Aqui está sua carta". Comece direto na carta.`;
+                    handleSendMessage(prompt, `🛡️ Gerando defesa técnica...`);
                 }}
                 isDarkMode={isDarkMode}
             />
