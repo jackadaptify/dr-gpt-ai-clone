@@ -204,10 +204,28 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
                           {children}
                         </tr>
                       );
+                    },
+                    p({ children }) {
+                      const text = String(children);
+                      const isMuted = /^(não se aplica|não avaliado|não solicitado|nenhuma|nada consta)/i.test(text) && text.length < 50;
+                      return (
+                        <p className={`mb-4 leading-relaxed ${isMuted ? 'text-zinc-500 italic opacity-70 text-sm' : ''}`}>
+                          {children}
+                        </p>
+                      );
+                    },
+                    li({ children }) {
+                      const text = String(children);
+                      const isMuted = /^(não se aplica|não avaliado|não solicitado|nenhuma|nada consta)/i.test(text) && text.length < 50;
+                      return (
+                        <li className={`leading-relaxed ${isMuted ? 'text-zinc-500 italic opacity-70 text-sm' : ''}`}>
+                          {children}
+                        </li>
+                      );
                     }
                   }}
                 >
-                  {message.content + (message.isStreaming ? ' ▍' : '')}
+                  {(message.displayContent || message.content.split(':::HIDDEN:::')[0]) + (message.isStreaming ? ' ▍' : '')}
                 </ReactMarkdown>
               </div>
             </div>

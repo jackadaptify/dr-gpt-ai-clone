@@ -16,6 +16,8 @@ import { supabase } from './lib/supabase';
 import ModelSelector from './components/ModelSelector';
 import AttachmentMenu from './components/AttachmentMenu';
 import PromptsModal from './components/PromptsModal';
+import ToolsMenu from './components/ToolsMenu';
+import AIScribeModal from './components/AIScribeModal';
 import { Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail, Mic, Pin, PinOff, Plus, Wrench, ChevronDown } from 'lucide-react';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 
@@ -142,8 +144,11 @@ function AppContent() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const attachmentButtonRef = useRef<HTMLButtonElement>(null);
+    const toolsButtonRef = useRef<HTMLButtonElement>(null);
     const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
+    const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
     const [isPromptsModalOpen, setIsPromptsModalOpen] = useState(false);
+    const [isAIScribeModalOpen, setIsAIScribeModalOpen] = useState(false);
     const scrollThrottleRef = useRef<number | null>(null); // 🔧 FIX: Throttle scroll updates
 
     const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
@@ -508,8 +513,9 @@ function AppContent() {
         setPendingAttachments(prev => prev.filter(a => a.id !== id));
     };
 
-    const handleSendMessage = async () => {
-        if (!input.trim() || isGenerating) return;
+    const handleSendMessage = async (overrideInput?: string, overrideDisplay?: string) => {
+        const textToSend = overrideInput || input;
+        if (!textToSend.trim() || isGenerating) return;
 
         let activeChatId = currentChatId;
         let isFirstMessage = false;
@@ -518,7 +524,7 @@ function AppContent() {
         if (!activeChatId) {
             const newChat: ChatSession = {
                 id: uuidv4(),
-                title: input.slice(0, 30) + (input.length > 30 ? '...' : ''),
+                title: (overrideDisplay || textToSend).slice(0, 30) + ((overrideDisplay || textToSend).length > 30 ? '...' : ''),
                 modelId: selectedModelId,
                 messages: [],
                 updatedAt: Date.now()
@@ -531,7 +537,8 @@ function AppContent() {
         }
 
         // 2. Capture State BEFORE clearing inputs
-        const messageContent = input;
+        // 🔒 SECURITY: Hide the prompt if overrideDisplay is present
+        const messageContent = overrideDisplay ? `${overrideDisplay}:::HIDDEN:::${textToSend}` : textToSend;
         const messageAttachments = [...pendingAttachments];
         const capturedTools = { ...activeTools };
 
@@ -539,6 +546,7 @@ function AppContent() {
             id: uuidv4(),
             role: Role.USER,
             content: messageContent,
+            displayContent: overrideDisplay, // Keep for optimistic UI
             timestamp: Date.now(),
             attachments: messageAttachments,
             modelId: selectedModelId
@@ -951,16 +959,32 @@ function AppContent() {
                                             </button>
                                         </div>
 
-                                        <button
-                                            onClick={() => console.log("Ferramentas em breve")}
-                                            className={`
-                                                flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
-                                                text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800
-                                            `}
-                                        >
-                                            <Wrench size={18} />
-                                            <span>Ferramentas</span>
-                                        </button>
+                                        <div className="relative">
+                                            <ToolsMenu
+                                                isOpen={isToolsMenuOpen}
+                                                onClose={() => setIsToolsMenuOpen(false)}
+                                                onSelect={(option) => {
+                                                    if (option === 'ai_scribe') {
+                                                        setIsAIScribeModalOpen(true);
+                                                    }
+                                                }}
+                                                isDarkMode={isDarkMode}
+                                                triggerRef={toolsButtonRef}
+                                            />
+                                            <button
+                                                ref={toolsButtonRef}
+                                                onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
+                                                className={`
+                                                        flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
+                                                        ${isToolsMenuOpen
+                                                        ? 'bg-zinc-700 text-white'
+                                                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}
+                                                    `}
+                                            >
+                                                <Wrench size={18} />
+                                                <span>Ferramentas</span>
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className="flex items-center gap-4">
@@ -991,18 +1015,9 @@ function AppContent() {
                                             </button>
                                         )}
 
-                                        {/* Send Button - Hidden if empty, or styled differently? Screenshot shows just icons mostly. 
-                                            But we need a send button. The screenshot implies maybe enter to send or a subtle button.
-                                            I'll keep the send button but make it minimal or only show when typing?
-                                            Actually, standard UI usually has it. I'll keep it but style it minimal.
-                                        */}
-                                        {/* Wait, the screenshot 2 shows NO send button, just the mic. 
-                                            Screenshot 4 shows a Send arrow. 
-                                            I will keep the logic to show send button if there is text.
-                                        */}
                                         {(input.trim() || pendingAttachments.length > 0) && (
                                             <button
-                                                onClick={handleSendMessage}
+                                                onClick={() => handleSendMessage()}
                                                 disabled={isGenerating}
                                                 className={`transition-colors duration-200 ${isDarkMode ? 'text-white' : 'text-black'}`}
                                             >
@@ -1023,6 +1038,18 @@ function AppContent() {
                 isOpen={isPromptsModalOpen}
                 onClose={() => setIsPromptsModalOpen(false)}
                 onSelectPrompt={(content) => setInput(content)}
+                isDarkMode={isDarkMode}
+            />
+
+
+
+            <AIScribeModal
+                isOpen={isAIScribeModalOpen}
+                onClose={() => setIsAIScribeModalOpen(false)}
+                onGenerate={(text) => {
+                    const prompt = `[AI SCRIBE ACTION]\n\nContexto: O médico ditou o seguinte resumo de consulta:\n"${text}"\n\nTarefa: Atue como um médico sênior escrevendo para outro médico. Seja conciso. Não use meta-comentários. Não interprete o óbvio. Transforme linguagem coloquial em termos técnicos diretamente (ex: 'dor na barriga' -> 'dor abdominal', sem explicar que trocou).\n\nIMPORTANTE: Se uma informação não estiver presente no áudio (ex: Exame Físico), simplesmente OMITA essa seção ou coloque 'Não se aplica'. Não gere listas do que 'faltou perguntar' e não peça desculpas por dados faltantes.\n\nCom base nisso, gere APENAS:\n\n1. Um Prontuário no formato SOAP (Subjetivo, Objetivo, Avaliação, Plano).\n2. Uma sugestão de Receita Médica (se mencionado medicamentos).\n3. Um texto para Atestado (se solicitado).\n\nFormato: Use markdown rico. Inicie com o título '# Resumo do Caso Clínico'. Use > Blockquotes para seções importantes. Use ### Headers para separar os documentos. Use **Bold** para destaque.`;
+                    handleSendMessage(prompt, "🎤 Processando áudio do ditado...");
+                }}
                 isDarkMode={isDarkMode}
             />
         </div>

@@ -21,6 +21,7 @@ export interface Message {
   isStreaming?: boolean;
   attachments?: Attachment[];
   modelId?: string; // Track which model generated this message
+  displayContent?: string; // Optional: Show this in UI instead of content
 }
 
 export interface ChatSession {

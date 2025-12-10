@@ -200,7 +200,14 @@ ${customInstructions}
         contentToSave = fullResponse;
     } else {
         // Default to Chat/Text
-        fullResponse = await createOpenRouterChatStream(modelId, history, newMessage, onChunk, finalSystemPrompt);
+        // 🔒 SECURITY: Clean history and new message to remove display text
+        const cleanHistory = history.map(m => ({
+            ...m,
+            content: m.content.split(':::HIDDEN:::')[1] || m.content
+        }));
+        const cleanMessage = newMessage.split(':::HIDDEN:::')[1] || newMessage;
+
+        fullResponse = await createOpenRouterChatStream(modelId, cleanHistory, cleanMessage, onChunk, finalSystemPrompt);
         contentToSave = fullResponse;
     }
 
