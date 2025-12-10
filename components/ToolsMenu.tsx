@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     Mic,
     FileText,
-    Stethoscope
+    Stethoscope,
+    Shield
 } from 'lucide-react';
 
 interface ToolsMenuProps {
@@ -42,6 +43,13 @@ export default function ToolsMenu({ isOpen, onClose, onSelect, isDarkMode, trigg
             icon: Mic,
             highlight: true
         },
+        {
+            id: 'anti_glosa',
+            label: 'Justificar Procedimento',
+            subtitle: 'Anti-Glosa',
+            icon: Shield,
+            badge: 'NOVO'
+        },
         // Placeholder for future tools
         // { id: 'calculator', label: 'Calculadora Médica', icon: Calculator },
     ];
@@ -50,7 +58,7 @@ export default function ToolsMenu({ isOpen, onClose, onSelect, isDarkMode, trigg
         <div
             ref={menuRef}
             className={`
-                absolute bottom-full left-0 mb-4 w-72 rounded-2xl shadow-2xl border overflow-hidden z-50
+                absolute bottom-full left-0 mb-4 w-80 rounded-2xl shadow-2xl border overflow-hidden z-50
                 animate-in fade-in zoom-in-95 duration-200 origin-bottom-left
                 ${isDarkMode
                     ? 'bg-[#18181b] border-white/10 text-zinc-200'
@@ -77,19 +85,30 @@ export default function ToolsMenu({ isOpen, onClose, onSelect, isDarkMode, trigg
                         `}
                     >
                         <div className={`
-                            p-2 rounded-lg 
+                            p-2 rounded-lg shrink-0
                             ${item.highlight
                                 ? (isDarkMode ? 'bg-emerald-400/20' : 'bg-emerald-100')
                                 : (isDarkMode ? 'bg-zinc-800' : 'bg-gray-100')}
                         `}>
                             <item.icon className={`w-4 h-4 ${item.highlight ? 'text-emerald-500' : 'opacity-70'}`} />
                         </div>
-                        <div className="flex flex-col items-start">
-                            <span className={item.highlight ? 'font-semibold' : ''}>{item.label}</span>
+                        <div className="flex flex-col items-start text-left min-w-0">
+                            <span className={`truncate w-full ${item.highlight ? 'font-semibold' : ''}`}>{item.label}</span>
+                            {item.subtitle && (
+                                <span className={`text-xs truncate w-full ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'} font-normal`}>
+                                    {item.subtitle}
+                                </span>
+                            )}
                         </div>
 
-                        {item.highlight && (
-                            <div className="ml-auto w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        {item.highlight && !item.badge && (
+                            <div className="ml-auto w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                        )}
+
+                        {item.badge && (
+                            <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 shrink-0">
+                                {item.badge}
+                            </span>
                         )}
                     </button>
                 ))}
