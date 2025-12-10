@@ -931,6 +931,8 @@ function AppContent() {
                                                     } else if (option === 'photos') {
                                                         // Handle photos
                                                         fileInputRef.current?.click();
+                                                    } else if (option === 'prompts') {
+                                                        setIsPromptsModalOpen(true);
                                                     }
                                                 }}
                                             />
@@ -950,7 +952,7 @@ function AppContent() {
                                         </div>
 
                                         <button
-                                            onClick={() => setIsPromptsModalOpen(true)}
+                                            onClick={() => console.log("Ferramentas em breve")}
                                             className={`
                                                 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
                                                 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800

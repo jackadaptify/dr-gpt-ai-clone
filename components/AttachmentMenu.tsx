@@ -3,7 +3,8 @@ import {
     Paperclip,
     Image,
     Plus,
-    Globe
+    Globe,
+    Book
 } from 'lucide-react';
 
 interface AttachmentMenuProps {
@@ -39,6 +40,7 @@ export default function AttachmentMenu({ isOpen, onClose, onSelect, isDarkMode, 
     const menuItems = [
         { id: 'upload', label: 'Enviar arquivos', icon: Paperclip },
         { id: 'photos', label: 'Fotos', icon: Image },
+        { id: 'prompts', label: 'Biblioteca de Prompts', icon: Book },
     ];
 
     return (
