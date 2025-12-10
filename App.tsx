@@ -16,7 +16,7 @@ import { supabase } from './lib/supabase';
 import ModelSelector from './components/ModelSelector';
 import AttachmentMenu from './components/AttachmentMenu';
 import PromptsModal from './components/PromptsModal';
-import { Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail, Mic } from 'lucide-react';
+import { Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail, Mic, Pin, PinOff } from 'lucide-react';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 
 // POOL MESTRE DE SUGESTÕES
@@ -100,7 +100,43 @@ function AppContent() {
     const [agents, setAgents] = useState<Agent[]>([]);
 
     // Rotating Suggestions Logic
-    const [suggestions, setSuggestions] = useState(() => [...ALL_SUGGESTIONS].sort(() => 0.5 - Math.random()).slice(0, 4));
+    // Load pinned suggestions from localStorage
+    const [pinnedSuggestions, setPinnedSuggestions] = useState<string[]>(() => {
+        try {
+            const saved = localStorage.getItem('drgpt_pinned_suggestions');
+            return saved ? JSON.parse(saved) : [];
+        } catch (e) {
+            console.error('Error loading pinned suggestions:', e);
+            return [];
+        }
+    });
+
+    const [suggestions, setSuggestions] = useState<any[]>([]);
+
+    // Update suggestions when pinned items change or on mount
+    useEffect(() => {
+        const pinnedItems = ALL_SUGGESTIONS.filter(s => pinnedSuggestions.includes(s.title));
+        const unpinnedItems = ALL_SUGGESTIONS.filter(s => !pinnedSuggestions.includes(s.title));
+
+        // Shuffle unpinned items
+        const shuffledUnpinned = [...unpinnedItems].sort(() => 0.5 - Math.random());
+
+        // Combine: Pinned first, then fill remaining slots up to 4
+        const newSuggestions = [...pinnedItems, ...shuffledUnpinned].slice(0, 4);
+        setSuggestions(newSuggestions);
+    }, [pinnedSuggestions]);
+
+    const togglePin = (e: React.MouseEvent, title: string) => {
+        e.stopPropagation(); // Prevent triggering the suggestion
+        setPinnedSuggestions(prev => {
+            const newPinned = prev.includes(title)
+                ? prev.filter(t => t !== title)
+                : [...prev, title]; // No limit on pins, but UI shows max 4 anyway
+
+            localStorage.setItem('drgpt_pinned_suggestions', JSON.stringify(newPinned));
+            return newPinned;
+        });
+    };
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -775,6 +811,8 @@ function AppContent() {
                                     : suggestions
                                 ).map((item: any, i: number) => {
                                     const IconComponent = ICON_MAP[item.icon] || Brain;
+                                    const isPinned = pinnedSuggestions.includes(item.title);
+
                                     return (
                                         <button
                                             key={i}
@@ -786,6 +824,21 @@ function AppContent() {
                                 `}
                                         >
                                             {isDarkMode && <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>}
+
+                                            {/* Pin Button - Only show for main suggestions (not agent icebreakers) */}
+                                            {!selectedAgentId && (
+                                                <div
+                                                    onClick={(e) => togglePin(e, item.title)}
+                                                    className={`absolute top-2 right-2 p-1.5 rounded-full transition-all duration-200 z-20
+                                                        ${isPinned
+                                                            ? (isDarkMode ? 'text-emerald-400 bg-emerald-400/10' : 'text-emerald-600 bg-emerald-50')
+                                                            : 'text-zinc-500 opacity-0 group-hover:opacity-100 hover:bg-zinc-700/50 hover:text-zinc-300'
+                                                        }`}
+                                                    title={isPinned ? "Desafixar" : "Fixar"}
+                                                >
+                                                    {isPinned ? <Pin size={14} fill="currentColor" /> : <Pin size={14} />}
+                                                </div>
+                                            )}
 
                                             <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-surfaceHighlight text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
                                                 <IconComponent size={24} />
@@ -954,8 +1007,8 @@ function AppContent() {
                                             <button
                                                 onClick={handleMicClick}
                                                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${isListening
-                                                        ? 'bg-red-500 text-white animate-pulse shadow-lg'
-                                                        : (isDarkMode ? 'bg-surfaceHighlight text-textMuted hover:text-emerald-400 border border-borderLight' : 'bg-gray-200 text-gray-400 hover:text-emerald-600')
+                                                    ? 'bg-red-500 text-white animate-pulse shadow-lg'
+                                                    : (isDarkMode ? 'bg-surfaceHighlight text-textMuted hover:text-emerald-400 border border-borderLight' : 'bg-gray-200 text-gray-400 hover:text-emerald-600')
                                                     }`}
                                                 title="Gravar áudio"
                                             >
