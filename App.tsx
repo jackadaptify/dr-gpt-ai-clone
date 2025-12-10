@@ -16,7 +16,7 @@ import { supabase } from './lib/supabase';
 import ModelSelector from './components/ModelSelector';
 import AttachmentMenu from './components/AttachmentMenu';
 import PromptsModal from './components/PromptsModal';
-import { Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail, Mic, Pin, PinOff } from 'lucide-react';
+import { Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail, Mic, Pin, PinOff, Plus, Wrench, ChevronDown } from 'lucide-react';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 
 // POOL MESTRE DE SUGESTÕES
@@ -918,7 +918,7 @@ function AppContent() {
 
                                 {/* Toolbar inside the slot */}
                                 <div className="flex items-center justify-between px-4 pb-3 pt-2">
-                                    <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-3">
                                         <div className="relative">
                                             <AttachmentMenu
                                                 isOpen={isAttachmentMenuOpen}
@@ -928,12 +928,9 @@ function AppContent() {
                                                 onSelect={(option) => {
                                                     if (option === 'upload') {
                                                         fileInputRef.current?.click();
-                                                    } else if (option === 'web_search') {
-                                                        setActiveTools(prev => ({ ...prev, web: !prev.web }));
-                                                    } else if (option === 'prompts') {
-                                                        setIsPromptsModalOpen(true);
-                                                    } else {
-                                                        console.log('Selected option:', option);
+                                                    } else if (option === 'photos') {
+                                                        // Handle photos
+                                                        fileInputRef.current?.click();
                                                     }
                                                 }}
                                             />
@@ -941,90 +938,75 @@ function AppContent() {
                                                 ref={attachmentButtonRef}
                                                 onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
                                                 className={`
-                                                    flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border
+                                                    w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200
                                                     ${isAttachmentMenuOpen
-                                                        ? 'bg-emerald-500 text-white border-emerald-600 shadow-glow'
-                                                        : isDarkMode
-                                                            ? 'bg-surface hover:bg-surfaceHighlight text-textMuted hover:text-emerald-400 border-borderLight shadow-convex active:shadow-concave'
-                                                            : 'bg-gray-100 hover:bg-gray-200 text-gray-600 border-transparent'
+                                                        ? 'bg-zinc-700 text-white'
+                                                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
                                                     }
                                                 `}
                                             >
-                                                <IconPlus className="w-3.5 h-3.5" />
-                                                <span>Adicionar</span>
+                                                <Plus size={24} />
                                             </button>
                                         </div>
 
-                                        {(() => {
-                                            const currentModel = availableAndHealthyModels.find(m => m.id === selectedModelId) || AVAILABLE_MODELS[0];
-                                            const tools = [
-                                                {
-                                                    id: 'thinking',
-                                                    icon: IconBrain,
-                                                    label: 'Pensar',
-                                                    show: currentModel.capabilities.reasoning,
-                                                    active: activeTools.thinking,
-                                                    onClick: () => setActiveTools(prev => ({ ...prev, thinking: !prev.thinking }))
-                                                },
-                                                {
-                                                    id: 'web',
-                                                    icon: IconGlobe,
-                                                    label: 'Web',
-                                                    show: currentModel.capabilities.webSearch,
-                                                    active: activeTools.web,
-                                                    onClick: () => setActiveTools(prev => ({ ...prev, web: !prev.web }))
-                                                },
-                                                {
-                                                    id: 'image',
-                                                    icon: IconImage,
-                                                    label: 'Imagem',
-                                                    show: currentModel.capabilities.imageGeneration,
-                                                    active: activeTools.image,
-                                                    onClick: () => setActiveTools(prev => ({ ...prev, image: !prev.image }))
-                                                }
-                                            ];
-
-                                            return tools.filter(t => t.show).map((tool, idx) => (
-                                                <button
-                                                    key={idx}
-                                                    onClick={tool.onClick}
-                                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all border ${tool.active
-                                                        ? 'bg-emerald-500 text-white border-emerald-600 shadow-glow'
-                                                        : isDarkMode
-                                                            ? 'bg-surface hover:bg-surfaceHighlight text-textMuted hover:text-emerald-400 border-borderLight shadow-convex active:shadow-concave'
-                                                            : 'bg-gray-100 hover:bg-gray-200 text-gray-600 border-transparent'
-                                                        }`}
-                                                >
-                                                    <tool.icon />
-                                                    <span className="hidden sm:inline">{tool.label}</span>
-                                                </button>
-                                            ));
-                                        })()}
+                                        <button
+                                            onClick={() => setIsPromptsModalOpen(true)}
+                                            className={`
+                                                flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
+                                                text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800
+                                            `}
+                                        >
+                                            <Wrench size={18} />
+                                            <span>Ferramentas</span>
+                                        </button>
                                     </div>
 
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-4">
+                                        {/* Reasoning Toggle (Raciocínio) */}
+                                        {availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.reasoning && (
+                                            <button
+                                                onClick={() => setActiveTools(prev => ({ ...prev, thinking: !prev.thinking }))}
+                                                className={`
+                                                    flex items-center gap-2 text-sm font-medium transition-colors duration-200
+                                                    ${activeTools.thinking ? 'text-emerald-400' : 'text-zinc-400 hover:text-zinc-200'}
+                                                `}
+                                            >
+                                                <span>Raciocínio</span>
+                                                <ChevronDown size={14} className={`transition-transform duration-200 ${activeTools.thinking ? 'rotate-180' : ''}`} />
+                                            </button>
+                                        )}
+
                                         {hasMicSupport && (
                                             <button
                                                 onClick={handleMicClick}
-                                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${isListening
-                                                    ? 'bg-red-500 text-white animate-pulse shadow-lg'
-                                                    : (isDarkMode ? 'bg-surfaceHighlight text-textMuted hover:text-emerald-400 border border-borderLight' : 'bg-gray-200 text-gray-400 hover:text-emerald-600')
+                                                className={`transition-colors duration-200 ${isListening
+                                                    ? 'text-red-500 animate-pulse'
+                                                    : 'text-zinc-400 hover:text-zinc-200'
                                                     }`}
                                                 title="Gravar áudio"
                                             >
-                                                <Mic size={20} />
+                                                <Mic size={24} />
                                             </button>
                                         )}
-                                        <button
-                                            onClick={handleSendMessage}
-                                            disabled={(!input.trim() && pendingAttachments.length === 0) || isGenerating}
-                                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${input.trim() && !isGenerating
-                                                ? (isDarkMode ? 'bg-gradient-to-b from-emerald-500 to-emerald-600 text-white shadow-glow' : 'bg-black text-white')
-                                                : (isDarkMode ? 'bg-surfaceHighlight text-textMuted border border-borderLight' : 'bg-gray-200 text-gray-400')
-                                                }`}
-                                        >
-                                            <IconSend />
-                                        </button>
+
+                                        {/* Send Button - Hidden if empty, or styled differently? Screenshot shows just icons mostly. 
+                                            But we need a send button. The screenshot implies maybe enter to send or a subtle button.
+                                            I'll keep the send button but make it minimal or only show when typing?
+                                            Actually, standard UI usually has it. I'll keep it but style it minimal.
+                                        */}
+                                        {/* Wait, the screenshot 2 shows NO send button, just the mic. 
+                                            Screenshot 4 shows a Send arrow. 
+                                            I will keep the logic to show send button if there is text.
+                                        */}
+                                        {(input.trim() || pendingAttachments.length > 0) && (
+                                            <button
+                                                onClick={handleSendMessage}
+                                                disabled={isGenerating}
+                                                className={`transition-colors duration-200 ${isDarkMode ? 'text-white' : 'text-black'}`}
+                                            >
+                                                <IconSend />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
