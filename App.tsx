@@ -16,7 +16,8 @@ import { supabase } from './lib/supabase';
 import ModelSelector from './components/ModelSelector';
 import AttachmentMenu from './components/AttachmentMenu';
 import PromptsModal from './components/PromptsModal';
-import { Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail } from 'lucide-react';
+import { Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail, Mic } from 'lucide-react';
+import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 
 // POOL MESTRE DE SUGESTÕES
 const ALL_SUGGESTIONS = [
@@ -119,6 +120,24 @@ function AppContent() {
     const [enabledModels, setEnabledModels] = useState<string[]>(AVAILABLE_MODELS.map(m => m.id));
     const [modelHealth, setModelHealth] = useState<ModelHealth[]>([]);
     const [dynamicModels, setDynamicModels] = useState<AIModel[]>([]);
+
+    // Audio Recording Logic
+    const { isListening, transcript, toggleListening, hasSupport: hasMicSupport } = useSpeechRecognition();
+    const [textBeforeRecording, setTextBeforeRecording] = useState('');
+
+    // Update input with transcript
+    useEffect(() => {
+        if (isListening) {
+            setInput(textBeforeRecording + (textBeforeRecording && transcript ? ' ' : '') + transcript);
+        }
+    }, [transcript, isListening, textBeforeRecording]);
+
+    const handleMicClick = () => {
+        if (!isListening) {
+            setTextBeforeRecording(input);
+        }
+        toggleListening();
+    };
 
     // Utility to clean model names
     const cleanModelName = (name: string, id: string) => {
@@ -931,6 +950,18 @@ function AppContent() {
                                     </div>
 
                                     <div className="flex items-center gap-3">
+                                        {hasMicSupport && (
+                                            <button
+                                                onClick={handleMicClick}
+                                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200 ${isListening
+                                                        ? 'bg-red-500 text-white animate-pulse shadow-lg'
+                                                        : (isDarkMode ? 'bg-surfaceHighlight text-textMuted hover:text-emerald-400 border border-borderLight' : 'bg-gray-200 text-gray-400 hover:text-emerald-600')
+                                                    }`}
+                                                title="Gravar áudio"
+                                            >
+                                                <Mic size={20} />
+                                            </button>
+                                        )}
                                         <button
                                             onClick={handleSendMessage}
                                             disabled={(!input.trim() && pendingAttachments.length === 0) || isGenerating}
