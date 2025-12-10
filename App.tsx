@@ -1051,7 +1051,7 @@ function AppContent() {
                 isOpen={isAIScribeModalOpen}
                 onClose={() => setIsAIScribeModalOpen(false)}
                 onGenerate={(text) => {
-                    const prompt = `[AI SCRIBE ACTION]\n\nContexto: O médico ditou o seguinte resumo de consulta:\n"${text}"\n\nTarefa: Atue como um médico sênior escrevendo para outro médico. Seja conciso. Não use meta-comentários. Não interprete o óbvio. Transforme linguagem coloquial em termos técnicos diretamente (ex: 'dor na barriga' -> 'dor abdominal', sem explicar que trocou).\n\nIMPORTANTE: Se uma informação não estiver presente no áudio (ex: Exame Físico), simplesmente OMITA essa seção ou coloque 'Não se aplica'. Não gere listas do que 'faltou perguntar' e não peça desculpas por dados faltantes.\n\nCom base nisso, gere APENAS:\n\n1. Um Prontuário no formato SOAP (Subjetivo, Objetivo, Avaliação, Plano).\n2. Uma sugestão de Receita Médica (se mencionado medicamentos).\n3. Um texto para Atestado (se solicitado).\n\nFormato: Use markdown rico. Inicie com o título '# Resumo do Caso Clínico'. Use > Blockquotes para seções importantes. Use ### Headers para separar os documentos. Use **Bold** para destaque.`;
+                    const prompt = `[AI SCRIBE ACTION]\n\nContexto: O médico ditou o seguinte resumo de consulta:\n"${text}"\n\nTarefa: Atue como um médico sênior escrevendo para outro médico. Seja conciso. Transforme linguagem coloquial em termos técnicos.\n\nREGRA DE OUTPUT CONDICIONAL (MAGIC FLOW):\n\n1. Gere SEMPRE o SOAP (Subjetivo, Objetivo, Avaliação, Plano).\n\n2. Gere a seção 'RECEITA' SOMENTE SE houver medicamentos citados no áudio. Se não houver, OMITA COMPLETAMENTE ESTA SEÇÃO. Não escreva "não se aplica".\n\n3. Gere a seção 'ATESTADO' SOMENTE SE houver solicitação de afastamento/dias no áudio. Se não houver, OMITA COMPLETAMENTE ESTA SEÇÃO.\n\nFormato: Use markdown rico. Inicie com o título '# Resumo do Caso Clínico'. Use > Blockquotes para seções importantes. Use ### Headers para separar os documentos.`;
                     handleSendMessage(prompt, "🎤 Processando áudio do ditado...");
                 }}
                 isDarkMode={isDarkMode}
@@ -1070,12 +1070,15 @@ INPUT: O usuário fornecerá o caso clínico e o motivo da negativa (ou o proced
 
 GUIDELINES:
 1.  **Tom de Voz:** Formal, firme, técnico e autoritativo. Não seja agressivo, seja assertivo.
-2.  **Estrutura:**
-    * Identificação do Paciente (anonimizada se não fornecida).
-    * Histórico Clínico Resumido (focando na gravidade/necessidade).
-    * Embasamento Científico (cite que o procedimento é "Padrão Ouro" na literatura se aplicável).
-    * Embasamento Legal (cite "Rol de Procedimentos da ANS" e "Lei 9.656/98" se o procedimento for de cobertura obrigatória).
-3.  **Fechamento:** "Diante do exposto, solicitamos a revisão da negativa e a autorização imediata do procedimento, sob pena de responsabilidade civil por eventuais complicações decorrentes da demora."
+2.  **Uso de Dados:**
+    *   **CRÍTICO:** Se o input contiver nome, idade ou detalhes específicos, USE-OS. Não substitua por [Nome do Paciente] se o nome for "João".
+    *   Apenas use placeholders (ex: [Inserir Data]) se a informação estiver ABSOLUTAMENTE ausente no input.
+3.  **Estrutura:**
+    *   Identificação do Paciente (Use os dados reais do input).
+    *   Histórico Clínico Resumido (focando na gravidade/necessidade).
+    *   Embasamento Científico (cite que o procedimento é "Padrão Ouro" na literatura se aplicável).
+    *   Embasamento Legal (cite "Rol de Procedimentos da ANS" e "Lei 9.656/98" se o procedimento for de cobertura obrigatória).
+4.  **Fechamento:** "Diante do exposto, solicitamos a revisão da negativa e a autorização imediata do procedimento, sob pena de responsabilidade civil por eventuais complicações decorrentes da demora."
 
 OUTPUT FORMAT: Markdown limpo, pronto para copiar e colar em um e-mail ou word. Sem preâmbulos do tipo "Aqui está sua carta". Comece direto na carta.`;
                     handleSendMessage(prompt, `🛡️ Gerando defesa técnica...`);
