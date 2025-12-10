@@ -1,5 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { IconSearch, IconX, IconBrackets, IconArrowLeft } from './Icons';
+import {
+    BookOpenText,
+    ClipboardList,
+    MessageCircleHeart,
+    Video,
+    FileSignature,
+    ShieldAlert,
+    Search,
+    X,
+    Brackets,
+    ArrowLeft,
+    LucideIcon
+} from 'lucide-react';
 
 interface Prompt {
     id: string;
@@ -7,54 +19,61 @@ interface Prompt {
     description: string;
     category: string;
     content: string;
+    icon: LucideIcon;
 }
 
 const PROMPTS_DATA: Prompt[] = [
     {
         id: '1',
-        title: 'Tradução de Texto',
-        description: 'Traduza qualquer texto para o seu idioma desejado.',
-        category: 'Popular',
-        content: 'Traduza o seguinte texto para [IDIOMA]:\n\n[TEXTO]'
+        title: 'Tradutor de "Mediquês"',
+        description: 'Reescreva laudos técnicos complexos em linguagem simples e empática para compreensão do paciente.',
+        category: 'Comunicação Paciente',
+        icon: BookOpenText,
+        content: 'Reescreva o seguinte laudo técnico em linguagem simples e empática para que o paciente possa compreender, sem perder a precisão das informações:\n\n[LAUDO]'
     },
     {
         id: '2',
-        title: 'Transforme em Mensagem Concisa',
-        description: 'Transforme texto extenso em conteúdo claro e legível mantendo a mensagem original.',
-        category: 'Popular',
-        content: 'Reescreva o texto abaixo de forma mais concisa e direta, mantendo os pontos principais:\n\n[TEXTO]'
+        title: 'Resumo Clínico SOAP',
+        description: 'Transforme anotações soltas e transcrições de consulta em uma evolução clínica no padrão S.O.A.P.',
+        category: 'Produtividade Clínica',
+        icon: ClipboardList,
+        content: 'Organize as seguintes anotações da consulta no formato S.O.A.P. (Subjetivo, Objetivo, Avaliação, Plano):\n\n[ANOTAÇÕES]'
     },
     {
         id: '3',
-        title: 'Estratégia de Conteúdo',
-        description: 'Guia interativo para identificar ansiedades e criar conteúdo relevante não promocional.',
-        category: 'Marketing',
-        content: 'Crie uma estratégia de conteúdo para [NICHO] focada em resolver as dores e ansiedades do público-alvo, sem ser excessivamente promocional.'
+        title: 'Resposta a Dúvidas Pós-Op',
+        description: 'Gere respostas acolhedoras e técnicas para dúvidas comuns de recuperação no WhatsApp.',
+        category: 'Retenção',
+        icon: MessageCircleHeart,
+        content: 'Crie uma resposta para WhatsApp, acolhedora e técnica, para a seguinte dúvida de pós-operatório:\n\n[DÚVIDA]'
     },
     {
         id: '4',
-        title: 'Post para Instagram',
-        description: 'Crie legendas engajadoras para suas fotos e vídeos.',
-        category: 'Marketing',
-        content: 'Escreva uma legenda para um post de Instagram sobre [TEMA]. O tom deve ser [TOM] e incluir hashtags relevantes.'
+        title: 'Roteiro para Reels Educativo',
+        description: 'Crie roteiros virais desmistificando mitos da sua especialidade sem ferir a ética médica.',
+        category: 'Marketing Médico',
+        icon: Video,
+        content: 'Crie um roteiro para um Reels educativo de 60 segundos desmistificando o seguinte mito da minha especialidade, mantendo a ética médica:\n\n[MITO]'
     },
     {
         id: '5',
-        title: 'Resumo de Artigo',
-        description: 'Obtenha os pontos-chave de artigos longos ou documentos.',
-        category: 'Acadêmico',
-        content: 'Resuma o seguinte artigo em tópicos principais, destacando as conclusões mais importantes:\n\n[TEXTO]'
+        title: 'Carta de Encaminhamento',
+        description: 'Redija cartas formais para colegas especialistas detalhando o histórico e a necessidade do parecer.',
+        category: 'Burocracia',
+        icon: FileSignature,
+        content: 'Redija uma carta de encaminhamento formal para um colega especialista em [ESPECIALIDADE], detalhando o seguinte caso e a razão do encaminhamento:\n\n[CASO]'
     },
     {
         id: '6',
-        title: 'Email Profissional',
-        description: 'Escreva emails formais e claros para diversas situações.',
-        category: 'Comunicação',
-        content: 'Escreva um email profissional para [DESTINATÁRIO] sobre [ASSUNTO]. O objetivo é [OBJETIVO].'
+        title: 'Análise de Interação Medicamentosa',
+        description: 'Verifique rapidamente potenciais interações entre a prescrição atual e o uso contínuo do paciente.',
+        category: 'Segurança',
+        icon: ShieldAlert,
+        content: 'Analise potenciais interações medicamentosas entre os seguintes medicamentos prescritos e de uso contínuo:\n\n[MEDICAMENTOS]'
     }
 ];
 
-const CATEGORIES = ['Todos', 'Popular', 'Marketing', 'Comunicação', 'Acadêmico', 'Criação de Conteúdo'];
+const CATEGORIES = ['Todos', 'Comunicação Paciente', 'Produtividade Clínica', 'Retenção', 'Marketing Médico', 'Burocracia', 'Segurança'];
 
 interface PromptsModalProps {
     isOpen: boolean;
@@ -85,21 +104,23 @@ export default function PromptsModal({ isOpen, onClose, onSelectPrompt, isDarkMo
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div
                 className={`
-                    w-full max-w-4xl h-[80vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden
-                    ${isDarkMode ? 'bg-[#18181b] text-zinc-200' : 'bg-white text-gray-800'}
+                    w-full max-w-5xl h-[85vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden transition-colors duration-300
+                    ${isDarkMode ? 'bg-[#09090b] text-zinc-100 border border-zinc-800' : 'bg-white text-gray-800 border border-gray-200'}
                 `}
             >
                 {/* Header */}
-                <div className={`p-6 border-b ${isDarkMode ? 'border-white/10' : 'border-gray-100'} flex items-center justify-between`}>
+                <div className={`p-6 border-b ${isDarkMode ? 'border-zinc-800' : 'border-gray-100'} flex items-center justify-between`}>
                     <h2 className="text-2xl font-bold flex items-center gap-3">
-                        <IconBrackets className="w-6 h-6 text-emerald-500" />
+                        <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-emerald-500/10' : 'bg-emerald-50'}`}>
+                            <Brackets className="w-6 h-6 text-emerald-500" />
+                        </div>
                         Biblioteca de Prompts
                     </h2>
                     <button
                         onClick={onClose}
-                        className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-white/10' : 'hover:bg-gray-100'}`}
+                        className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'}`}
                     >
-                        <IconX className="w-6 h-6" />
+                        <X className="w-6 h-6" />
                     </button>
                 </div>
 
@@ -107,18 +128,18 @@ export default function PromptsModal({ isOpen, onClose, onSelectPrompt, isDarkMo
                 <div className="p-6 pb-2 space-y-6">
                     {/* Search Bar */}
                     <div className={`
-                        flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all
+                        flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all duration-300
                         ${isDarkMode
-                            ? 'bg-black/20 border-white/10 focus-within:border-emerald-500/50'
-                            : 'bg-gray-50 border-gray-200 focus-within:border-emerald-500/50'}
+                            ? 'bg-zinc-900/50 border-zinc-800 focus-within:border-emerald-500/50 focus-within:bg-zinc-900'
+                            : 'bg-gray-50 border-gray-200 focus-within:border-emerald-500/50 focus-within:bg-white'}
                     `}>
-                        <IconSearch className="w-5 h-5 text-gray-400" />
+                        <Search className={`w-5 h-5 ${isDarkMode ? 'text-zinc-500' : 'text-gray-400'}`} />
                         <input
                             type="text"
                             placeholder="Buscar prompts..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-transparent border-none outline-none w-full text-lg placeholder-gray-500"
+                            className="bg-transparent border-none outline-none w-full text-lg placeholder-zinc-500"
                             autoFocus
                         />
                     </div>
@@ -130,11 +151,11 @@ export default function PromptsModal({ isOpen, onClose, onSelectPrompt, isDarkMo
                                 key={cat}
                                 onClick={() => setSelectedCategory(cat)}
                                 className={`
-                                    px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all
+                                    px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300
                                     ${selectedCategory === cat
-                                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-500/20'
                                         : isDarkMode
-                                            ? 'bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white'
+                                            ? 'bg-zinc-800/50 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-transparent hover:border-zinc-700'
                                             : 'bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-black'}
                                 `}
                             >
@@ -151,39 +172,39 @@ export default function PromptsModal({ isOpen, onClose, onSelectPrompt, isDarkMo
                             <div
                                 key={prompt.id}
                                 className={`
-                                    p-5 rounded-2xl border transition-all duration-200 flex flex-col gap-4 group
+                                    p-5 rounded-2xl border transition-all duration-300 flex flex-col gap-4 group relative overflow-hidden
                                     ${isDarkMode
-                                        ? 'bg-white/5 border-white/5 hover:border-emerald-500/30 hover:bg-white/10'
-                                        : 'bg-white border-gray-100 hover:border-emerald-200 hover:shadow-lg'}
+                                        ? 'bg-zinc-900/30 border-zinc-800 hover:border-emerald-500/50 hover:bg-zinc-900/80'
+                                        : 'bg-white border-gray-200 hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-500/5'}
                                 `}
                             >
-                                <div className="flex items-start justify-between">
-                                    <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
-                                        <IconBrackets className="w-5 h-5" />
+                                <div className="flex items-start justify-between relative z-10">
+                                    <div className={`p-3 rounded-xl transition-colors duration-300 ${isDarkMode ? 'bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20' : 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100'}`}>
+                                        <prompt.icon className="w-6 h-6" />
+                                    </div>
+                                    <div className={`px-2.5 py-1 rounded-lg text-xs font-medium ${isDarkMode ? 'bg-zinc-800 text-zinc-400' : 'bg-gray-100 text-gray-500'}`}>
+                                        {prompt.category}
                                     </div>
                                 </div>
 
-                                <div>
-                                    <h3 className="font-bold text-lg mb-2 group-hover:text-emerald-500 transition-colors">{prompt.title}</h3>
-                                    <p className={`text-sm line-clamp-3 ${isDarkMode ? 'text-zinc-400' : 'text-gray-500'}`}>
+                                <div className="relative z-10">
+                                    <h3 className={`font-semibold text-lg mb-2 transition-colors ${isDarkMode ? 'text-white group-hover:text-emerald-400' : 'text-gray-900 group-hover:text-emerald-600'}`}>
+                                        {prompt.title}
+                                    </h3>
+                                    <p className={`text-sm line-clamp-3 leading-relaxed ${isDarkMode ? 'text-zinc-400 group-hover:text-zinc-300' : 'text-gray-500 group-hover:text-gray-600'}`}>
                                         {prompt.description}
                                     </p>
                                 </div>
 
-                                <div className="mt-auto pt-4 flex items-center gap-3">
+                                <div className="mt-auto pt-4 flex items-center gap-3 relative z-10">
                                     <button
                                         onClick={() => {
                                             onSelectPrompt(prompt.content);
                                             onClose();
                                         }}
-                                        className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-xl text-sm font-semibold transition-colors shadow-lg shadow-emerald-500/20"
+                                        className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-white py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 active:scale-[0.98]"
                                     >
-                                        Usar
-                                    </button>
-                                    <button
-                                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isDarkMode ? 'hover:bg-white/10 text-zinc-400' : 'hover:bg-gray-100 text-gray-600'}`}
-                                    >
-                                        Visualizar
+                                        Usar Prompt
                                     </button>
                                 </div>
                             </div>
@@ -192,9 +213,9 @@ export default function PromptsModal({ isOpen, onClose, onSelectPrompt, isDarkMo
 
                     {filteredPrompts.length === 0 && (
                         <div className="flex flex-col items-center justify-center h-64 text-center opacity-50">
-                            <IconSearch className="w-12 h-12 mb-4" />
-                            <p className="text-lg font-medium">Nenhum prompt encontrado</p>
-                            <p className="text-sm">Tente buscar por outro termo ou categoria</p>
+                            <Search className="w-16 h-16 mb-4 text-zinc-600" />
+                            <p className="text-xl font-medium text-zinc-400">Nenhum prompt encontrado</p>
+                            <p className="text-sm text-zinc-500 mt-2">Tente buscar por outro termo ou categoria</p>
                         </div>
                     )}
                 </div>
