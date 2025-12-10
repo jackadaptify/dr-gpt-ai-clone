@@ -87,5 +87,31 @@ export const adminService = {
             .upsert({ key: 'enabled_models', value: enabledModels }, { onConflict: 'key' });
 
         return { error };
+    },
+
+    async getModelCategories() {
+        const { data, error } = await supabase
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'model_categories')
+            .single();
+
+        if (error && error.code !== 'PGRST116') {
+            console.error('AdminService: Error fetching model categories:', error);
+            return { text: [], image: [], expert: [] };
+        }
+
+        return data?.value || { text: [], image: [], expert: [] };
+    },
+
+    async updateModelCategories(categories: { text: string[], image: string[], expert: string[] }) {
+        const { error } = await supabase
+            .from('app_settings')
+            .upsert({ key: 'model_categories', value: categories }, { onConflict: 'key' });
+
+        if (error) {
+            console.error('AdminService: Error updating model categories:', error);
+            throw error;
+        }
     }
 };

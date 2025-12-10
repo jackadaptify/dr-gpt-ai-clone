@@ -7,6 +7,7 @@ import { IconActivity, IconCheck, IconAlertTriangle, IconX, IconRefresh, IconSer
 
 export default function ModelManager() {
     const [enabledModels, setEnabledModels] = useState<string[]>([]);
+    const [modelCategories, setModelCategories] = useState<{ text: string[], image: string[], expert: string[] }>({ text: [], image: [], expert: [] });
     const [healthStatus, setHealthStatus] = useState<ProviderHealth[]>([]);
     const [modelHealth, setModelHealth] = useState<ModelHealth[]>([]);
     const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
@@ -58,18 +59,21 @@ export default function ModelManager() {
                 adminService.getAppSettings(),
                 modelHealthService.checkAllProviders(),
                 modelHealthService.checkAllModels(),
-                modelHealthService.getGlobalStats()
+                modelHealthService.getGlobalStats(),
+                adminService.getModelCategories()
             ]);
 
             const settings = results[0].status === 'fulfilled' ? results[0].value : { enabled_models: [] };
             const health = results[1].status === 'fulfilled' ? results[1].value : [];
             const modelsHealth = results[2].status === 'fulfilled' ? results[2].value : [];
             const stats = results[3].status === 'fulfilled' ? results[3].value : null;
+            const categories = results[4].status === 'fulfilled' ? results[4].value : { text: [], image: [], expert: [] };
 
             if (results[0].status === 'rejected') console.error('Failed to load settings', results[0].reason);
             if (results[1].status === 'rejected') console.error('Failed to load provider health', results[1].reason);
             if (results[2].status === 'rejected') console.error('Failed to load model health', results[2].reason);
             if (results[3].status === 'rejected') console.error('Failed to load stats', results[3].reason);
+            if (results[4].status === 'rejected') console.error('Failed to load categories', results[4].reason);
 
             // Fetch Dynamic Models
             const fetchedModels = await fetchOpenRouterModels();
@@ -116,6 +120,7 @@ export default function ModelManager() {
                 setEnabledModels(settings.enabled_models || AVAILABLE_MODELS.map(m => m.id));
             }
 
+            setModelCategories(categories);
             setHealthStatus(health);
             setModelHealth(modelsHealth);
             setUsageStats(stats);
@@ -158,6 +163,25 @@ export default function ModelManager() {
         } catch (error) {
             console.error('Failed to update model status', error);
             loadData(); // Revert on error
+        }
+    };
+
+    const toggleCategory = async (modelId: string, category: 'text' | 'image' | 'expert', active: boolean) => {
+        const newCategories = { ...modelCategories };
+        if (active) {
+            if (!newCategories[category].includes(modelId)) {
+                newCategories[category] = [...newCategories[category], modelId];
+            }
+        } else {
+            newCategories[category] = newCategories[category].filter(id => id !== modelId);
+        }
+
+        setModelCategories(newCategories);
+        try {
+            await adminService.updateModelCategories(newCategories);
+        } catch (error) {
+            console.error('Failed to update categories', error);
+            loadData();
         }
     };
 
@@ -308,6 +332,38 @@ export default function ModelManager() {
                                     </div>
 
                                     <p className="text-sm text-zinc-400 mb-4">{model.description}</p>
+
+                                    {/* Category Selection */}
+                                    <div className="flex items-center gap-4 mb-4 p-3 rounded-xl bg-black/20 border border-white/5">
+                                        <span className="text-xs font-bold text-zinc-500 uppercase">Categorias:</span>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-zinc-700 bg-zinc-800 text-emerald-500 focus:ring-emerald-500/20"
+                                                checked={modelCategories.text.includes(model.id)}
+                                                onChange={(e) => toggleCategory(model.id, 'text', e.target.checked)}
+                                            />
+                                            <span className="text-xs text-zinc-300">Texto</span>
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-zinc-700 bg-zinc-800 text-emerald-500 focus:ring-emerald-500/20"
+                                                checked={modelCategories.image.includes(model.id)}
+                                                onChange={(e) => toggleCategory(model.id, 'image', e.target.checked)}
+                                            />
+                                            <span className="text-xs text-zinc-300">Imagens</span>
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                className="rounded border-zinc-700 bg-zinc-800 text-emerald-500 focus:ring-emerald-500/20"
+                                                checked={modelCategories.expert.includes(model.id)}
+                                                onChange={(e) => toggleCategory(model.id, 'expert', e.target.checked)}
+                                            />
+                                            <span className="text-xs text-zinc-300">Experts</span>
+                                        </label>
+                                    </div>
 
                                     {model.details && (
                                         <div className="space-y-3 pt-4 border-t border-white/5 text-xs">
