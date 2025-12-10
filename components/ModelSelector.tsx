@@ -5,6 +5,8 @@ import {
     IconSearch, IconCheck, IconArrowDown, IconBrain, IconImage, IconGlobe,
     getProviderIcon
 } from './Icons';
+import { adminService } from '../services/adminService';
+import { Info } from 'lucide-react';
 
 interface ModelSelectorProps {
     models: AIModel[];
@@ -13,11 +15,20 @@ interface ModelSelectorProps {
     isDarkMode: boolean;
 }
 
+type Tab = 'text' | 'image' | 'expert';
+
 export default function ModelSelector({ models, selectedModelId, onSelect, isDarkMode }: ModelSelectorProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<Tab>('text');
     const [searchQuery, setSearchQuery] = useState('');
+    const [categories, setCategories] = useState<{ text: string[], image: string[], expert: string[] }>({ text: [], image: [], expert: [] });
     const dropdownRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
+
+    // Load categories
+    useEffect(() => {
+        adminService.getModelCategories().then(setCategories);
+    }, []);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -38,22 +49,40 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
         }
     }, [isOpen]);
 
-    // getProviderIcon is now imported from Icons.tsx
-
     const selectedModel = models.find(m => m.id === selectedModelId) || models[0];
 
-    // Group models by provider
-    const filteredModels = models.filter(m =>
-        m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        m.provider.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Filter models based on tab and search
+    const getTabModels = () => {
+        let tabModels: AIModel[] = [];
 
-    const groupedModels = filteredModels.reduce((acc, model) => {
-        const provider = model.provider || 'Outros';
-        if (!acc[provider]) acc[provider] = [];
-        acc[provider].push(model);
-        return acc;
-    }, {} as Record<string, AIModel[]>);
+        // If categories are defined, use them
+        if (categories.text.length > 0 || categories.image.length > 0 || categories.expert.length > 0) {
+            const categoryIds = categories[activeTab];
+            tabModels = models.filter(m => categoryIds.includes(m.id));
+        } else {
+            // Fallback logic if no categories defined
+            if (activeTab === 'text') {
+                tabModels = models.filter(m => !m.capabilities.imageGeneration);
+            } else if (activeTab === 'image') {
+                tabModels = models.filter(m => m.capabilities.imageGeneration);
+            } else {
+                // Experts fallback (maybe reasoning models?)
+                tabModels = models.filter(m => m.capabilities.reasoning);
+            }
+        }
+
+        // Apply search
+        if (searchQuery) {
+            return tabModels.filter(m =>
+                m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                m.provider.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+
+        return tabModels;
+    };
+
+    const filteredModels = getTabModels();
 
     return (
         <div className="relative" ref={dropdownRef}>
@@ -79,16 +108,34 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
             {/* Dropdown Menu */}
             {isOpen && (
                 <div className={`
-                    absolute top-full left-0 mt-2 w-[320px] max-h-[400px] overflow-hidden rounded-2xl border shadow-2xl z-50 flex flex-col
+                    absolute top-full left-0 mt-2 w-[360px] max-h-[500px] overflow-hidden rounded-2xl border shadow-2xl z-50 flex flex-col
                     animate-in fade-in zoom-in-95 duration-200 origin-top-left
                     ${isDarkMode
                         ? 'bg-[#1a1a1a]/95 backdrop-blur-xl border-white/10 text-textMain'
                         : 'bg-white/95 backdrop-blur-xl border-gray-200 text-gray-800'}
                 `}>
+                    {/* Tabs */}
+                    <div className="flex items-center p-1 m-2 bg-black/20 rounded-xl">
+                        {(['text', 'image', 'expert'] as Tab[]).map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`
+                                    flex-1 py-1.5 text-xs font-bold rounded-lg transition-all capitalize
+                                    ${activeTab === tab
+                                        ? (isDarkMode ? 'bg-white/10 text-white shadow-sm' : 'bg-white text-black shadow-sm')
+                                        : 'text-zinc-500 hover:text-zinc-300'}
+                                `}
+                            >
+                                {tab === 'text' ? 'Texto' : tab === 'image' ? 'Imagens' : 'Experts'}
+                            </button>
+                        ))}
+                    </div>
+
                     {/* Search Bar */}
-                    <div className={`p-3 border-b ${isDarkMode ? 'border-white/5' : 'border-gray-100'}`}>
+                    <div className="px-3 pb-2">
                         <div className={`
-                            flex items-center gap-2 px-3 py-2 rounded-lg
+                            flex items-center gap-2 px-3 py-2 rounded-xl
                             ${isDarkMode ? 'bg-black/20' : 'bg-gray-100'}
                         `}>
                             <IconSearch className="w-4 h-4 text-gray-400" />
@@ -104,49 +151,53 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
                     </div>
 
                     {/* Models List */}
-                    <div className="overflow-y-auto custom-scrollbar flex-1 p-2">
-                        {Object.entries(groupedModels).map(([provider, providerModels]) => (
-                            <div key={provider} className="mb-2 last:mb-0">
-                                <div className="px-3 py-1.5 text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                                    {getProviderIcon(provider)}
-                                    {provider}
-                                </div>
-                                <div className="space-y-1">
-                                    {providerModels.map(model => {
-                                        const isSelected = model.id === selectedModelId;
-                                        return (
-                                            <button
-                                                key={model.id}
-                                                onClick={() => {
-                                                    onSelect(model.id);
-                                                    setIsOpen(false);
-                                                }}
-                                                className={`
-                                                    w-full text-left px-3 py-2 rounded-lg flex items-center justify-between group transition-all
-                                                    ${isSelected
-                                                        ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
-                                                        : (isDarkMode ? 'hover:bg-white/5 text-gray-300 hover:text-white' : 'hover:bg-gray-50 text-gray-700 hover:text-black')}
-                                                `}
-                                            >
-                                                <div className="flex flex-col gap-0.5">
-                                                    <span className="text-sm font-medium">{model.name}</span>
-                                                    <div className="flex items-center gap-2">
-                                                        {model.capabilities.vision && <IconImage className="w-3 h-3 opacity-50" />}
-                                                        {model.capabilities.webSearch && <IconGlobe className="w-3 h-3 opacity-50" />}
-                                                        {model.capabilities.reasoning && <IconBrain className="w-3 h-3 opacity-50" />}
-                                                    </div>
-                                                </div>
-                                                {isSelected && <IconCheck className="w-4 h-4" />}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        ))}
+                    <div className="overflow-y-auto custom-scrollbar flex-1 p-2 space-y-1">
+                        {filteredModels.map(model => {
+                            const isSelected = model.id === selectedModelId;
+                            const isNew = model.id.includes('3') || model.id.includes('opus') || model.id.includes('gemini-1.5'); // Simple heuristic for "New" badge
+
+                            return (
+                                <button
+                                    key={model.id}
+                                    onClick={() => {
+                                        onSelect(model.id);
+                                        setIsOpen(false);
+                                    }}
+                                    className={`
+                                        w-full text-left px-3 py-3 rounded-xl flex items-center justify-between group transition-all
+                                        ${isSelected
+                                            ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
+                                            : (isDarkMode ? 'hover:bg-white/5 text-gray-300 hover:text-white' : 'hover:bg-gray-50 text-gray-700 hover:text-black')}
+                                    `}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-1.5 rounded-lg ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
+                                            {getProviderIcon(model.provider)}
+                                        </div>
+                                        <div className="flex flex-col gap-0.5">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-bold">{model.name}</span>
+                                                {isNew && (
+                                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
+                                                        Novo
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2">
+                                        <Info className="w-4 h-4 text-zinc-600 hover:text-zinc-400" />
+                                        {isSelected && <IconCheck className="w-4 h-4 text-emerald-500" />}
+                                    </div>
+                                </button>
+                            );
+                        })}
 
                         {filteredModels.length === 0 && (
-                            <div className="p-4 text-center text-gray-500 text-sm">
-                                Nenhum modelo encontrado.
+                            <div className="p-8 text-center text-gray-500 text-sm flex flex-col items-center gap-2">
+                                <IconSearch className="w-8 h-8 opacity-20" />
+                                <p>Nenhum modelo encontrado nesta categoria.</p>
                             </div>
                         )}
                     </div>
