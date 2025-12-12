@@ -1208,7 +1208,32 @@ function AppContent() {
 
                     return (
                         activeMode === 'scribe-review' ? (
-                            <ScribeReview content={scribeContent} onChange={setScribeContent} isDarkMode={isDarkMode}>
+                            <ScribeReview
+                                content={scribeContent}
+                                onChange={setScribeContent}
+                                isDarkMode={isDarkMode}
+                                onSave={async () => {
+                                    if (!currentChatId) return;
+
+                                    const saveMessageObj: Message = {
+                                        id: uuidv4(),
+                                        role: Role.MODEL,
+                                        content: scribeContent,
+                                        displayContent: '💾 Prontuário Salvo',
+                                        timestamp: Date.now(),
+                                        modelId: selectedModelId
+                                    };
+
+                                    saveMessage(currentChatId, saveMessageObj);
+                                    setChats(prev => prev.map(c => c.id === currentChatId ? {
+                                        ...c,
+                                        messages: [...c.messages, saveMessageObj]
+                                    } : c));
+
+                                    // Update timestamp
+                                    updateChat(currentChatId, { updatedAt: Date.now() });
+                                }}
+                            >
                                 {renderChatUI()}
                             </ScribeReview>
                         ) : (

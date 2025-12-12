@@ -1,20 +1,30 @@
 import React from 'react';
-import { Copy, Check, FileText } from 'lucide-react';
+import { Copy, Check, FileText, Save } from 'lucide-react';
 
 interface ScribeReviewProps {
     isDarkMode: boolean;
     content: string;
     onChange: (value: string) => void;
+    onSave?: () => void;
     children: React.ReactNode; // The Chat Component
 }
 
-export default function ScribeReview({ isDarkMode, content, onChange, children }: ScribeReviewProps) {
+export default function ScribeReview({ isDarkMode, content, onChange, onSave, children }: ScribeReviewProps) {
     const [copied, setCopied] = React.useState(false);
+    const [saving, setSaving] = React.useState(false);
 
     const handleCopy = () => {
         navigator.clipboard.writeText(content);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
+    };
+
+    const handleSave = async () => {
+        if (onSave) {
+            setSaving(true);
+            await onSave();
+            setTimeout(() => setSaving(false), 2000);
+        }
     };
 
     return (
@@ -47,6 +57,21 @@ export default function ScribeReview({ isDarkMode, content, onChange, children }
                         {copied ? <Check size={16} /> : <Copy size={16} />}
                         {copied ? 'Copiado!' : 'Copiar Prontuário'}
                     </button>
+
+                    <button
+                        onClick={handleSave}
+                        className={`
+                            flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ml-2
+                            ${saving
+                                ? 'bg-emerald-500 text-white'
+                                : (isDarkMode ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50')
+                            }
+                        `}
+                    >
+                        {saving ? <Check size={16} /> : <Save size={16} />}
+                        {saving ? 'Salvo!' : 'Salvar'}
+                    </button>
+
                 </div>
 
                 {/* Editor Area */}
