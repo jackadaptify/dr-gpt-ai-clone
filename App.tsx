@@ -16,14 +16,13 @@ import { supabase } from './lib/supabase';
 import ModelSelector from './components/ModelSelector';
 import AttachmentMenu from './components/AttachmentMenu';
 import PromptsModal from './components/PromptsModal';
-import ToolsMenu from './components/ToolsMenu';
 import AIScribeModal from './components/AIScribeModal';
 import AntiGlosaModal from './components/AntiGlosaModal';
-import { Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail, Mic, Pin, PinOff, Plus, Wrench, ChevronDown } from 'lucide-react';
-import { useSpeechRecognition } from './hooks/useSpeechRecognition';
+import { Folder as FolderIcon, Settings, LogOut, Wrench, Menu, Mic, ChevronDown, Check, Video, Plus, Globe, Image } from 'lucide-react';
+import useSpeechRecognition from './hooks/useSpeechRecognition';
 import RailNav from './components/RailNav';
 import ScribeView from './components/ScribeView';
-import FinanceView from './components/FinanceView';
+import AntiGlosaView from './components/AntiGlosaView';
 
 // POOL MESTRE DE SUGESTÕES
 const ALL_SUGGESTIONS = [
@@ -149,9 +148,7 @@ function AppContent() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const attachmentButtonRef = useRef<HTMLButtonElement>(null);
-    const toolsButtonRef = useRef<HTMLButtonElement>(null);
     const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
-    const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
     const [isPromptsModalOpen, setIsPromptsModalOpen] = useState(false);
     const [isAIScribeModalOpen, setIsAIScribeModalOpen] = useState(false);
     const [isAntiGlosaModalOpen, setIsAntiGlosaModalOpen] = useState(false);
@@ -595,9 +592,15 @@ function AppContent() {
 
         // 6. Logic to switch model if Image is requested
         let targetModelId = selectedModelId;
-        if (capturedTools.image) {
-            const currentModelCaps = availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities;
-            if (!currentModelCaps?.imageGeneration) {
+        const currentModelDef = availableAndHealthyModels.find(m => m.id === selectedModelId);
+
+        // If the *current* model is ALREADY an image model, we force the tool to be active
+        if (currentModelDef?.capabilities.imageGeneration) {
+            capturedTools.image = true;
+        }
+        // If the USER clicked the tool button but the model is text, switch to a Visual Model
+        else if (capturedTools.image) {
+            if (!currentModelDef?.capabilities.imageGeneration) {
                 targetModelId = 'google/gemini-2.0-flash-exp:free'; // Fallback to a visual model
             }
         }
@@ -709,6 +712,7 @@ function AppContent() {
 
     const handleModelSelect = (newModelId: string) => {
         setSelectedModelId(newModelId);
+        setSelectedAgentId(null); // Clear selected agent when manually picking a model (brain)
 
         // If there's an active chat, update its model preference immediately
         if (currentChatId) {
@@ -776,6 +780,8 @@ function AppContent() {
                                         selectedModelId={selectedModelId}
                                         onSelect={handleModelSelect}
                                         isDarkMode={isDarkMode}
+                                        agents={agents}
+                                        onSelectAgent={handleSelectAgent}
                                     />
                                 </div>
                             </div>
@@ -925,7 +931,11 @@ function AppContent() {
                                             value={input}
                                             onChange={(e) => setInput(e.target.value)}
                                             onKeyDown={handleKeyDown}
-                                            placeholder={isGenerating ? "Aguarde a resposta..." : "Pergunte algo ao Dr. GPT..."}
+                                            placeholder={
+                                                activeTools.web ? "Pesquisar na Web..." :
+                                                    (activeTools.image || availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.imageGeneration) ? "Descreva a imagem que você quer criar..." :
+                                                        isGenerating ? "Aguarde a resposta..." : "Pergunte algo ao Dr. GPT..."
+                                            }
                                             className={`w-full bg-transparent text-textMain placeholder-textMuted text-[16px] md:text-lg px-6 py-5 max-h-48 overflow-y-auto resize-none outline-none transition-opacity duration-200 ${isGenerating ? 'opacity-60 cursor-wait' : 'opacity-100'}`}
                                             rows={1}
                                             style={{ minHeight: '72px' }}
@@ -950,6 +960,9 @@ function AppContent() {
                                                         onClose={() => setIsAttachmentMenuOpen(false)}
                                                         isDarkMode={isDarkMode}
                                                         triggerRef={attachmentButtonRef}
+                                                        isImageMode={!!availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.imageGeneration}
+                                                        isWebActive={activeTools.web}
+                                                        onToggleWeb={() => setActiveTools(prev => ({ ...prev, web: !prev.web }))}
                                                         onSelect={(option) => {
                                                             if (option === 'upload') {
                                                                 fileInputRef.current?.click();
@@ -976,37 +989,25 @@ function AppContent() {
                                                     </button>
                                                 </div>
 
-                                                <div className="relative">
-                                                    <ToolsMenu
-                                                        isOpen={isToolsMenuOpen}
-                                                        onClose={() => setIsToolsMenuOpen(false)}
-                                                        onSelect={(option) => {
-                                                            if (option === 'ai_scribe') {
-                                                                setIsAIScribeModalOpen(true);
-                                                            } else if (option === 'anti_glosa') {
-                                                                setIsAntiGlosaModalOpen(true);
-                                                            }
-                                                        }}
-                                                        isDarkMode={isDarkMode}
-                                                        triggerRef={toolsButtonRef}
-                                                    />
-                                                    <button
-                                                        ref={toolsButtonRef}
-                                                        onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
-                                                        className={`
-                                                        flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
-                                                        ${isToolsMenuOpen
-                                                                ? 'bg-zinc-700 text-white'
-                                                                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}
-                                                    `}
-                                                    >
-                                                        <Wrench size={18} />
-                                                        <span>Ferramentas</span>
-                                                    </button>
-                                                </div>
+
+
                                             </div>
 
                                             <div className="flex items-center gap-4">
+                                                {/* Active Tool Indicators */}
+                                                {activeTools.web && (
+                                                    <div className="flex items-center gap-1 text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded text-xs">
+                                                        <Globe size={12} />
+                                                        <span>Web</span>
+                                                    </div>
+                                                )}
+                                                {activeTools.image && (
+                                                    <div className="flex items-center gap-1 text-purple-500 bg-purple-500/10 px-2 py-1 rounded text-xs">
+                                                        <Image size={12} />
+                                                        <span>Img</span>
+                                                    </div>
+                                                )}
+
                                                 {/* Reasoning Toggle (Raciocínio) */}
                                                 {availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.reasoning && (
                                                     <button
@@ -1060,29 +1061,35 @@ function AppContent() {
                             isDarkMode={isDarkMode}
                         />
 
+                    </>
+                )}
 
+                {activeMode === 'scribe' && (
+                    <ScribeView
+                        isDarkMode={isDarkMode}
+                        onGenerate={(text) => {
+                            // Switch to chat and send message with scribe prompt
+                            setActiveMode('chat');
+                            const prompt = `[AI SCRIBE ACTION]\n\nContexto: O médico ditou o seguinte resumo de consulta:\n"${text}"\n\nTarefa: Atue como um médico sênior escrevendo para outro médico. Seja conciso. Transforme linguagem coloquial em termos técnicos.\n\nREGRA DE OUTPUT CONDICIONAL (MAGIC FLOW):\n\n1. Gere SEMPRE o SOAP (Subjetivo, Objetivo, Avaliação, Plano).\n\n2. Gere a seção 'RECEITA' SOMENTE SE houver medicamentos citados no áudio. Se não houver, OMITA COMPLETAMENTE ESTA SEÇÃO. Não escreva "não se aplica".\n\n3. Gere a seção 'ATESTADO' SOMENTE SE houver solicitação de afastamento/dias no áudio. Se não houver, OMITA COMPLETAMENTE ESTA SEÇÃO.\n\nFormato: Use markdown rico. Inicie com o título '# Resumo do Caso Clínico'. Use > Blockquotes para seções importantes. Use ### Headers para separar os documentos.`;
 
-                        <AIScribeModal
-                            isOpen={isAIScribeModalOpen}
-                            onClose={() => setIsAIScribeModalOpen(false)}
-                            onGenerate={(text) => {
-                                const prompt = `[AI SCRIBE ACTION]\n\nContexto: O médico ditou o seguinte resumo de consulta:\n"${text}"\n\nTarefa: Atue como um médico sênior escrevendo para outro médico. Seja conciso. Transforme linguagem coloquial em termos técnicos.\n\nREGRA DE OUTPUT CONDICIONAL (MAGIC FLOW):\n\n1. Gere SEMPRE o SOAP (Subjetivo, Objetivo, Avaliação, Plano).\n\n2. Gere a seção 'RECEITA' SOMENTE SE houver medicamentos citados no áudio. Se não houver, OMITA COMPLETAMENTE ESTA SEÇÃO. Não escreva "não se aplica".\n\n3. Gere a seção 'ATESTADO' SOMENTE SE houver solicitação de afastamento/dias no áudio. Se não houver, OMITA COMPLETAMENTE ESTA SEÇÃO.\n\nFormato: Use markdown rico. Inicie com o título '# Resumo do Caso Clínico'. Use > Blockquotes para seções importantes. Use ### Headers para separar os documentos.`;
-                                handleSendMessage(prompt, "🎤 Processando áudio do ditado...");
-                            }}
-                            isDarkMode={isDarkMode}
-                        />
+                            // Small timeout to ensure view transition matches state update
+                            setTimeout(() => {
+                                handleSendMessage(prompt, "🎤 Processando áudio do AI Scribe...");
+                            }, 100);
+                        }}
+                    />
+                )}
 
-                        <AntiGlosaModal
-                            isOpen={isAntiGlosaModalOpen}
-                            onClose={() => setIsAntiGlosaModalOpen(false)}
-                            onGenerate={(text) => {
-                                const prompt = `ROLE: Você é um Auditor Médico Sênior e Advogado Especialista em Direito à Saúde. Sua função é defender o médico prestador.
-
+                {activeMode === 'antiglosa' && (
+                    <AntiGlosaView
+                        isDarkMode={isDarkMode}
+                        onGenerate={(text) => {
+                            // Switch to chat and send message with defense prompt
+                            setActiveMode('chat');
+                            const prompt = `ROLE: Você é um Auditor Médico Sênior e Advogado Especialista em Direito à Saúde. Sua função é defender o médico prestador.
 TASK: Escreva uma CARTA DE JUSTIFICATIVA TÉCNICA (Recurso de Glosa) para uma operadora de saúde.
-
 INPUT: O usuário fornecerá o caso clínico e o motivo da negativa (ou o procedimento desejado) abaixo:
 "${text}"
-
 GUIDELINES:
 1.  **Tom de Voz:** Formal, firme, técnico e autoritativo. Não seja agressivo, seja assertivo.
 2.  **Uso de Dados:**
@@ -1094,17 +1101,15 @@ GUIDELINES:
     *   Embasamento Científico (cite que o procedimento é "Padrão Ouro" na literatura se aplicável).
     *   Embasamento Legal (cite "Rol de Procedimentos da ANS" e "Lei 9.656/98" se o procedimento for de cobertura obrigatória).
 4.  **Fechamento:** "Diante do exposto, solicitamos a revisão da negativa e a autorização imediata do procedimento, sob pena de responsabilidade civil por eventuais complicações decorrentes da demora."
-
 OUTPUT FORMAT: Markdown limpo, pronto para copiar e colar em um e-mail ou word. Sem preâmbulos do tipo "Aqui está sua carta". Comece direto na carta.`;
-                                handleSendMessage(prompt, `🛡️ Gerando defesa técnica...`);
-                            }}
-                            isDarkMode={isDarkMode}
-                        />
-                    </>
+
+                            setTimeout(() => {
+                                handleSendMessage(prompt, "🛡️ Gerando defesa técnica...");
+                            }, 100);
+                        }}
+                    />
                 )}
 
-                {activeMode === 'scribe' && <ScribeView />}
-                {activeMode === 'finance' && <FinanceView />}
                 {activeMode === 'settings' && (
                     <div className="flex flex-col items-center justify-center h-full text-center p-8 animate-in fade-in duration-500">
                         <h1 className="text-3xl font-bold bg-gradient-to-r from-zinc-200 to-zinc-400 bg-clip-text text-transparent mb-4">
@@ -1117,7 +1122,7 @@ OUTPUT FORMAT: Markdown limpo, pronto para copiar e colar em um e-mail ou word. 
                 )}
 
             </div>
-        </div>
+        </div >
     );
 }
 

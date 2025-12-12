@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageCircle, Mic, FileText, Settings, ShieldCheck, User } from 'lucide-react';
+import { MessageCircle, Mic, FileText, Settings, Shield, User } from 'lucide-react';
 import { AppMode } from '../types';
 
 interface RailNavProps {
@@ -13,7 +13,7 @@ const RailNav: React.FC<RailNavProps> = ({ activeMode, onModeChange, isDarkMode 
     const navItems = [
         { mode: 'chat', icon: MessageCircle, label: 'Chat IA' },
         { mode: 'scribe', icon: Mic, label: 'Scribe' },
-        { mode: 'finance', icon: ShieldCheck, label: 'Financeiro' },
+        { mode: 'antiglosa', icon: Shield, label: 'Anti-Glosa' },
         { mode: 'settings', icon: Settings, label: 'Ajustes' },
     ];
 

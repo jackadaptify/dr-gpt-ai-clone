@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-    Mic,
     FileText,
-    Stethoscope,
-    Shield
+    Globe,
+    Image,
+    Sparkles,
+    Share2,
+    Search
 } from 'lucide-react';
 
 interface ToolsMenuProps {
@@ -38,27 +40,35 @@ export default function ToolsMenu({ isOpen, onClose, onSelect, isDarkMode, trigg
 
     const menuItems = [
         {
-            id: 'ai_scribe',
-            label: 'Gerar Prontuário',
-            icon: Mic,
-            highlight: true
+            id: 'summary_pdf',
+            label: 'Resumir PDF/Artigo',
+            icon: FileText,
+            color: 'text-blue-500',
+            bgColor: 'bg-blue-500/10'
+        },
+
+
+        {
+            id: 'improve_prompt',
+            label: 'Melhorar Prompt',
+            icon: Sparkles,
+            color: 'text-amber-500',
+            bgColor: 'bg-amber-500/10'
         },
         {
-            id: 'anti_glosa',
-            label: 'Justificar Procedimento',
-            subtitle: 'Anti-Glosa',
-            icon: Shield,
-            badge: 'NOVO'
-        },
-        // Placeholder for future tools
-        // { id: 'calculator', label: 'Calculadora Médica', icon: Calculator },
+            id: 'create_content',
+            label: 'Criar Post/Email',
+            icon: Share2,
+            color: 'text-pink-500',
+            bgColor: 'bg-pink-500/10'
+        }
     ];
 
     return (
         <div
             ref={menuRef}
             className={`
-                absolute bottom-full left-0 mb-4 w-80 rounded-2xl shadow-2xl border overflow-hidden z-50
+                absolute bottom-full left-0 mb-4 w-72 rounded-2xl shadow-2xl border overflow-hidden z-50
                 animate-in fade-in zoom-in-95 duration-200 origin-bottom-left
                 ${isDarkMode
                     ? 'bg-[#18181b] border-white/10 text-zinc-200'
@@ -67,7 +77,7 @@ export default function ToolsMenu({ isOpen, onClose, onSelect, isDarkMode, trigg
         >
             <div className="p-2 space-y-1">
                 <div className={`px-3 py-2 text-xs font-semibold uppercase tracking-wider ${isDarkMode ? 'text-zinc-500' : 'text-zinc-400'}`}>
-                    Ferramentas Clínicas
+                    Ferramentas de Texto
                 </div>
                 {menuItems.map((item) => (
                     <button
@@ -77,39 +87,22 @@ export default function ToolsMenu({ isOpen, onClose, onSelect, isDarkMode, trigg
                             onClose();
                         }}
                         className={`
-                            w-full flex items-center justify-start gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all
+                            w-full flex items-center justify-start gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all
                             ${isDarkMode
                                 ? 'hover:bg-white/5 hover:text-white'
                                 : 'hover:bg-gray-50 hover:text-black'}
-                            ${item.highlight ? (isDarkMode ? 'text-emerald-400 bg-emerald-400/10 hover:bg-emerald-400/20' : 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100') : ''}
                         `}
                     >
                         <div className={`
                             p-2 rounded-lg shrink-0
-                            ${item.highlight
-                                ? (isDarkMode ? 'bg-emerald-400/20' : 'bg-emerald-100')
-                                : (isDarkMode ? 'bg-zinc-800' : 'bg-gray-100')}
+                            ${isDarkMode ? item.bgColor : 'bg-gray-100'}
                         `}>
-                            <item.icon className={`w-4 h-4 ${item.highlight ? 'text-emerald-500' : 'opacity-70'}`} />
+                            <item.icon className={`w-4 h-4 ${isDarkMode ? item.color : 'text-gray-600'}`} />
                         </div>
                         <div className="flex flex-col items-start text-left min-w-0">
-                            <span className={`truncate w-full ${item.highlight ? 'font-semibold' : ''}`}>{item.label}</span>
-                            {item.subtitle && (
-                                <span className={`text-xs truncate w-full ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'} font-normal`}>
-                                    {item.subtitle}
-                                </span>
-                            )}
+                            <span className="truncate w-full">{item.label}</span>
+
                         </div>
-
-                        {item.highlight && !item.badge && (
-                            <div className="ml-auto w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                        )}
-
-                        {item.badge && (
-                            <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 shrink-0">
-                                {item.badge}
-                            </span>
-                        )}
                     </button>
                 ))}
             </div>

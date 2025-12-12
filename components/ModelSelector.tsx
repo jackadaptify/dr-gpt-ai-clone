@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { AIModel } from '../types';
+import { AIModel, Agent } from '../types';
 import {
     IconGoogle, IconOpenAI, IconAnthropic, IconDeepSeek, IconMeta,
     IconSearch, IconCheck, IconArrowDown, IconBrain, IconImage, IconGlobe,
@@ -13,11 +13,13 @@ interface ModelSelectorProps {
     selectedModelId: string;
     onSelect: (modelId: string) => void;
     isDarkMode: boolean;
+    agents?: Agent[];
+    onSelectAgent?: (agent: Agent) => void;
 }
 
 type Tab = 'text' | 'image' | 'expert';
 
-export default function ModelSelector({ models, selectedModelId, onSelect, isDarkMode }: ModelSelectorProps) {
+export default function ModelSelector({ models, selectedModelId, onSelect, isDarkMode, agents = [], onSelectAgent }: ModelSelectorProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<Tab>('text');
     const [searchQuery, setSearchQuery] = useState('');
@@ -52,22 +54,35 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
     const selectedModel = models.find(m => m.id === selectedModelId) || models[0];
 
     // Filter models based on tab and search
-    const getTabModels = () => {
+    const getTabContent = () => {
+        // Experts Tab = Agents
+        if (activeTab === 'expert') {
+            if (!agents) return [];
+
+            if (searchQuery) {
+                return agents.filter(a =>
+                    a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    a.role.toLowerCase().includes(searchQuery.toLowerCase())
+                );
+            }
+            return agents;
+        }
+
+        // Other Tabs = Models
         let tabModels: AIModel[] = [];
 
         // If categories are defined, use them
-        if (categories.text.length > 0 || categories.image.length > 0 || categories.expert.length > 0) {
-            const categoryIds = categories[activeTab];
+        if (categories.text.length > 0 || categories.image.length > 0) {
+            const categoryIds = categories[activeTab === 'image' ? 'image' : 'text'];
+
+            // activeTab is guaranteed to be 'text' or 'image' here because we returned early for 'expert'
             tabModels = models.filter(m => categoryIds.includes(m.id));
         } else {
-            // Fallback logic if no categories defined
+            // Fallback logic
             if (activeTab === 'text') {
                 tabModels = models.filter(m => !m.capabilities.imageGeneration);
             } else if (activeTab === 'image') {
                 tabModels = models.filter(m => m.capabilities.imageGeneration);
-            } else {
-                // Experts fallback (maybe reasoning models?)
-                tabModels = models.filter(m => m.capabilities.reasoning);
             }
         }
 
@@ -82,7 +97,7 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
         return tabModels;
     };
 
-    const filteredModels = getTabModels();
+    const filteredItems = getTabContent();
 
     return (
         <div className="relative" ref={dropdownRef}>
@@ -150,54 +165,90 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
                         </div>
                     </div>
 
-                    {/* Models List */}
+                    {/* List */}
                     <div className="overflow-y-auto custom-scrollbar flex-1 p-2 space-y-1">
-                        {filteredModels.map(model => {
-                            const isSelected = model.id === selectedModelId;
-                            const isNew = model.id.includes('3') || model.id.includes('opus') || model.id.includes('gemini-1.5'); // Simple heuristic for "New" badge
+                        {filteredItems.map(item => {
+                            // Check if it's an Agent or Model based on property presence
+                            const isAgent = 'role' in item;
 
-                            return (
-                                <button
-                                    key={model.id}
-                                    onClick={() => {
-                                        onSelect(model.id);
-                                        setIsOpen(false);
-                                    }}
-                                    className={`
-                                        w-full text-left px-3 py-3 rounded-xl flex items-center justify-between group transition-all
-                                        ${isSelected
-                                            ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
-                                            : (isDarkMode ? 'hover:bg-white/5 text-gray-300 hover:text-white' : 'hover:bg-gray-50 text-gray-700 hover:text-black')}
-                                    `}
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className={`p-1.5 rounded-lg ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
-                                            {getProviderIcon(model.provider)}
-                                        </div>
-                                        <div className="flex flex-col gap-0.5">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-sm font-bold">{model.name}</span>
-                                                {isNew && (
-                                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
-                                                        Novo
+                            if (isAgent) {
+                                const agent = item as Agent;
+                                return (
+                                    <button
+                                        key={agent.id}
+                                        onClick={() => {
+                                            if (onSelectAgent) onSelectAgent(agent);
+                                            setIsOpen(false);
+                                        }}
+                                        className={`
+                                            w-full text-left px-3 py-3 rounded-xl flex items-center justify-between group transition-all
+                                            ${isDarkMode ? 'hover:bg-white/5 text-gray-300 hover:text-white' : 'hover:bg-gray-50 text-gray-700 hover:text-black'}
+                                        `}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`p-1.5 rounded-lg flex items-center justify-center w-8 h-8 font-bold text-white bg-gradient-to-br ${agent.color}`}>
+                                                {agent.name.charAt(0)}
+                                            </div>
+                                            <div className="flex flex-col gap-0.5">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-bold">{agent.name}</span>
+                                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400">
+                                                        Expert
                                                     </span>
-                                                )}
+                                                </div>
+                                                <span className="text-xs opacity-60 truncate max-w-[200px]">{agent.role}</span>
                                             </div>
                                         </div>
-                                    </div>
+                                    </button>
+                                );
+                            } else {
+                                const model = item as AIModel;
+                                const isSelected = model.id === selectedModelId;
+                                const isNew = model.id.includes('3') || model.id.includes('opus') || model.id.includes('gemini-1.5');
 
-                                    <div className="flex items-center gap-2">
-                                        <Info className="w-4 h-4 text-zinc-600 hover:text-zinc-400" />
-                                        {isSelected && <IconCheck className="w-4 h-4 text-emerald-500" />}
-                                    </div>
-                                </button>
-                            );
+                                return (
+                                    <button
+                                        key={model.id}
+                                        onClick={() => {
+                                            onSelect(model.id);
+                                            setIsOpen(false);
+                                        }}
+                                        className={`
+                                            w-full text-left px-3 py-3 rounded-xl flex items-center justify-between group transition-all
+                                            ${isSelected
+                                                ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
+                                                : (isDarkMode ? 'hover:bg-white/5 text-gray-300 hover:text-white' : 'hover:bg-gray-50 text-gray-700 hover:text-black')}
+                                        `}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`p-1.5 rounded-lg ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
+                                                {getProviderIcon(model.provider)}
+                                            </div>
+                                            <div className="flex flex-col gap-0.5">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-bold">{model.name}</span>
+                                                    {isNew && (
+                                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">
+                                                            Novo
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <Info className="w-4 h-4 text-zinc-600 hover:text-zinc-400" />
+                                            {isSelected && <IconCheck className="w-4 h-4 text-emerald-500" />}
+                                        </div>
+                                    </button>
+                                );
+                            }
                         })}
 
-                        {filteredModels.length === 0 && (
+                        {filteredItems.length === 0 && (
                             <div className="p-8 text-center text-gray-500 text-sm flex flex-col items-center gap-2">
                                 <IconSearch className="w-8 h-8 opacity-20" />
-                                <p>Nenhum modelo encontrado nesta categoria.</p>
+                                <p>Nenhum item encontrado.</p>
                             </div>
                         )}
                     </div>
