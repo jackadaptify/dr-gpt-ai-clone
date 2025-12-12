@@ -1,3 +1,4 @@
+// @ts-nocheck - This is a Deno edge function, IDE is configured for Node.js
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -5,7 +6,7 @@ const corsHeaders = {
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
+serve(async (req: Request) => {
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders });
@@ -72,7 +73,7 @@ serve(async (req) => {
         }
 
         const body: any = {
-            model: model,
+            model: 'openai/gpt-4o-mini', // 🔒 HARDCODED: Clinical-Pro v1.0 Engine
             messages: apiMessages,
             stream: stream,
         };

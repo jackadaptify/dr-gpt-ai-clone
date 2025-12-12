@@ -5,8 +5,5 @@
             "deno.window"
         ],
         "strict": true
-    },
-    "tasks": {
-        "start": "deno run --allow-net --allow-env index.ts"
     }
 }
