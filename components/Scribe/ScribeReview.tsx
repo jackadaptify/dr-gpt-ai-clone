@@ -9,9 +9,10 @@ interface ScribeReviewProps {
     onSave?: () => void;
     typewriterTrigger?: { content: string; timestamp: number } | null;
     children: React.ReactNode; // The Chat Component
+    title?: string; // Customizable Title
 }
 
-export default function ScribeReview({ isDarkMode, content, onChange, onSave, typewriterTrigger, children }: ScribeReviewProps) {
+export default function ScribeReview({ isDarkMode, content, onChange, onSave, typewriterTrigger, children, title = "Revisão de Prontuário" }: ScribeReviewProps) {
     const [copied, setCopied] = React.useState(false);
     const [saving, setSaving] = React.useState(false);
     const [isUpdating, setIsUpdating] = React.useState(false);
@@ -90,7 +91,7 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, ty
                             <FileText size={20} />
                         </div>
                         <h2 className={`font-bold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                            Revisão de Prontuário
+                            {title}
                         </h2>
                         {isUpdating && (
                             <span className={`text-xs px-2 py-1 rounded-full ${isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>

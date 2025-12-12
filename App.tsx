@@ -143,6 +143,7 @@ function AppContent() {
 
     // Typewriter trigger for ScribeReview
     const [typewriterTrigger, setTypewriterTrigger] = useState<{ content: string; timestamp: number } | null>(null);
+    const [reviewTitle, setReviewTitle] = useState('Revisão de Prontuário');
 
     // Update suggestions when pinned items change or on mount
     useEffect(() => {
@@ -1260,6 +1261,7 @@ function AppContent() {
                                 onChange={setScribeContent}
                                 isDarkMode={isDarkMode}
                                 typewriterTrigger={typewriterTrigger}
+                                title={reviewTitle}
                                 onSave={async () => {
                                     if (!currentChatId) return;
 
@@ -1334,6 +1336,7 @@ function AppContent() {
 
                             // 3. Switch to Scribe Review Mode
                             setActiveMode('scribe-review');
+                            setReviewTitle('Revisão de Prontuário'); // Reset title
                             setScribeContent('Processando dados da consulta...\n\nGerando SOAP...');
 
                             let audioUrl = "";
@@ -1417,29 +1420,105 @@ function AppContent() {
                 {activeMode === 'antiglosa' && !currentChatId && (
                     <AntiGlosaView
                         isDarkMode={isDarkMode}
-                        onGenerate={(text) => {
-                            // Switch to chat and send message with defense prompt
-                            setActiveMode('chat');
-                            const prompt = `ROLE: Você é um Auditor Médico Sênior e Advogado Especialista em Direito à Saúde. Sua função é defender o médico prestador.
-TASK: Escreva uma CARTA DE JUSTIFICATIVA TÉCNICA (Recurso de Glosa) para uma operadora de saúde.
-INPUT: O usuário fornecerá o caso clínico e o motivo da negativa (ou o procedimento desejado) abaixo:
-"${text}"
-GUIDELINES:
-1.  **Tom de Voz:** Formal, firme, técnico e autoritativo. Não seja agressivo, seja assertivo.
-2.  **Uso de Dados:**
-    *   **CRÍTICO:** Se o input contiver nome, idade ou detalhes específicos, USE-OS. Não substitua por [Nome do Paciente] se o nome for "João".
-    *   Apenas use placeholders (ex: [Inserir Data]) se a informação estiver ABSOLUTAMENTE ausente no input.
-3.  **Estrutura:**
-    *   Identificação do Paciente (Use os dados reais do input).
-    *   Histórico Clínico Resumido (focando na gravidade/necessidade).
-    *   Embasamento Científico (cite que o procedimento é "Padrão Ouro" na literatura se aplicável).
-    *   Embasamento Legal (cite "Rol de Procedimentos da ANS" e "Lei 9.656/98" se o procedimento for de cobertura obrigatória).
-4.  **Fechamento:** "Diante do exposto, solicitamos a revisão da negativa e a autorização imediata do procedimento, sob pena de responsabilidade civil por eventuais complicações decorrentes da demora."
-OUTPUT FORMAT: Markdown limpo, pronto para copiar e colar em um e-mail ou word. Sem preâmbulos do tipo "Aqui está sua carta". Comece direto na carta.`;
+                        isLoading={isGenerating}
+                        onGenerate={async (text) => {
+                            // 1. Create specialized Chat Session
+                            const newChatId = uuidv4();
+                            // Force GPT-4o for High Intelligence in Legal/Medical
+                            const defenseModelId = 'openai/gpt-4o';
 
-                            setTimeout(() => {
-                                handleSendMessage(prompt, "🛡️ Gerando defesa técnica...", 'antiglosa-mode');
-                            }, 100);
+                            const newChat: ChatSession = {
+                                id: newChatId,
+                                title: `Defesa - ${text.slice(0, 20)}...`,
+                                modelId: defenseModelId,
+                                agentId: 'antiglosa-mode', // Tag for filtering
+                                messages: [],
+                                updatedAt: Date.now()
+                            };
+
+                            setChats(prev => [newChat, ...prev]);
+                            setCurrentChatId(newChatId);
+                            setSelectedModelId(defenseModelId);
+                            createChat(newChat);
+
+                            // 2. Add AI Welcome Message
+                            const welcomeMsg: Message = {
+                                id: uuidv4(),
+                                role: Role.MODEL,
+                                content: "Defesa gerada com sucesso. Verifique o texto abaixo e faça ajustes se necessário.",
+                                timestamp: Date.now(),
+                                modelId: defenseModelId
+                            };
+                            saveMessage(newChatId, welcomeMsg);
+                            setChats(prev => prev.map(c => c.id === newChatId ? { ...c, messages: [welcomeMsg] } : c));
+
+                            // 3. Set UI State
+                            setActiveMode('scribe-review');
+                            setReviewTitle('Defesa Gerada'); // Customize Header
+                            setScribeContent('Aguarde... Consultando Jurisprudência e Rol da ANS...');
+                            setIsGenerating(true);
+
+                            // 4. Construct System Prompt
+                            const prompt = `ROLE: Você é um Auditor Médico Sênior e Advogado Especialista em Direito à Saúde.
+TASK: Escreva um RECURSO DE GLOSA (Carta de Apelação) formal.
+INPUT DO USUÁRIO: "${text}"
+
+DIRETRIZES TÉCNICAS (CRÍTICO):
+1. Citação de Leis: 
+   - Cite o "Código de Defesa do Consumidor" (Súmula 469 STJ se aplicável).
+   - Cite a "Lei 9.656/98" (Lei dos Planos de Saúde).
+   - Cite o "Rol de Procedimentos e Eventos em Saúde da ANS".
+2. Estrutura da Carta:
+   - Cabeçalho: "À [Nome da Operadora]" (se não houver, use "À Auditoria Médica").
+   - Assunto: "RECURSO ADMINISTRATIVO - REVISÃO DE GLOSA".
+   - Identificação do Paciente (Use os dados do input).
+   - Justificativa Clínica: Explique a necessidade médica baseada no input.
+   - Argumentação Jurídica: Por que a negativa é abusiva.
+   - Conclusão: Exija autorização imediata.
+   
+FORMATO:
+Retorne APENAS o texto da carta em Markdown. Sem introduções. Sem bloco de código.`;
+
+                            // 5. Stream Response
+                            try {
+                                const response = await streamChatResponse(
+                                    defenseModelId,
+                                    [{ role: Role.USER, content: prompt, id: 'prompt', timestamp: Date.now() }],
+                                    prompt,
+                                    (chunk) => {
+                                        setScribeContent(prev => {
+                                            if (prev.startsWith('Aguarde...')) return chunk;
+                                            return prev + chunk;
+                                        });
+                                    },
+                                    undefined,
+                                    { webSearch: false, imageGeneration: false },
+                                    newChatId,
+                                    undefined
+                                );
+                                setScribeContent(response);
+                                setIsGenerating(false);
+
+                                // Save generated document to history
+                                const docMessage: Message = {
+                                    id: uuidv4(),
+                                    role: Role.MODEL,
+                                    content: response,
+                                    displayContent: '📄 Defesa Gerada',
+                                    timestamp: Date.now(),
+                                    modelId: defenseModelId
+                                };
+                                saveMessage(newChatId, docMessage);
+                                setChats(prev => prev.map(c => c.id === newChatId ? {
+                                    ...c,
+                                    messages: [...c.messages, docMessage]
+                                } : c));
+
+                            } catch (error) {
+                                console.error(error);
+                                setScribeContent('Erro ao gerar defesa. Tente novamente.');
+                                setIsGenerating(false);
+                            }
                         }}
                     />
                 )}
