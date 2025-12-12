@@ -49,7 +49,7 @@ import RailNav from './components/RailNav';
 import ScribeView from './components/ScribeView';
 import AntiGlosaView from './components/AntiGlosaView';
 import ScribeReview from './components/Scribe/ScribeReview';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
 
 // POOL MESTRE DE SUGESTÕES
 const ALL_SUGGESTIONS = [
@@ -873,13 +873,34 @@ function AppContent() {
                             setActiveMode('scribe-review');
 
                             // Restore Content: Find the latest message that looks like a SOAP document
-                            // Or simply the last MODEL message that is NOT the welcome question
+                            // robustly by checking for length and role
                             const lastDocMessage = [...chat.messages]
                                 .reverse()
-                                .find(m => m.role === Role.MODEL && (m.displayContent === 'Feito. ✓' || m.content.includes('#') || m.displayContent === '📄 Prontuário Gerado'));
+                                .find(m => m.role === Role.MODEL && m.content.length > 50 && !m.content.includes("Precisa de algum ajuste"));
 
                             if (lastDocMessage) {
-                                setScribeContent(lastDocMessage.content);
+                                // Remove any internal tags if present in the raw content before setting state
+                                const cleanContent = lastDocMessage.content.replace(/<UPDATE_ACTION>[\s\S]*?<\/UPDATE_ACTION>/g, '').trim();
+                                // Actually we want the RAW content if it was an update action, 
+                                // but for the editor state we want the CLEAN content? 
+                                // No, the editor needs the text. The <UPDATE_ACTION> has the JSON. 
+                                // If the message IS the UPDATE_ACTION response, the content field has the JSON?
+                                // Let's simplify: The AI returns: "Conversational text <UPDATE_ACTION>{json}</UPDATE_ACTION>"
+                                // We saved that to DB. 
+                                // When restoring, if we find that pattern, we should extract the JSON content.
+                                // If standard message, just use content.
+
+                                const updateMatch = lastDocMessage.content.match(/<UPDATE_ACTION>\s*(\{[\s\S]*?\})\s*<\/UPDATE_ACTION>/);
+                                if (updateMatch && updateMatch[1]) {
+                                    try {
+                                        const json = JSON.parse(updateMatch[1]);
+                                        setScribeContent(json.new_content);
+                                    } catch (e) {
+                                        setScribeContent(lastDocMessage.content);
+                                    }
+                                } else {
+                                    setScribeContent(cleanContent);
+                                }
                             } else {
                                 setScribeContent('Carregando prontuário...'); // Should lazy load eventually
                             }
@@ -1259,6 +1280,14 @@ function AppContent() {
 
                                     // Update timestamp
                                     updateChat(currentChatId, { updatedAt: Date.now() });
+
+                                    toast.success('Prontuário salvo no histórico!', {
+                                        style: {
+                                            background: isDarkMode ? '#18181b' : '#fff',
+                                            color: isDarkMode ? '#10b981' : '#059669',
+                                            border: '1px solid ' + (isDarkMode ? 'rgba(16, 185, 129, 0.2)' : 'rgba(5, 150, 105, 0.2)')
+                                        }
+                                    });
                                 }}
                             >
                                 {renderChatUI()}
