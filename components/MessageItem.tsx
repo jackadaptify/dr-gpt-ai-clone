@@ -225,7 +225,7 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
                     }
                   }}
                 >
-                  {(message.displayContent || message.content.split(':::HIDDEN:::')[0]) + (message.isStreaming ? ' ▍' : '')}
+                  {(message.displayContent || message.content.split(':::HIDDEN:::')[0].replace(/<UPDATE_ACTION>[\s\S]*?<\/UPDATE_ACTION>/g, '').trim()) + (message.isStreaming ? ' ▍' : '')}
                 </ReactMarkdown>
               </div>
             </div>

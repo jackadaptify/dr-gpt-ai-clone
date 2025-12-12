@@ -49,6 +49,7 @@ import RailNav from './components/RailNav';
 import ScribeView from './components/ScribeView';
 import AntiGlosaView from './components/AntiGlosaView';
 import ScribeReview from './components/Scribe/ScribeReview';
+import { Toaster } from 'react-hot-toast';
 
 // POOL MESTRE DE SUGESTÕES
 const ALL_SUGGESTIONS = [
@@ -139,6 +140,9 @@ function AppContent() {
     });
 
     const [suggestions, setSuggestions] = useState<any[]>([]);
+
+    // Typewriter trigger for ScribeReview
+    const [typewriterTrigger, setTypewriterTrigger] = useState<{ content: string; timestamp: number } | null>(null);
 
     // Update suggestions when pinned items change or on mount
     useEffect(() => {
@@ -686,7 +690,7 @@ function AppContent() {
 
             // Detect if we're in scribe-review mode for SOAP refinement
             const isReviewMode = activeMode === 'scribe-review';
-            let refinedContent = '';
+            let fullStreamedResponse = '';
 
             // 7. REAL API CALL (UNCOMMENTED AND FIXED)
             const fullResponse = await streamChatResponse(
@@ -694,10 +698,13 @@ function AppContent() {
                 updatedHistory,
                 messageContent,
                 (chunk) => {
-                    // Check if this is a refinement response
-                    if (isReviewMode && (refinedContent + chunk).includes('<<<REFINEMENT>>>')) {
-                        refinedContent += chunk;
-                        // Don't update the chat UI yet, we'll replace it with confirmation
+                    fullStreamedResponse += chunk;
+
+                    // Check if this is a refinement response with UPDATE_ACTION tag
+                    if (isReviewMode && fullStreamedResponse.includes('<UPDATE_ACTION>')) {
+                        // Don't update the chat UI during streaming of UPDATE_ACTION content
+                        // We'll process it after completion
+                        return;
                     } else {
                         // Update UI on every chunk received for normal responses
                         setChats(prev => prev.map(c => c.id === activeChatId ? {
@@ -716,24 +723,43 @@ function AppContent() {
 
             console.log('✅ RESPOSTA: Recebida completa');
 
-            // 8. Handle Refinement Response
+            // 8. Handle UPDATE_ACTION Response
             let finalAiContent = fullResponse;
             let finalDisplayContent = undefined;
+            let shouldTriggerTypewriter = false;
+            let newDocumentContent = '';
 
-            if (isReviewMode && fullResponse.includes('<<<REFINEMENT>>>')) {
-                // Extract the refined SOAP content
-                const parts = fullResponse.split('<<<REFINEMENT>>>');
-                if (parts.length > 1) {
-                    const newSoapContent = parts[1].trim();
-                    // Update the SOAP content in the left panel
-                    setScribeContent(newSoapContent);
+            if (isReviewMode && fullResponse.includes('<UPDATE_ACTION>')) {
+                try {
+                    // Extract the UPDATE_ACTION tag content
+                    const regex = /<UPDATE_ACTION>\s*(\{[\s\S]*?\})\s*<\/UPDATE_ACTION>/;
+                    const match = fullResponse.match(regex);
 
-                    // SAVE FULL CONTENT, SHOW CONFIRMATION
-                    finalAiContent = newSoapContent;
-                    finalDisplayContent = 'Feito. ✓';
+                    if (match && match[1]) {
+                        const updateData = JSON.parse(match[1]);
+                        newDocumentContent = updateData.new_content || '';
 
-                    console.log('🔄 SOAP refinement applied automatically');
+                        // Extract conversational response (everything before the tag)
+                        const conversationalPart = fullResponse.split('<UPDATE_ACTION>')[0].trim();
+
+                        // Set flag to trigger typewriter animation
+                        shouldTriggerTypewriter = true;
+
+                        // SAVE FULL CONTENT, SHOW ONLY CONVERSATIONAL PART
+                        finalAiContent = fullResponse; // Save everything for history
+                        finalDisplayContent = conversationalPart || '✓ Documento atualizado.';
+
+                        console.log('🔄 SOAP update detected, will trigger typewriter animation');
+                    }
+                } catch (error) {
+                    console.error('Failed to parse UPDATE_ACTION JSON:', error);
+                    finalDisplayContent = 'Erro ao processar atualização.';
                 }
+            }
+
+            // Trigger typewriter animation if needed
+            if (shouldTriggerTypewriter && newDocumentContent) {
+                setTypewriterTrigger({ content: newDocumentContent, timestamp: Date.now() });
             }
 
             // 9. Finalize Message (Remove Streaming flag)
@@ -860,7 +886,7 @@ function AppContent() {
                         } else if (chat?.agentId === 'antiglosa-mode') {
                             setActiveMode('antiglosa');
                         } else {
-                            if (activeMode === 'scribe-review' || activeMode === 'scribe' || activeMode === 'antiglosa') {
+                            if ((activeMode as string) === 'scribe-review' || activeMode === 'scribe' || activeMode === 'antiglosa') {
                                 setActiveMode('chat');
                             }
                         }
@@ -1075,7 +1101,7 @@ function AppContent() {
                                                 onKeyDown={handleKeyDown}
                                                 placeholder={
                                                     activeTools.web ? "Pesquisar na Web..." :
-                                                        (activeTools.image || availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.imageGeneration) ? "Descreva a imagem que você quer criar..." :
+                                                        ((activeTools.image || availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.imageGeneration) && activeMode !== 'scribe' && activeMode !== 'scribe-review') ? "Descreva a imagem que você quer criar..." :
                                                             isGenerating ? "Aguarde a resposta..." : "Pergunte algo ao Dr. GPT..."
                                                 }
                                                 className={`w-full bg-transparent text-textMain placeholder-textMuted text-[16px] md:text-lg px-6 py-5 max-h-48 overflow-y-auto resize-none outline-none transition-opacity duration-200 ${isGenerating ? 'opacity-60 cursor-wait' : 'opacity-100'}`}
@@ -1102,7 +1128,7 @@ function AppContent() {
                                                             onClose={() => setIsAttachmentMenuOpen(false)}
                                                             isDarkMode={isDarkMode}
                                                             triggerRef={attachmentButtonRef}
-                                                            isImageMode={!!availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.imageGeneration}
+                                                            isImageMode={activeMode !== 'scribe' && activeMode !== 'scribe-review' && !!availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.imageGeneration}
                                                             isWebActive={activeTools.web}
                                                             onToggleWeb={() => setActiveTools(prev => ({ ...prev, web: !prev.web }))}
                                                             onSelect={(option) => {
@@ -1208,7 +1234,33 @@ function AppContent() {
 
                     return (
                         activeMode === 'scribe-review' ? (
-                            <ScribeReview content={scribeContent} onChange={setScribeContent} isDarkMode={isDarkMode}>
+                            <ScribeReview
+                                content={scribeContent}
+                                onChange={setScribeContent}
+                                isDarkMode={isDarkMode}
+                                typewriterTrigger={typewriterTrigger}
+                                onSave={async () => {
+                                    if (!currentChatId) return;
+
+                                    const saveMessageObj: Message = {
+                                        id: uuidv4(),
+                                        role: Role.MODEL,
+                                        content: scribeContent,
+                                        displayContent: '💾 Prontuário Salvo',
+                                        timestamp: Date.now(),
+                                        modelId: selectedModelId
+                                    };
+
+                                    saveMessage(currentChatId, saveMessageObj);
+                                    setChats(prev => prev.map(c => c.id === currentChatId ? {
+                                        ...c,
+                                        messages: [...c.messages, saveMessageObj]
+                                    } : c));
+
+                                    // Update timestamp
+                                    updateChat(currentChatId, { updatedAt: Date.now() });
+                                }}
+                            >
                                 {renderChatUI()}
                             </ScribeReview>
                         ) : (
@@ -1223,10 +1275,13 @@ function AppContent() {
                         onGenerate={async (consultation, thoughts, patientName, patientGender, audioBlob) => {
                             // 1. Create a new Chat Session specifically for this Scribe Review
                             const newChatId = uuidv4();
+                            // Force GPT-4o Mini for Scribe Mode
+                            const scribeModelId = 'openai/gpt-4o-mini';
+
                             const newChat: ChatSession = {
                                 id: newChatId,
                                 title: `Prontuário - ${patientName || 'Sem Nome'}`,
-                                modelId: selectedModelId,
+                                modelId: scribeModelId, // 🔒 Force Text Model
                                 agentId: 'scribe-mode', // 🏷️ FIX: Tag chat for Sidebar filtering
                                 messages: [],
                                 updatedAt: Date.now()
@@ -1234,6 +1289,7 @@ function AppContent() {
 
                             setChats(prev => [newChat, ...prev]);
                             setCurrentChatId(newChatId);
+                            setSelectedModelId(scribeModelId); // 🔒 Update global selection to match
                             createChat(newChat); // Persist
 
                             // 2. Add System/AI Message to the Char
@@ -1288,7 +1344,7 @@ function AppContent() {
                             // We use a dummy chat history just for the context of the generation, but output goes to state.
                             try {
                                 const response = await streamChatResponse(
-                                    availableAndHealthyModels.find(m => m.id === selectedModelId)?.modelId || selectedModelId,
+                                    scribeModelId, // 🔒 Use local var to ensure correct model immediately
                                     [{ role: Role.USER, content: finalPrompt, id: 'prompt', timestamp: Date.now() }], // One-shot prompt
                                     finalPrompt,
                                     (chunk) => {
@@ -1378,6 +1434,7 @@ OUTPUT FORMAT: Markdown limpo, pronto para copiar e colar em um e-mail ou word. 
 export default function App() {
     return (
         <AuthProvider>
+            <Toaster />
             <AppContent />
         </AuthProvider>
     );
