@@ -1,5 +1,5 @@
-import React from 'react';
-import { MessageCircle, Mic, FileText, Settings, Shield, User } from 'lucide-react';
+import { MessageCircle, Mic, FileText, Settings, Shield, User, LogOut } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import { AppMode } from '../types';
 
 interface RailNavProps {
@@ -14,8 +14,9 @@ const RailNav: React.FC<RailNavProps> = ({ activeMode, onModeChange, isDarkMode 
         { mode: 'chat', icon: MessageCircle, label: 'Chat IA' },
         { mode: 'scribe', icon: Mic, label: 'Scribe' },
         { mode: 'antiglosa', icon: Shield, label: 'Anti-Glosa' },
-        { mode: 'settings', icon: Settings, label: 'Ajustes' },
     ];
+
+    const { user } = useAuth();
 
     return (
         <div className={`
@@ -69,9 +70,36 @@ const RailNav: React.FC<RailNavProps> = ({ activeMode, onModeChange, isDarkMode 
                 })}
             </div>
 
-            {/* Bottom Avatar/User (Optional placeholder in rail) */}
-            <div className="mt-auto">
-                {/* Could duplicate user avatar here if desired, keeping it clean for now */}
+            {/* Bottom User Avatar - Acts as Settings Button */}
+            <div className="mt-auto mb-6">
+                <button
+                    onClick={() => onModeChange('settings')}
+                    className={`
+                        group relative w-10 h-10 rounded-full overflow-hidden transition-all duration-200
+                        ${activeMode === 'settings'
+                            ? 'ring-2 ring-emerald-500 ring-offset-2 ring-offset-zinc-950'
+                            : 'hover:ring-2 hover:ring-zinc-700 hover:ring-offset-2 hover:ring-offset-zinc-950 opacity-80 hover:opacity-100'
+                        }
+                    `}
+                    title="Configurações e Perfil"
+                >
+                    {user?.avatar_url ? (
+                        <img
+                            src={user.avatar_url}
+                            alt="User"
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <div className="w-full h-full bg-emerald-600 flex items-center justify-center text-xs font-bold text-white">
+                            {user?.email?.[0].toUpperCase() || 'U'}
+                        </div>
+                    )}
+
+                    {/* Active Indicator for User/Settings */}
+                    {activeMode === 'settings' && (
+                        <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1 h-5 bg-emerald-500 rounded-r-full" />
+                    )}
+                </button>
             </div>
         </div>
     );

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { ChatSession, Folder, Agent, AppMode } from '../types';
-import { IconPlus, IconMessage, IconFolder, IconSearch, IconSettings, IconSun, IconMoon, IconTrash, IconEdit, IconCheck } from './Icons';
+import { IconPlus, IconMessage, IconFolder, IconSearch, IconSettings, IconSun, IconMoon, IconTrash, IconEdit, IconCheck, IconBrain } from './Icons';
+import { User, CreditCard, Palette, LogOut, Shield } from 'lucide-react';
 import AgentsList from './AgentsList';
-import UserMenu from './UserMenu';
+import { useAuth } from '../contexts/AuthContext';
+import SettingsModal from './SettingsModal';
 
 interface SidebarProps {
   chats: ChatSession[];
@@ -33,7 +35,9 @@ export default function Sidebar({
   agents,
   activeMode
 }: SidebarProps) {
+  const { user, signOut } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // Mode-Specific Content
   const renderContent = () => {
@@ -106,13 +110,13 @@ export default function Sidebar({
           </div>
         );
 
-      case 'finance':
+      case 'antiglosa':
         return (
           <div className="px-4 text-center mt-10">
             <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-500">
-              <IconCheck />
+              <Shield size={24} />
             </div>
-            <p className="text-sm text-textMuted mb-2">Histórico Financeiro</p>
+            <p className="text-sm text-textMuted mb-2">Histórico de Defesas</p>
             {/* Placeholder for future Finance History */}
             <div className={`text-xs p-3 rounded-lg border border-dashed ${isDarkMode ? 'border-zinc-800 bg-zinc-900/50' : 'border-gray-200 bg-gray-50'}`}>
               Defesas e justificativas geradas aparecerão aqui.
@@ -122,19 +126,65 @@ export default function Sidebar({
 
       case 'settings':
         return (
-          <div className="px-3 mt-4">
-            <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 px-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Configurações</h3>
+          <div className="px-3 mt-4 space-y-6">
 
-            <div className="space-y-1">
-              <button className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isDarkMode ? 'text-textMain hover:bg-white/5' : 'text-gray-800 hover:bg-black/5'}`}>
-                <span>👤</span> Perfil
-              </button>
-              <button className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isDarkMode ? 'text-textMain hover:bg-white/5' : 'text-gray-800 hover:bg-black/5'}`}>
-                <span>💳</span> Assinatura
-              </button>
-              <button className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isDarkMode ? 'text-textMain hover:bg-white/5' : 'text-gray-800 hover:bg-black/5'}`}>
-                <span>🎨</span> Aparência
-              </button>
+            {/* User Profile Summary */}
+            <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-emerald-900/20 mb-3">
+                {user?.email?.[0].toUpperCase() || 'U'}
+              </div>
+              <h3 className="font-semibold text-white">{user?.full_name || 'Usuário Dr. GPT'}</h3>
+              <p className="text-xs text-zinc-400">{user?.email}</p>
+              {user?.role === 'admin' && (
+                <span className="mt-2 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full inline-block">
+                  Administrador
+                </span>
+              )}
+            </div>
+
+            {/* Menu Options */}
+            <div>
+              <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 px-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Conta</h3>
+              <div className="space-y-1">
+                <button className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${isDarkMode ? 'text-textMain hover:bg-white/5' : 'text-gray-800 hover:bg-black/5'}`}>
+                  <User size={18} className="text-zinc-500" />
+                  <span>Dados Pessoais</span>
+                </button>
+                <button className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${isDarkMode ? 'text-textMain hover:bg-white/5' : 'text-gray-800 hover:bg-black/5'}`}>
+                  <CreditCard size={18} className="text-zinc-500" />
+                  <span>Assinatura</span>
+                </button>
+                <button
+                  onClick={() => setShowSettingsModal(true)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${isDarkMode ? 'text-textMain hover:bg-white/5' : 'text-gray-800 hover:bg-black/5'}`}
+                >
+                  <Palette size={18} className="text-zinc-500" />
+                  <span>Aparência e Cores</span>
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 px-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Sistema</h3>
+              <div className="space-y-1">
+                {user?.role === 'admin' && (
+                  <button
+                    onClick={() => window.open('/admin', '_blank')}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${isDarkMode ? 'text-textMain hover:bg-white/5' : 'text-gray-800 hover:bg-black/5'}`}
+                  >
+                    <IconBrain className="w-4 h-4 text-emerald-500" />
+                    <span>Painel Admin</span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => signOut()}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-red-400 hover:bg-red-500/10"
+                >
+                  <LogOut size={18} />
+                  <span>Sair da Conta</span>
+                </button>
+              </div>
             </div>
           </div>
         );
@@ -165,7 +215,7 @@ export default function Sidebar({
         <div className="p-4 space-y-4">
           <div className="flex items-center gap-1 py-4 select-none px-2">
             <span className="text-2xl font-black tracking-wide text-white">
-              {activeMode === 'chat' ? 'CHAT' : activeMode === 'scribe' ? 'SCRIBE' : activeMode === 'finance' ? 'FINANÇAS' : 'AJUSTES'}
+              {activeMode === 'chat' ? 'CHAT' : activeMode === 'scribe' ? 'SCRIBE' : activeMode === 'antiglosa' ? 'ANTI-GLOSA' : 'AJUSTES'}
             </span>
           </div>
 
@@ -200,10 +250,13 @@ export default function Sidebar({
           {renderContent()}
         </div>
 
-        {/* Footer / User Profile */}
-        <div className="p-4 border-t border-white/5">
-          <UserMenu isDarkMode={isDarkMode} toggleTheme={toggleTheme} />
-        </div>
+        {/* Settings Modal */}
+        <SettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+          isDarkMode={isDarkMode}
+          toggleTheme={toggleTheme}
+        />
       </aside>
     </>
   );
