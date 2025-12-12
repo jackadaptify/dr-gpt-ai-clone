@@ -203,6 +203,41 @@ ${customInstructions}
 `;
     finalSystemPrompt = personalizationPrompt + (finalSystemPrompt ? `\n\n${finalSystemPrompt}` : '');
 
+    // Refinement Logic (Client-Side Injection)
+    if (reviewMode && currentContent) {
+        const refinementPrompt = `
+VOCÊ ESTÁ EM MODO DE REFINAMENTO DE PRONTUÁRIO CLÍNICO.
+
+PRONTUÁRIO ATUAL:
+${currentContent}
+
+INSTRUÇÕES ESPECIAIS:
+1. Se o usuário pedir para MODIFICAR, ALTERAR, MUDAR, ADICIONAR ou REMOVER algo do prontuário:
+   - PRIMEIRO: Responda de forma conversacional e amigável (ex: "Entendido, Dr. Atualizando agora." ou "Feito! Alterei conforme solicitado.")
+   - DEPOIS: Retorne o prontuário COMPLETO atualizado dentro de uma tag especial
+   - FORMATO OBRIGATÓRIO:
+     [Sua resposta conversacional aqui]
+     <UPDATE_ACTION>
+     {"new_content": "CONTEÚDO COMPLETO DO PRONTUÁRIO ATUALIZADO AQUI"}
+     </UPDATE_ACTION>
+   - O JSON deve conter o prontuário inteiro atualizado, não apenas a parte modificada
+   - NÃO adicione comentários ou explicações dentro do new_content, apenas o documento
+   - NÃO use markdown block (triple backticks) ao redor do JSON, apenas a tag <UPDATE_ACTION>
+
+2. Se o usuário fizer uma PERGUNTA ou CONSULTA (não pedindo mudanças):
+   - Responda normalmente sem a tag <UPDATE_ACTION>
+   - Seja direto, técnico e útil
+
+EXEMPLO de refinamento:
+Usuário: "Mude torsilax para dipirona"
+Sua resposta: "Entendido, Dr. Atualizando a medicação agora.
+<UPDATE_ACTION>
+{"new_content": "# PRONTUÁRIO MÉDICO\\n\\nS: Paciente com lombalgia...\\n\\nCONDUTA: Dipirona 500mg..."}
+</UPDATE_ACTION>"
+`;
+        finalSystemPrompt = finalSystemPrompt + `\n\n${refinementPrompt}`;
+    }
+
     let contentToSave = '';
 
     if (shouldGenerateImage) {
