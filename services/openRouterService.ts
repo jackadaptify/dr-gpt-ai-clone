@@ -12,7 +12,9 @@ export const createOpenRouterChatStream = async (
     history: Message[],
     newMessage: string,
     onChunk: (text: string) => void,
-    systemPrompt?: string
+    systemPrompt?: string,
+    reviewMode?: boolean,
+    currentContent?: string
 ): Promise<string> => {
     try {
         // Mandatory System Message for Dr. GPT
@@ -58,7 +60,9 @@ export const createOpenRouterChatStream = async (
             body: JSON.stringify({
                 model: modelName,
                 messages: messages,
-                systemPrompt: systemPrompt
+                systemPrompt: systemPrompt,
+                reviewMode: reviewMode,
+                currentContent: currentContent
             }),
         });
 

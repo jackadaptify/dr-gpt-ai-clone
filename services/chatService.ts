@@ -129,7 +129,9 @@ export const streamChatResponse = async (
         specialty?: string;
         goal?: string;
         customInstructions?: string;
-    }
+    },
+    reviewMode?: boolean,
+    currentContent?: string
 ): Promise<string> => {
     // Check for media generation models
     const isImageModel = modelId.includes('image') || modelId.includes('flux') || modelId.includes('dall-e');
@@ -219,7 +221,7 @@ ${customInstructions}
         }));
         const cleanMessage = newMessage.split(':::HIDDEN:::')[1] || newMessage;
 
-        fullResponse = await createOpenRouterChatStream(modelId, cleanHistory, cleanMessage, onChunk, finalSystemPrompt);
+        fullResponse = await createOpenRouterChatStream(modelId, cleanHistory, cleanMessage, onChunk, finalSystemPrompt, reviewMode, currentContent);
         contentToSave = fullResponse;
     }
 

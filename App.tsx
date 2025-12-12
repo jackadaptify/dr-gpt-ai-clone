@@ -684,31 +684,64 @@ function AppContent() {
 
             console.log('📡 API: Chamando endpoint REAL', { model: apiModelId, tools: capturedTools });
 
+            // Detect if we're in scribe-review mode for SOAP refinement
+            const isReviewMode = activeMode === 'scribe-review';
+            let refinedContent = '';
+
             // 7. REAL API CALL (UNCOMMENTED AND FIXED)
             const fullResponse = await streamChatResponse(
                 apiModelId,
                 updatedHistory,
                 messageContent,
                 (chunk) => {
-                    // Update UI on every chunk received
-                    setChats(prev => prev.map(c => c.id === activeChatId ? {
-                        ...c,
-                        messages: c.messages.map(m => m.id === tempAiMessageId ? { ...m, content: m.content + chunk } : m)
-                    } : c));
+                    // Check if this is a refinement response
+                    if (isReviewMode && (refinedContent + chunk).includes('<<<REFINEMENT>>>')) {
+                        refinedContent += chunk;
+                        // Don't update the chat UI yet, we'll replace it with confirmation
+                    } else {
+                        // Update UI on every chunk received for normal responses
+                        setChats(prev => prev.map(c => c.id === activeChatId ? {
+                            ...c,
+                            messages: c.messages.map(m => m.id === tempAiMessageId ? { ...m, content: m.content + chunk } : m)
+                        } : c));
+                    }
                 },
                 selectedAgentId ? agents.find(a => a.id === selectedAgentId)?.systemPrompt : undefined,
                 { webSearch: capturedTools.web, imageGeneration: capturedTools.image },
                 activeChatId,
-                userProfile
+                userProfile,
+                isReviewMode,
+                isReviewMode ? scribeContent : undefined
             );
 
             console.log('✅ RESPOSTA: Recebida completa');
 
-            // 8. Finalize Message (Remove Streaming flag)
+            // 8. Handle Refinement Response
+            let finalAiContent = fullResponse;
+            let finalDisplayContent = undefined;
+
+            if (isReviewMode && fullResponse.includes('<<<REFINEMENT>>>')) {
+                // Extract the refined SOAP content
+                const parts = fullResponse.split('<<<REFINEMENT>>>');
+                if (parts.length > 1) {
+                    const newSoapContent = parts[1].trim();
+                    // Update the SOAP content in the left panel
+                    setScribeContent(newSoapContent);
+
+                    // SAVE FULL CONTENT, SHOW CONFIRMATION
+                    finalAiContent = newSoapContent;
+                    finalDisplayContent = 'Feito. ✓';
+
+                    console.log('🔄 SOAP refinement applied automatically');
+                }
+            }
+
+            // 9. Finalize Message (Remove Streaming flag)
             const aiMessage: Message = {
                 id: tempAiMessageId,
                 role: Role.MODEL,
-                content: fullResponse, // Ensure we use the full response returned
+                content: finalAiContent, // Save FULL content for history restoration
+                displayContent: finalDisplayContent, // Show clean UI
                 timestamp: Date.now(),
                 modelId: selectedModelId,
                 isStreaming: false
@@ -718,6 +751,11 @@ function AppContent() {
                 ...c,
                 messages: c.messages.map(m => m.id === tempAiMessageId ? aiMessage : m)
             } : c));
+
+            // Save to DB
+            if (activeChatId) {
+                saveMessage(activeChatId, aiMessage);
+            }
 
             // 9. Persist Chat Update (Updated At)
             if (isFirstMessage) {
@@ -800,7 +838,33 @@ function AppContent() {
                     chats={chats}
                     folders={folders}
                     currentChatId={currentChatId}
-                    onSelectChat={setCurrentChatId}
+                    onSelectChat={(chatId) => {
+                        const chat = chats.find(c => c.id === chatId);
+                        setCurrentChatId(chatId);
+
+                        if (chat?.agentId === 'scribe-mode') {
+                            console.log('📂 Opening Scribe Chat under Review Mode');
+                            setActiveMode('scribe-review');
+
+                            // Restore Content: Find the latest message that looks like a SOAP document
+                            // Or simply the last MODEL message that is NOT the welcome question
+                            const lastDocMessage = [...chat.messages]
+                                .reverse()
+                                .find(m => m.role === Role.MODEL && (m.displayContent === 'Feito. ✓' || m.content.includes('#') || m.displayContent === '📄 Prontuário Gerado'));
+
+                            if (lastDocMessage) {
+                                setScribeContent(lastDocMessage.content);
+                            } else {
+                                setScribeContent('Carregando prontuário...'); // Should lazy load eventually
+                            }
+                        } else if (chat?.agentId === 'antiglosa-mode') {
+                            setActiveMode('antiglosa');
+                        } else {
+                            if (activeMode === 'scribe-review' || activeMode === 'scribe' || activeMode === 'antiglosa') {
+                                setActiveMode('chat');
+                            }
+                        }
+                    }}
                     onNewChat={handleNewChat}
                     isOpen={sidebarOpen}
                     setIsOpen={setSidebarOpen}
@@ -1163,6 +1227,7 @@ function AppContent() {
                                 id: newChatId,
                                 title: `Prontuário - ${patientName || 'Sem Nome'}`,
                                 modelId: selectedModelId,
+                                agentId: 'scribe-mode', // 🏷️ FIX: Tag chat for Sidebar filtering
                                 messages: [],
                                 updatedAt: Date.now()
                             };
@@ -1214,9 +1279,9 @@ function AppContent() {
 
                             // 2. Construct Prompt
                             if (audioUrl) {
-                                finalPrompt = `[AI SCRIBE ACTION - AUDIO MODE]\nSOURCE 1: AUDIO DA CONSULTA (Telemedicina)\nURL: ${audioUrl}\nSOURCE 2: NOTA TÉCNICA: "${thoughts}"\nCONTEXTO: ${patientContext}\nTASK: Ouça o áudio. Gere um SOAP completo.`;
+                                finalPrompt = `[AI SCRIBE ACTION - AUDIO MODE]\nSOURCE 1: AUDIO DA CONSULTA (Telemedicina)\nURL: ${audioUrl}\nSOURCE 2: NOTA TÉCNICA: "${thoughts}"\nCONTEXTO: ${patientContext}\nTASK: Ouça o áudio. Gere um SOAP completo.\n\nFORMATO OBRIGATÓRIO: Apenas o conteúdo do prontuário. NÃO inclua introduções como "Aqui está o SOAP", NÃO inclua conclusões como "Espero que ajude" e NÃO use blocos de código markdown (\`\`\`). O output deve ser apenas o texto do SOAP pronto para copiar.`;
                             } else {
-                                finalPrompt = `[AI SCRIBE ACTION - TEXT MODE]\nSOURCE 1: TRANSCRIPT: "${consultation}"\nSOURCE 2: NOTA TÉCNICA: "${thoughts}"\nCONTEXTO: ${patientContext}\nTASK: Gere um SOAP perfeito.\n\nREGRA: Gere SEMPRE o SOAP. Receita/Atestado apenas se solicitado no texto.`;
+                                finalPrompt = `[AI SCRIBE ACTION - TEXT MODE]\nSOURCE 1: TRANSCRIPT: "${consultation}"\nSOURCE 2: NOTA TÉCNICA: "${thoughts}"\nCONTEXTO: ${patientContext}\nTASK: Gere um SOAP perfeito.\n\nREGRA: Gere SEMPRE o SOAP. Receita/Atestado apenas se solicitado no texto.\n\nFORMATO OBRIGATÓRIO: Apenas o conteúdo do prontuário. NÃO inclua introduções como "Aqui está o SOAP", NÃO inclua conclusões como "Espero que ajude" e NÃO use blocos de código markdown (\`\`\`). O output deve ser apenas o texto do SOAP pronto para copiar.`;
                             }
 
                             // 3. STREAM GENERATION DIRECTLY TO scribeContent STATE
@@ -1239,6 +1304,24 @@ function AppContent() {
                                 );
                                 // Final update ensures sync
                                 setScribeContent(response);
+
+                                // 4. SAVE INITIAL DOCUMENT TO HISTORY
+                                const docMessage: Message = {
+                                    id: uuidv4(),
+                                    role: Role.MODEL,
+                                    content: response,
+                                    displayContent: '📄 Prontuário Gerado',
+                                    timestamp: Date.now(),
+                                    modelId: selectedModelId
+                                };
+                                saveMessage(newChatId, docMessage);
+                                setChats(prev => prev.map(c => c.id === newChatId ? {
+                                    ...c,
+                                    messages: [...c.messages, docMessage] // Append doc AFTER welcome msg? No, order matters by timestamp. 
+                                    // Actually welcomeMsg was added first. So this comes second. Ideally it should be first?
+                                    // Let's just append it.
+                                } : c));
+
                             } catch (e) {
                                 setScribeContent('Erro ao gerar prontuário.');
                             }

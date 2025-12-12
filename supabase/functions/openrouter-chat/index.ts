@@ -23,7 +23,9 @@ serve(async (req: Request) => {
             size,
             modalities,
             image_config,
-            stream = true
+            stream = true,
+            reviewMode = false,
+            currentContent = ''
         } = await req.json();
 
         const apiKey = Deno.env.get('OPENROUTER_API_KEY');
@@ -65,8 +67,36 @@ serve(async (req: Request) => {
         // CHAT COMPLETION (Default)
         // Construct messages array
         const apiMessages = [];
-        if (systemPrompt) {
-            apiMessages.push({ role: 'system', content: systemPrompt });
+
+        // Add refinement instructions if in review mode
+        let finalSystemPrompt = systemPrompt || '';
+        if (reviewMode && currentContent) {
+            const refinementPrompt = `
+VOCÊ ESTÁ EM MODO DE REFINAMENTO DE PRONTUÁRIO CLÍNICO.
+
+PRONTUÁRIO ATUAL:
+${currentContent}
+
+INSTRUÇÕES ESPECIAIS:
+1. Se o usuário pedir para MODIFICAR, ALTERAR, MUDAR, ADICIONAR ou REMOVER algo do prontuário:
+   - Retorne o prontuário COMPLETO atualizado
+   - INICIE sua resposta com o marcador: <<<REFINEMENT>>>
+   - Após o marcador, escreva APENAS o prontuário atualizado, sem comentários adicionais
+   - Não diga "Aqui está" ou "Feito", apenas retorne o documento
+
+2. Se o usuário fizer uma PERGUNTA ou CONSULTA (não pedindo mudanças):
+   - Responda normalmente sem o marcador <<<REFINEMENT>>>
+   - Seja direto e técnico
+
+EXEMPLO de refinamento:
+Usuário: "Mude torsilax para dipirona"
+Sua resposta: "<<<REFINEMENT>>>\nS: Paciente com lombalgia...\n...CONDUTA: Dipirona..."
+`;
+            finalSystemPrompt = refinementPrompt + (finalSystemPrompt ? `\n\n${finalSystemPrompt}` : '');
+        }
+
+        if (finalSystemPrompt) {
+            apiMessages.push({ role: 'system', content: finalSystemPrompt });
         }
         if (messages) {
             apiMessages.push(...messages);
