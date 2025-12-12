@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import MessageItem from './components/MessageItem';
 import { ChatSession, Message, Role, AVAILABLE_MODELS, Folder, Agent, AVAILABLE_AGENTS, Attachment, AIModel, AppMode } from './types';
-import { streamChatResponse, saveMessage, loadChatHistory, createChat, updateChat, loadMessagesForChat } from './services/chatService';
+import { streamChatResponse, saveMessage, loadChatHistory, createChat, updateChat, loadMessagesForChat, deleteChat } from './services/chatService';
 import { fetchOpenRouterModels, OpenRouterModel } from './services/openRouterService';
 import { agentService } from './services/agentService';
+import { projectService } from './services/projectService'; // Implemented
 import { IconMenu, IconSend, IconAttachment, IconGlobe, IconImage, IconBrain, IconPlus } from './components/Icons';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -109,19 +110,13 @@ const ICON_MAP: Record<string, any> = {
     Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail
 };
 
-const INITIAL_FOLDERS: Folder[] = [
-    { id: '1', name: 'Pessoais' },
-    { id: '2', name: 'Empresa' },
-    { id: '3', name: 'Trabalho' },
-    { id: '4', name: 'Dr. GPT' },
-];
-
 function AppContent() {
     const { session, loading } = useAuth();
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [activeMode, setActiveMode] = useState<AppMode>('chat');
     const [chats, setChats] = useState<ChatSession[]>([]);
+    const [folders, setFolders] = useState<Folder[]>([]); // Real folders state
     const [currentChatId, setCurrentChatId] = useState<string | null>(null);
     const [input, setInput] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
@@ -431,6 +426,41 @@ function AppContent() {
             }
         };
     }, [chats, currentChatId, isGenerating]);
+
+    // Load Projects
+    useEffect(() => {
+        if (session?.user?.id) {
+            projectService.getProjects().then(setFolders);
+        }
+    }, [session?.user?.id]);
+
+    const handleCreateProject = async (name: string) => {
+        const { project, error } = await projectService.createProject(name);
+        if (project) {
+            setFolders(prev => [...prev, project]);
+        } else if (error) {
+            console.error('Project creation failed:', error);
+            alert(`Falha ao criar projeto: ${error.message || JSON.stringify(error)}. \n\nVerifique se você rodou o script SQL no Supabase.`);
+        }
+    };
+
+    const handleRenameChat = async (chatId: string, newTitle: string) => {
+        await updateChat(chatId, { title: newTitle });
+        setChats(prev => prev.map(c => c.id === chatId ? { ...c, title: newTitle } : c));
+    };
+
+    const handleDeleteChat = async (chatId: string) => {
+        setChats(prev => prev.filter(c => c.id !== chatId));
+        if (currentChatId === chatId) setCurrentChatId(null);
+        await deleteChat(chatId);
+    };
+
+    const handleAssignChatToProject = async (chatId: string, projectId: string | null) => {
+        const success = await projectService.assignChatToProject(chatId, projectId);
+        if (success) {
+            setChats(prev => prev.map(c => c.id === chatId ? { ...c, folderId: projectId || undefined } : c));
+        }
+    };
 
 
 
@@ -764,7 +794,7 @@ function AppContent() {
             {/* Sidebar */}
             <Sidebar
                 chats={chats}
-                folders={INITIAL_FOLDERS}
+                folders={folders}
                 currentChatId={currentChatId}
                 onSelectChat={setCurrentChatId}
                 onNewChat={handleNewChat}
@@ -775,6 +805,10 @@ function AppContent() {
                 onSelectAgent={handleSelectAgent}
                 agents={agents}
                 activeMode={activeMode}
+                onCreateProject={handleCreateProject}
+                onAssignChatToProject={handleAssignChatToProject}
+                onRenameChat={handleRenameChat}
+                onDeleteChat={handleDeleteChat}
             />
 
             {/* Main Content */}

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChatSession, Folder, Agent, AppMode } from '../types';
-import { IconPlus, IconMessage, IconFolder, IconSearch, IconSettings, IconSun, IconMoon, IconTrash, IconEdit, IconCheck, IconBrain } from './Icons';
-import { User, CreditCard, Palette, LogOut, Shield } from 'lucide-react';
+import { IconMessage, IconSearch, IconBrain } from './Icons';
+import { User, CreditCard, Palette, LogOut, Shield, MoreHorizontal, FolderInput, X, Share, Users, Edit2, Archive, Trash2, ChevronRight, CornerUpLeft, Plus, Folder as LucideFolder } from 'lucide-react';
 import AgentsList from './AgentsList';
 import { useAuth } from '../contexts/AuthContext';
 import SettingsModal from './SettingsModal';
@@ -19,6 +19,10 @@ interface SidebarProps {
   toggleTheme: () => void;
   agents: Agent[];
   activeMode: AppMode;
+  onCreateProject: (name: string) => void;
+  onAssignChatToProject: (chatId: string, projectId: string | null) => void;
+  onRenameChat: (chatId: string, newTitle: string) => void;
+  onDeleteChat: (chatId: string) => void;
 }
 
 export default function Sidebar({
@@ -33,11 +37,61 @@ export default function Sidebar({
   isDarkMode,
   toggleTheme,
   agents,
-  activeMode
+  activeMode,
+  onCreateProject,
+  onAssignChatToProject,
+  onRenameChat,
+  onDeleteChat
 }: SidebarProps) {
   const { user, signOut } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [isCreatingFolder, setIsCreatingFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+
+  // Context Menu State
+  const [openMenuChatId, setOpenMenuChatId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number, left: number } | null>(null);
+  const [showMoveSubmenu, setShowMoveSubmenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Filter chats based on search and selected folder
+  const filteredChats = chats.filter(chat => {
+    const matchesSearch = chat.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFolder = selectedFolderId ? chat.folderId === selectedFolderId : true;
+    return matchesSearch && matchesFolder;
+  });
+
+  const handleCreateFolder = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newFolderName.trim()) {
+      onCreateProject(newFolderName);
+      setNewFolderName('');
+      setIsCreatingFolder(false);
+    }
+  };
+
+  // Close menus when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenuChatId(null);
+        setShowMoveSubmenu(false);
+      }
+    };
+    window.addEventListener('mousedown', handleClickOutside);
+    return () => window.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleMenuClick = (e: React.MouseEvent, chatId: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setMenuPosition({ top: rect.bottom + 5, left: rect.left });
+    setOpenMenuChatId(openMenuChatId === chatId ? null : chatId);
+    setShowMoveSubmenu(false);
+  };
 
   // Mode-Specific Content
   const renderContent = () => {
@@ -48,13 +102,52 @@ export default function Sidebar({
             {/* Agents List */}
             <AgentsList onSelectAgent={onSelectAgent} isDarkMode={isDarkMode} agents={agents} />
 
-            {/* Folders (Mock) */}
+            {/* Folders Section */}
             <div className="px-3 mt-6">
-              <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 px-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Pastas</h3>
+              <div className="flex items-center justify-between px-2 mb-2">
+                <h3 className={`text-xs font-bold uppercase tracking-wider ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Projetos</h3>
+                <button
+                  onClick={() => setIsCreatingFolder(true)}
+                  className="p-1 hover:bg-emerald-500/10 rounded text-emerald-500 transition-colors"
+                  title="Novo Projeto"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+
+              {/* Create Folder Input */}
+              {isCreatingFolder && (
+                <form onSubmit={handleCreateFolder} className="px-2 mb-2">
+                  <div className="flex items-center gap-1">
+                    <input
+                      autoFocus
+                      type="text"
+                      value={newFolderName}
+                      onChange={(e) => setNewFolderName(e.target.value)}
+                      placeholder="Nome do projeto..."
+                      className={`w-full text-xs px-2 py-1.5 rounded bg-transparent border ${isDarkMode ? 'border-emerald-500/50 text-white' : 'border-emerald-500 text-black'} outline-none`}
+                      onBlur={() => !newFolderName && setIsCreatingFolder(false)}
+                    />
+                  </div>
+                </form>
+              )}
+
               <div className="space-y-1">
+                <button
+                  onClick={() => setSelectedFolderId(null)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${!selectedFolderId ? (isDarkMode ? 'text-emerald-400 bg-white/5' : 'text-emerald-600 bg-black/5') : (isDarkMode ? 'text-textMuted hover:text-textMain hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-black/5')}`}
+                >
+                  <span className={!selectedFolderId ? 'text-emerald-500' : 'text-gray-500'}><LucideFolder size={16} /></span>
+                  Todos os Chats
+                </button>
+
                 {folders.map(folder => (
-                  <button key={folder.id} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors group ${isDarkMode ? 'text-textMuted hover:text-textMain hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-black/5'}`}>
-                    <span className="text-emerald-500/80 group-hover:text-emerald-500 transition-colors"><IconFolder /></span>
+                  <button
+                    key={folder.id}
+                    onClick={() => setSelectedFolderId(folder.id)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors group ${selectedFolderId === folder.id ? (isDarkMode ? 'text-emerald-400 bg-white/5' : 'text-emerald-600 bg-black/5') : (isDarkMode ? 'text-textMuted hover:text-textMain hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-black/5')}`}
+                  >
+                    <span className={`${selectedFolderId === folder.id ? 'text-emerald-500' : 'text-emerald-500/80 group-hover:text-emerald-500'} transition-colors`}><LucideFolder size={16} /></span>
                     {folder.name}
                   </button>
                 ))}
@@ -63,32 +156,144 @@ export default function Sidebar({
 
             {/* Recent Chats */}
             <div className="px-3 mt-6">
-              <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 px-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Histórico</h3>
-              <div className="space-y-1">
-                {chats.filter(c => c.title.toLowerCase().includes(searchTerm.toLowerCase())).map(chat => {
+              <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 px-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                {selectedFolderId ? `Em: ${folders.find(f => f.id === selectedFolderId)?.name}` : 'Histórico'}
+              </h3>
+              <div className="space-y-1 pb-20">
+                {filteredChats.map(chat => {
                   const isActive = chat.id === currentChatId;
+                  const isMenuOpen = openMenuChatId === chat.id;
+
                   return (
-                    <button
-                      key={chat.id}
-                      onClick={() => {
-                        onSelectChat(chat.id);
-                        if (window.innerWidth < 768) setIsOpen(false);
-                      }}
-                      className={`
-                                    w-full flex items-center gap-3 px-3 py-3 text-sm rounded-xl transition-all text-left truncate relative
-                                    ${isActive
-                          ? (isDarkMode ? 'bg-gradient-to-r from-emerald-500/10 to-transparent border-l-2 border-emerald-500 text-textMain shadow-inner' : 'bg-gray-200 text-textMain font-semibold')
-                          : 'text-textMuted hover:bg-black/5 hover:text-textMain border-l-2 border-transparent'}
-                                    `}
-                    >
-                      <span className={`shrink-0 transition-colors ${isActive ? 'text-emerald-400' : 'text-textMuted'}`}><IconMessage /></span>
-                      <span className="truncate">{chat.title}</span>
-                      {isActive && (
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                    <div key={chat.id} className="relative group">
+                      <button
+                        onClick={() => {
+                          onSelectChat(chat.id);
+                          if (window.innerWidth < 768) setIsOpen(false);
+                        }}
+                        className={`
+                                        w-full flex items-center gap-3 px-3 py-3 text-sm rounded-xl transition-all text-left truncate relative group/item
+                                        ${isActive
+                            ? (isDarkMode ? 'bg-gradient-to-r from-emerald-500/10 to-transparent border-l-2 border-emerald-500 text-textMain shadow-inner' : 'bg-gray-200 text-textMain font-semibold')
+                            : 'text-textMuted hover:bg-black/5 hover:text-textMain border-l-2 border-transparent'}
+                                        `}
+                      >
+                        <span className={`shrink-0 transition-colors ${isActive ? 'text-emerald-400' : 'text-textMuted'}`}><IconMessage /></span>
+                        <span className="truncate pr-8">{chat.title}</span>
+                      </button>
+
+                      {/* Trigger Button */}
+                      <button
+                        onClick={(e) => handleMenuClick(e, chat.id)}
+                        className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all ${isMenuOpen ? 'opacity-100 bg-white/10 text-white' : 'text-textMuted hover:bg-white/10 hover:text-white'}`}
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
+
+                      {/* Context Menu */}
+                      {isMenuOpen && (
+                        <div
+                          ref={menuRef}
+                          className={`fixed w-64 rounded-xl shadow-2xl border z-50 overflow-hidden backdrop-blur-xl ${isDarkMode ? 'bg-[#18181b]/95 border-zinc-800' : 'bg-white/95 border-gray-200'}`}
+                          style={{
+                            top: menuPosition?.top || 0,
+                            left: menuPosition?.left || 0,
+                            transform: 'translateX(10px)' // Little offset
+                          }}
+                        >
+                          <div className="p-1.5 space-y-0.5">
+                            <button className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${isDarkMode ? 'text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
+                              <Share size={15} />
+                              Compartilhar
+                            </button>
+                            <button className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${isDarkMode ? 'text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
+                              <Users size={15} />
+                              Iniciar um chat em grupo
+                            </button>
+                            <button
+                              onClick={() => {
+                                const newName = prompt('Novo nome:', chat.title);
+                                if (newName) onRenameChat(chat.id, newName);
+                                setOpenMenuChatId(null);
+                              }}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${isDarkMode ? 'text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+                            >
+                              <Edit2 size={15} />
+                              Renomear
+                            </button>
+
+                            {/* Move to Project Submenu Trigger */}
+                            <div className="relative">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowMoveSubmenu(!showMoveSubmenu);
+                                }}
+                                className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors ${isDarkMode ? 'text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'text-gray-700 hover:bg-gray-100'} ${showMoveSubmenu ? 'bg-zinc-800 text-white' : ''}`}
+                              >
+                                <div className="flex items-center gap-2.5">
+                                  <FolderInput size={15} />
+                                  Mover para o projeto
+                                </div>
+                                <ChevronRight size={14} className={`transition-transform ${showMoveSubmenu ? 'rotate-90' : ''}`} />
+                              </button>
+
+                              {/* Nested Submenu */}
+                              {showMoveSubmenu && (
+                                <div className={`mt-1 ml-2 pl-2 border-l ${isDarkMode ? 'border-zinc-700' : 'border-gray-200'} space-y-0.5 animate-in slide-in-from-left-2 duration-200`}>
+                                  <button
+                                    onClick={() => {
+                                      onAssignChatToProject(chat.id, null);
+                                      setOpenMenuChatId(null);
+                                    }}
+                                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-md transition-colors ${isDarkMode ? 'text-zinc-400 hover:bg-zinc-800 hover:text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                                  >
+                                    <CornerUpLeft size={12} />
+                                    Remover do Projeto
+                                  </button>
+                                  {folders.map(f => (
+                                    <button
+                                      key={f.id}
+                                      onClick={() => {
+                                        onAssignChatToProject(chat.id, f.id);
+                                        setOpenMenuChatId(null);
+                                      }}
+                                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-md transition-colors ${isDarkMode ? 'text-zinc-400 hover:bg-zinc-800 hover:text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                                    >
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                      {f.name}
+                                    </button>
+                                  ))}
+                                  {folders.length === 0 && (
+                                    <div className="px-3 py-1.5 text-xs text-zinc-500 italic">Sem projetos criados</div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            <button className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${isDarkMode ? 'text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
+                              <Archive size={15} />
+                              Arquivar
+                            </button>
+
+                            <div className={`h-px my-1 ${isDarkMode ? 'bg-zinc-800' : 'bg-gray-200'}`} />
+
+                            <button
+                              onClick={() => {
+                                if (confirm('Tem certeza que deseja excluir este chat?')) {
+                                  onDeleteChat(chat.id);
+                                  setOpenMenuChatId(null);
+                                }
+                              }}
+                              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-red-500 hover:bg-red-500/10`}
+                            >
+                              <Trash2 size={15} />
+                              Excluir
+                            </button>
+                          </div>
                         </div>
                       )}
-                    </button>
+                    </div>
                   );
                 })}
               </div>
@@ -100,7 +305,7 @@ export default function Sidebar({
         return (
           <div className="px-4 text-center mt-10">
             <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-500">
-              <IconEdit />
+              <Edit2 />
             </div>
             <p className="text-sm text-textMuted mb-2">Histórico de Scribe</p>
             {/* Placeholder for future Scribe History */}
@@ -224,7 +429,7 @@ export default function Sidebar({
             className={`group relative w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-3.5 rounded-xl transition-all duration-200 border border-borderLight active:translate-y-[1px] ${isDarkMode ? 'bg-surface hover:bg-surfaceHighlight shadow-card-3d active:shadow-inner' : 'bg-white hover:bg-gray-50 shadow-sm'}`}
           >
             <div className="bg-emerald-500/20 p-1 rounded-full group-hover:bg-emerald-500/30 transition-colors">
-              <IconPlus />
+              <Plus size={20} />
             </div>
             <span className="bg-gradient-to-r from-textMain to-textMuted bg-clip-text text-transparent group-hover:text-textMain transition-colors">
               Novo Chat

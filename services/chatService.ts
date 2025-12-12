@@ -86,6 +86,18 @@ export const updateChat = async (chatId: string, updates: Partial<ChatSession>) 
     }
 };
 
+export const deleteChat = async (chatId: string) => {
+    const { error } = await supabase
+        .from('chats')
+        .delete()
+        .eq('id', chatId);
+
+    if (error) {
+        console.error('Error deleting chat:', error);
+        throw error;
+    }
+};
+
 export const saveMessage = async (chatId: string, message: Message) => {
     console.log('Saving message to chat:', chatId, message.id);
     const { error } = await supabase
