@@ -1125,14 +1125,51 @@ function AppContent() {
                 {activeMode === 'scribe' && (
                     <ScribeView
                         isDarkMode={isDarkMode}
-                        onGenerate={(text) => {
+                        onGenerate={(consultation, thoughts, patientName, patientGender) => {
                             // Switch to chat and send message with scribe prompt
                             setActiveMode('chat');
-                            const prompt = `[AI SCRIBE ACTION]\n\nContexto: O médico ditou o seguinte resumo de consulta:\n"${text}"\n\nTarefa: Atue como um médico sênior escrevendo para outro médico. Seja conciso. Transforme linguagem coloquial em termos técnicos.\n\nREGRA DE OUTPUT CONDICIONAL (MAGIC FLOW):\n\n1. Gere SEMPRE o SOAP (Subjetivo, Objetivo, Avaliação, Plano).\n\n2. Gere a seção 'RECEITA' SOMENTE SE houver medicamentos citados no áudio. Se não houver, OMITA COMPLETAMENTE ESTA SEÇÃO. Não escreva "não se aplica".\n\n3. Gere a seção 'ATESTADO' SOMENTE SE houver solicitação de afastamento/dias no áudio. Se não houver, OMITA COMPLETAMENTE ESTA SEÇÃO.\n\nFormato: Use markdown rico. Inicie com o título '# Resumo do Caso Clínico'. Use > Blockquotes para seções importantes. Use ### Headers para separar os documentos.`;
+
+                            const patientContext = patientName
+                                ? `PACIENTE: ${patientName} (Sexo: ${patientGender})`
+                                : `PACIENTE: Não Identificado`;
+
+                            const prompt = `[AI SCRIBE ACTION]
+
+SOURCE 1: TRANSCRIPT DA CONSULTA (Diálogo Médico-Paciente)
+"${consultation}"
+
+SOURCE 2: NOTA TÉCNICA DO MÉDICO (Pensamento Clínico)
+"${thoughts}"
+
+CONTEXTO:
+${patientContext}
+
+TASK: Atue como um médico sênior escrevendo para outro médico. Gere um SOAP perfeito.
+
+PRE-PROCESSING (SPEAKER DIARIZATION):
+O texto de entrada 'SOURCE 1' é um bloco de texto bruto sem identificação de falantes. Sua primeira tarefa é identificar logicamente quem é o 'Dr.' (quem faz anamnese, perguntas técnicas) e quem é o 'Paciente' (quem relata sintomas).
+- Quem pergunta "Onde dói?", "Há quanto tempo?", "Toma algum remédio?" é o MÉDICO.
+- Quem responde "Nas costas", "Faz 3 dias", "Tomo losartana" é o PACIENTE.
+- Ao gerar o SOAP, atribua as falas corretamente para montar a História da Moléstia Atual. O paciente é ${patientName || 'o sujeito relatando sintomas'}.
+
+GUIDELINES:
+- Use Source 1 para Subjetivo (Queixa) e Objetivo preliminar.
+- Use Source 2 para enriquecer (ou corrigir) o Assessment e Plano.
+- Se o médico disse "X" na nota técnica, isso prevalece sobre a inferência da consulta.
+
+REGRA DE OUTPUT CONDICIONAL (MAGIC FLOW):
+
+1. Gere SEMPRE o SOAP (Subjetivo, Objetivo, Avaliação, Plano). Inclua o nome do paciente no cabeçalho se disponível.
+
+2. Gere a seção 'RECEITA' SOMENTE SE houver medicamentos citados no áudio. Se não houver, OMITA COMPLETAMENTE ESTA SEÇÃO. Não escreva "não se aplica".
+
+3. Gere a seção 'ATESTADO' SOMENTE SE houver solicitação de afastamento/dias no áudio. Se não houver, OMITA COMPLETAMENTE ESTA SEÇÃO.
+
+Formato: Use markdown rico. Inicie com o título '# Resumo do Caso Clínico'. Use > Blockquotes para seções importantes. Use ### Headers para separar os documentos.`;
 
                             // Small timeout to ensure view transition matches state update
                             setTimeout(() => {
-                                handleSendMessage(prompt, "🎤 Processando áudio do AI Scribe...");
+                                handleSendMessage(prompt, "🎤 Processando Minuto de Ouro...");
                             }, 100);
                         }}
                     />

@@ -93,12 +93,17 @@ export const useSpeechRecognition = () => {
         }
     }, [isListening, startListening, stopListening]);
 
+    const resetTranscript = useCallback(() => {
+        setTranscript('');
+    }, []);
+
     return {
         isListening,
         transcript,
         startListening,
         stopListening,
         toggleListening,
+        resetTranscript,
         hasSupport
     };
 };

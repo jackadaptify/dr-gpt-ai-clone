@@ -1,91 +1,257 @@
-import React, { useState, useEffect } from 'react';
-import { Mic, Square, FileText, Settings, Loader2, Pencil } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Mic, Square, FileText, ArrowRight, Brain, Stethoscope, Pencil, Users, MonitorPlay, Lock } from 'lucide-react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 interface ScribeViewProps {
     isDarkMode: boolean;
-    onGenerate: (text: string) => void;
+    onGenerate: (consultation: string, thoughts: string, patientName: string, patientGender: string) => void;
 }
 
-export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) {
-    const { isListening, transcript, toggleListening } = useSpeechRecognition();
-    const [localTranscript, setLocalTranscript] = useState('');
+type Step = 'consultation' | 'thought';
+type Mode = 'presential' | 'telemedicine';
+type Gender = 'M' | 'F';
 
-    // Sync local transcript with hook transcript
+export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) {
+    const { isListening: isMicListening, transcript, toggleListening: toggleMic, resetTranscript } = useSpeechRecognition();
+
+    // State for the two steps
+    const [step, setStep] = useState<Step>('consultation');
+    const [mode, setMode] = useState<Mode>('presential');
+
+    // Patient Metadata
+    const [patientName, setPatientName] = useState('');
+    const [patientGender, setPatientGender] = useState<Gender>('M');
+
+    // Transcripts for each step
+    const [consultationTranscript, setConsultationTranscript] = useState('');
+    const [thoughtTranscript, setThoughtTranscript] = useState('');
+
+    // Telemedicine specific state
+    const [isSysListening, setIsSysListening] = useState(false);
+    const mediaStreamRef = useRef<MediaStream | null>(null);
+
+    // Sync current recording with the correct state (Mic Only)
     useEffect(() => {
-        if (transcript) {
-            setLocalTranscript(transcript);
+        if (transcript && mode === 'presential') {
+            if (step === 'consultation') {
+                setConsultationTranscript(transcript);
+            } else {
+                setThoughtTranscript(transcript);
+            }
         }
-    }, [transcript]);
+    }, [transcript, step, mode]);
+
+    // Handle Telemedicine Capture
+    const startTelemedicineCapture = async () => {
+        try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({
+                video: { width: 1, height: 1 }, // Minimal video requirement to trigger tab picker
+                audio: true
+            });
+
+            mediaStreamRef.current = stream;
+            setIsSysListening(true);
+
+            // Handle stream stop (user clicks "Stop Sharing" on browser UI)
+            stream.getTracks().forEach(track => {
+                track.onended = () => {
+                    stopTelemedicineCapture();
+                };
+            });
+
+        } catch (error) {
+            console.error("Error sharing screen:", error);
+            setIsSysListening(false);
+        }
+    };
+
+    const stopTelemedicineCapture = () => {
+        if (mediaStreamRef.current) {
+            mediaStreamRef.current.getTracks().forEach(track => track.stop());
+            mediaStreamRef.current = null;
+        }
+        setIsSysListening(false);
+    };
+
+    const toggleTelemed = () => {
+        if (isSysListening) {
+            stopTelemedicineCapture();
+        } else {
+            startTelemedicineCapture();
+        }
+    };
+
+    // Unified Toggle
+    const handleToggleRecording = () => {
+        if (mode === 'presential') {
+            toggleMic();
+        } else {
+            toggleTelemed();
+        }
+    };
+
+    const isRecording = mode === 'presential' ? isMicListening : isSysListening;
+
+    // Handle step transition
+    const handleNextStep = () => {
+        if (isRecording) handleToggleRecording();
+        resetTranscript();
+        setStep('thought');
+        // Thought always defaults to Mic for doctor's private note
+        if (mode === 'telemedicine') setMode('presential');
+    };
 
     const handleGenerate = () => {
-        if (localTranscript.trim()) {
-            onGenerate(localTranscript);
-        }
+        if (isRecording) handleToggleRecording();
+        onGenerate(consultationTranscript, thoughtTranscript, patientName, patientGender);
     };
 
     return (
         <div className={`flex flex-col h-full w-full max-w-4xl mx-auto p-6 animate-in fade-in duration-500`}>
-            {/* Header */}
-            <div className="mb-8 text-center">
-                <div className="inline-flex items-center justify-center p-3 rounded-2xl mb-4 bg-emerald-500/10 text-emerald-500">
-                    <Mic size={32} />
+
+            {/* Header / Stepper Visual */}
+            <div className="mb-8 text-center relative">
+                <div className="flex items-center justify-center gap-4 mb-4">
+                    {/* Step 1 Indicator */}
+                    <div className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${step === 'consultation' ? 'bg-emerald-500/10 text-emerald-500 ring-2 ring-emerald-500/20' : 'opacity-50 grayscale'}`}>
+                        <Stethoscope size={18} />
+                        <span className="font-bold text-sm">1. A Consulta</span>
+                    </div>
+
+                    <div className={`h-px w-8 ${isDarkMode ? 'bg-zinc-800' : 'bg-gray-200'}`} />
+
+                    {/* Step 2 Indicator */}
+                    <div className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${step === 'thought' ? 'bg-indigo-500/10 text-indigo-400 ring-2 ring-indigo-500/20' : 'opacity-50 grayscale'}`}>
+                        <Brain size={18} />
+                        <span className="font-bold text-sm">2. Minuto de Ouro</span>
+                    </div>
                 </div>
-                <h1 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    AI Scribe
+
+                <h1 className={`text-3xl font-bold mb-2 transition-all ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    {step === 'consultation' ? 'Ambient Mode' : 'Nota Técnica'}
                 </h1>
-                <p className={`text-lg ${isDarkMode ? 'text-zinc-400' : 'text-gray-500'}`}>
-                    Documentação clínica automática em tempo real.
+
+                {step === 'consultation' && (
+                    <div className="flex justify-center mt-4 mb-2">
+                        <div className={`flex p-1 rounded-xl ${isDarkMode ? 'bg-zinc-800' : 'bg-gray-100'} border ${isDarkMode ? 'border-white/5' : 'border-gray-200'}`}>
+                            <button
+                                onClick={() => !isRecording && setMode('presential')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${mode === 'presential' ? 'bg-emerald-500 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                            >
+                                <Users size={16} />
+                                Presencial
+                            </button>
+                            <button
+                                onClick={() => !isRecording && setMode('telemedicine')}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${mode === 'telemedicine' ? 'bg-blue-500 text-white shadow-lg' : 'text-zinc-500 hover:text-zinc-300'}`}
+                            >
+                                <MonitorPlay size={16} />
+                                Telemedicina
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                <p className={`text-lg max-w-xl mx-auto mt-2 ${isDarkMode ? 'text-zinc-400' : 'text-gray-500'}`}>
+                    {step === 'consultation'
+                        ? (mode === 'presential' ? 'Grave o diálogo presencial com o paciente.' : 'Capture o áudio da videochamada (Zoom/Meet).')
+                        : 'Adicione seus pensamentos médicos, suspeitas e conduta para enriquecer o prontuário.'}
                 </p>
             </div>
 
             {/* Main Card */}
             <div className={`
-                flex-1 flex flex-col rounded-3xl shadow-xl overflow-hidden mb-6 relative
+                flex-1 flex flex-col rounded-3xl shadow-xl overflow-hidden mb-6 relative transition-all duration-500
                 ${isDarkMode ? 'bg-[#18181b] border border-white/10' : 'bg-white border border-gray-200'}
+                ${step === 'thought' && isDarkMode ? 'border-indigo-500/20' : ''}
+                ${mode === 'telemedicine' && step === 'consultation' && isDarkMode ? 'border-blue-500/20' : ''}
             `}>
 
                 {/* Visualizer Area */}
                 <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-8 min-h-[300px]">
 
-                    {/* Status Text */}
-                    <div className={`text-center transition-opacity duration-300 ${isListening ? 'opacity-100' : 'opacity-70'}`}>
+                    {/* Patient Context Input - Option A (Minimalist) */}
+                    {step === 'consultation' && (
+                        <div className={`flex flex-col sm:flex-row items-center gap-3 mb-2 animate-in fade-in slide-in-from-top-4 duration-500`}>
+                            <input
+                                type="text"
+                                value={patientName}
+                                onChange={(e) => setPatientName(e.target.value)}
+                                placeholder="Nome do Paciente..."
+                                className={`bg-transparent border-b-2 ${isDarkMode ? 'border-white/10 text-white placeholder-zinc-600 focus:border-emerald-500' : 'border-gray-200 text-gray-900 placeholder-gray-400 focus:border-emerald-500'} px-2 py-1 text-center outline-none transition-all w-64 text-lg font-medium`}
+                            />
+                            <div className={`flex p-1 rounded-lg ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
+                                <button
+                                    onClick={() => setPatientGender('M')}
+                                    className={`px-3 py-1 rounded-md text-sm font-bold transition-all ${patientGender === 'M' ? (isDarkMode ? 'bg-zinc-700 text-white shadow-sm' : 'bg-white text-black shadow-sm') : 'text-zinc-500 hover:text-zinc-400'}`}
+                                >
+                                    M
+                                </button>
+                                <button
+                                    onClick={() => setPatientGender('F')}
+                                    className={`px-3 py-1 rounded-md text-sm font-bold transition-all ${patientGender === 'F' ? (isDarkMode ? 'bg-zinc-700 text-white shadow-sm' : 'bg-white text-black shadow-sm') : 'text-zinc-500 hover:text-zinc-400'}`}
+                                >
+                                    F
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+
+                    {/* Status Text with Dynamic Color */}
+                    <div className={`text-center transition-opacity duration-300 ${isRecording ? 'opacity-100' : 'opacity-70'}`}>
                         <h3 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                            {isListening ? "Ouvindo consulta..." : "Pronto para iniciar"}
+                            {isRecording
+                                ? (step === 'consultation'
+                                    ? (mode === 'presential' ? "Ouvindo consulta..." : "Capturando áudio do sistema...")
+                                    : "Gravando nota técnica...")
+                                : "Pronto para iniciar"}
                         </h3>
                         <p className={`text-sm ${isDarkMode ? 'text-zinc-400' : 'text-gray-500'}`}>
-                            {isListening ? "Pode falar naturalmente." : "Toque no microfone para começar."}
+                            {isRecording
+                                ? (mode === 'telemedicine' && step === 'consultation' ? "Áudio da aba/janela sendo capturado." : "Capture todos os detalhes.")
+                                : (mode === 'telemedicine' && step === 'consultation' ? "Será necessário selecionar a aba do Zoom/Meet." : "Toque no microfone para começar.")}
                         </p>
                     </div>
 
                     {/* Main Button */}
                     <button
-                        onClick={toggleListening}
+                        onClick={handleToggleRecording}
                         className={`
                             relative w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl group
-                            ${isListening
+                            ${isRecording
                                 ? 'bg-red-500 hover:bg-red-600 shadow-red-500/30'
-                                : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30'}
+                                : (step === 'consultation'
+                                    ? (mode === 'presential' ? 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/30' : 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/30')
+                                    : 'bg-indigo-500 hover:bg-indigo-600 shadow-indigo-500/30')
+                            }
                         `}
                     >
-                        {isListening && (
+                        {isRecording && (
                             <span className="absolute inset-0 rounded-full border-4 border-red-400/30 animate-ping" />
                         )}
 
-                        {isListening ? (
+                        {isRecording ? (
                             <Square size={40} className="text-white fill-current" />
                         ) : (
-                            <Mic size={48} className="text-white" />
+                            step === 'consultation' && mode === 'telemedicine' ? (
+                                <MonitorPlay size={48} className="text-white" />
+                            ) : (
+                                <Mic size={48} className="text-white" />
+                            )
                         )}
                     </button>
 
-                    {/* Waveform Visualization (Mock) */}
+                    {/* Waveform Visualization */}
                     <div className="h-16 flex items-center justify-center gap-1.5 w-full max-w-md overflow-hidden">
-                        {isListening ? (
+                        {isRecording ? (
                             Array.from({ length: 20 }).map((_, i) => (
                                 <div
                                     key={i}
-                                    className={`w-1.5 bg-emerald-500 rounded-full animate-sound-wave opacity-50`}
+                                    className={`w-1.5 rounded-full animate-sound-wave opacity-50 
+                                        ${step === 'consultation'
+                                            ? (mode === 'presential' ? 'bg-emerald-500' : 'bg-blue-500')
+                                            : 'bg-indigo-500'}`}
                                     style={{
                                         animationDuration: `${0.4 + Math.random() * 0.4}s`,
                                         height: `${20 + Math.random() * 80}%`
@@ -97,25 +263,35 @@ export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) 
                         )}
                     </div>
 
+                    {/* Security Badge */}
+                    <div className={`flex items-center gap-2 text-xs font-medium mt-4 transition-opacity duration-300 ${isDarkMode ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                        <Lock size={12} />
+                        <span>Criptografia Ponta-a-Ponta | Compliance LGPD</span>
+                    </div>
+
                 </div>
 
                 {/* Transcript Preview & Edit */}
                 <div className={`
                     border-t p-0 transition-all duration-500
-                    ${localTranscript || isListening ? 'h-48' : 'h-0 overflow-hidden border-none'}
+                    ${(step === 'consultation' ? consultationTranscript : thoughtTranscript) || isRecording ? 'h-48' : 'h-0 overflow-hidden border-none'}
                     ${isDarkMode ? 'border-white/5 bg-black/20' : 'border-gray-100 bg-gray-50'}
                  `}>
                     <div className="p-4 h-full flex flex-col">
                         <div className="flex items-center justify-between mb-2 px-1">
                             <div className={`flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-zinc-500' : 'text-zinc-400'}`}>
                                 <Pencil size={12} />
-                                <span>Transcrição</span>
+                                <span>{step === 'consultation' ? 'Transcrição da Consulta' : 'Sua Nota Técnica'}</span>
                             </div>
                         </div>
                         <textarea
-                            value={localTranscript}
-                            onChange={(e) => setLocalTranscript(e.target.value)}
-                            placeholder="A transcrição aparecerá aqui..."
+                            value={step === 'consultation' ? consultationTranscript : thoughtTranscript}
+                            onChange={(e) => step === 'consultation' ? setConsultationTranscript(e.target.value) : setThoughtTranscript(e.target.value)}
+                            placeholder={
+                                step === 'consultation'
+                                    ? (mode === 'telemedicine' && !consultationTranscript ? "⚠️ A transcrição em tempo real não está disponível para Telemedicina nesta versão. Use o gravador e digite o resumo." : "O diálogo aparecerá aqui...")
+                                    : "Sua nota técnica aparecerá aqui..."
+                            }
                             className={`
                                 flex-1 w-full bg-transparent resize-none outline-none text-sm leading-relaxed
                                 ${isDarkMode ? 'text-zinc-300 placeholder-zinc-700' : 'text-gray-600 placeholder-gray-400'}
@@ -126,21 +302,35 @@ export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) 
             </div>
 
             {/* Footer Action */}
-            <button
-                onClick={handleGenerate}
-                disabled={!localTranscript}
-                className={`
-                    w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all
-                    ${localTranscript
-                        ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5'
-                        : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'}
-                `}
-            >
-                <div className="p-1 bg-white/20 rounded-lg">
-                    <FileText size={20} />
-                </div>
-                Gerar Documentação Clínica
-            </button>
+            {step === 'consultation' ? (
+                <button
+                    onClick={handleNextStep}
+                    disabled={mode === 'presential' && !consultationTranscript && !isSysListening} // For telemed, allow proceeding even if empty (since logic is partial)
+                    className={`
+                        w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all
+                        ${(consultationTranscript || mode === 'telemedicine')
+                            ? 'bg-zinc-800 hover:bg-zinc-700 text-white shadow-lg'
+                            : 'bg-zinc-800/50 text-zinc-600 cursor-not-allowed'}
+                    `}
+                >
+                    Próximo: Minuto de Ouro
+                    <ArrowRight size={20} />
+                </button>
+            ) : (
+                <button
+                    onClick={handleGenerate}
+                    // Allow generation even if thought is empty, as long as consultation exists (handled by step flow)
+                    className={`
+                        w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all
+                        bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 transform hover:-translate-y-0.5
+                    `}
+                >
+                    <div className="p-1 bg-white/20 rounded-lg">
+                        <FileText size={20} />
+                    </div>
+                    Gerar Documentação (SOAP)
+                </button>
+            )}
 
             <style>{`
                 @keyframes sound-wave {
