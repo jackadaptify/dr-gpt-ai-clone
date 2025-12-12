@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import MessageItem from './components/MessageItem';
-import { ChatSession, Message, Role, AVAILABLE_MODELS, Folder, Agent, AVAILABLE_AGENTS, Attachment, AIModel } from './types';
+import { ChatSession, Message, Role, AVAILABLE_MODELS, Folder, Agent, AVAILABLE_AGENTS, Attachment, AIModel, AppMode } from './types';
 import { streamChatResponse, saveMessage, loadChatHistory, createChat, updateChat, loadMessagesForChat } from './services/chatService';
 import { fetchOpenRouterModels, OpenRouterModel } from './services/openRouterService';
 import { agentService } from './services/agentService';
@@ -16,11 +16,13 @@ import { supabase } from './lib/supabase';
 import ModelSelector from './components/ModelSelector';
 import AttachmentMenu from './components/AttachmentMenu';
 import PromptsModal from './components/PromptsModal';
-import ToolsMenu from './components/ToolsMenu';
 import AIScribeModal from './components/AIScribeModal';
 import AntiGlosaModal from './components/AntiGlosaModal';
-import { Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail, Mic, Pin, PinOff, Plus, Wrench, ChevronDown } from 'lucide-react';
-import { useSpeechRecognition } from './hooks/useSpeechRecognition';
+import { Folder as FolderIcon, Settings, LogOut, Wrench, Menu, Mic, ChevronDown, Check, Video, Plus, Globe, Image } from 'lucide-react';
+import useSpeechRecognition from './hooks/useSpeechRecognition';
+import RailNav from './components/RailNav';
+import ScribeView from './components/ScribeView';
+import AntiGlosaView from './components/AntiGlosaView';
 
 // POOL MESTRE DE SUGESTÕES
 const ALL_SUGGESTIONS = [
@@ -94,6 +96,7 @@ function AppContent() {
     const { session, loading } = useAuth();
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [activeMode, setActiveMode] = useState<AppMode>('chat');
     const [chats, setChats] = useState<ChatSession[]>([]);
     const [currentChatId, setCurrentChatId] = useState<string | null>(null);
     const [input, setInput] = useState('');
@@ -145,9 +148,7 @@ function AppContent() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const attachmentButtonRef = useRef<HTMLButtonElement>(null);
-    const toolsButtonRef = useRef<HTMLButtonElement>(null);
     const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
-    const [isToolsMenuOpen, setIsToolsMenuOpen] = useState(false);
     const [isPromptsModalOpen, setIsPromptsModalOpen] = useState(false);
     const [isAIScribeModalOpen, setIsAIScribeModalOpen] = useState(false);
     const [isAntiGlosaModalOpen, setIsAntiGlosaModalOpen] = useState(false);
@@ -591,9 +592,15 @@ function AppContent() {
 
         // 6. Logic to switch model if Image is requested
         let targetModelId = selectedModelId;
-        if (capturedTools.image) {
-            const currentModelCaps = availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities;
-            if (!currentModelCaps?.imageGeneration) {
+        const currentModelDef = availableAndHealthyModels.find(m => m.id === selectedModelId);
+
+        // If the *current* model is ALREADY an image model, we force the tool to be active
+        if (currentModelDef?.capabilities.imageGeneration) {
+            capturedTools.image = true;
+        }
+        // If the USER clicked the tool button but the model is text, switch to a Visual Model
+        else if (capturedTools.image) {
+            if (!currentModelDef?.capabilities.imageGeneration) {
                 targetModelId = 'google/gemini-2.0-flash-exp:free'; // Fallback to a visual model
             }
         }
@@ -705,6 +712,7 @@ function AppContent() {
 
     const handleModelSelect = (newModelId: string) => {
         setSelectedModelId(newModelId);
+        setSelectedAgentId(null); // Clear selected agent when manually picking a model (brain)
 
         // If there's an active chat, update its model preference immediately
         if (currentChatId) {
@@ -722,6 +730,13 @@ function AppContent() {
     return (
         <div className="flex h-screen bg-background text-textMain font-sans overflow-hidden selection:bg-emerald-500/30">
 
+            {/* Rail Navigation */}
+            <RailNav
+                activeMode={activeMode}
+                onModeChange={setActiveMode}
+                isDarkMode={isDarkMode}
+            />
+
             {/* Sidebar */}
             <Sidebar
                 chats={chats}
@@ -735,339 +750,346 @@ function AppContent() {
                 toggleTheme={toggleTheme}
                 onSelectAgent={handleSelectAgent}
                 agents={agents}
+                activeMode={activeMode}
             />
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col relative h-full w-full">
-                {/* Background Mesh Gradient Subtle */}
-                {/* Background Mesh Gradient Subtle - Dark Mode Only */}
-                {isDarkMode && (
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900/40 via-background to-background pointer-events-none z-0" />
-                )}
 
-                {/* Top Floating Header */}
-                <header className="absolute top-0 left-0 right-0 h-20 flex items-center justify-between px-6 z-10 pointer-events-none">
-                    <div className="flex items-center gap-3 pointer-events-auto">
-                        <button
-                            onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="md:hidden p-2 rounded-xl bg-surface/50 backdrop-blur-md text-textMuted hover:text-textMain border border-borderLight shadow-lg"
-                        >
-                            <IconMenu />
-                        </button>
-                        <div className="relative group shadow-2xl rounded-xl">
-                            {/* Model Selector */}
-                            <ModelSelector
-                                models={availableAndHealthyModels}
-                                selectedModelId={selectedModelId}
-                                onSelect={handleModelSelect}
-                                isDarkMode={isDarkMode}
-                            />
-                        </div>
-                    </div>
-                </header>
+                {activeMode === 'chat' && (
+                    <>
+                        {/* Background Mesh Gradient Subtle */}
+                        {/* Background Mesh Gradient Subtle - Dark Mode Only */}
+                        {isDarkMode && (
+                            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900/40 via-background to-background pointer-events-none z-0" />
+                        )}
 
-                {/* Chat Area */}
-                <main className="flex-1 overflow-y-auto scroll-smooth relative flex flex-col items-center custom-scrollbar z-0">
-                    {!activeChat || activeChat.messages.length === 0 ? (
-                        // Welcome Screen with 3D Cards
-                        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-4xl w-full animate-in fade-in zoom-in-95 duration-500">
+                        {/* Top Floating Header */}
+                        <header className="absolute top-0 left-0 right-0 h-20 flex items-center justify-between px-6 z-10 pointer-events-none">
+                            <div className="flex items-center gap-3 pointer-events-auto">
+                                <button
+                                    onClick={() => setSidebarOpen(!sidebarOpen)}
+                                    className="md:hidden p-2 rounded-xl bg-surface/50 backdrop-blur-md text-textMuted hover:text-textMain border border-borderLight shadow-lg"
+                                >
+                                    <IconMenu />
+                                </button>
+                                <div className="relative group shadow-2xl rounded-xl">
+                                    {/* Model Selector */}
+                                    <ModelSelector
+                                        models={availableAndHealthyModels}
+                                        selectedModelId={selectedModelId}
+                                        onSelect={handleModelSelect}
+                                        isDarkMode={isDarkMode}
+                                        agents={agents}
+                                        onSelectAgent={handleSelectAgent}
+                                    />
+                                </div>
+                            </div>
+                        </header>
+
+                        {/* Chat Area */}
+                        <main className="flex-1 overflow-y-auto scroll-smooth relative flex flex-col items-center custom-scrollbar z-0">
+                            {!activeChat || activeChat.messages.length === 0 ? (
+                                // Welcome Screen with 3D Cards
+                                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-4xl w-full animate-in fade-in zoom-in-95 duration-500">
 
 
-                            {selectedAgentId && (
-                                <div className="relative w-32 h-32 mb-8 group animate-in fade-in zoom-in-50 duration-500">
-                                    {isDarkMode && <div className="absolute inset-0 bg-emerald-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>}
-                                    <div className={`relative w-full h-full rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl ${isDarkMode ? 'bg-surfaceHighlight border border-white/10' : 'bg-white border border-gray-200'}`}>
-                                        {agents.find(a => a.id === selectedAgentId)?.avatarUrl ? (
-                                            <img
-                                                src={agents.find(a => a.id === selectedAgentId)?.avatarUrl}
-                                                alt="Agent Avatar"
-                                                className="w-full h-full object-cover"
-                                                style={{ objectPosition: agents.find(a => a.id === selectedAgentId)?.avatarPosition || 'center' }}
-                                            />
-                                        ) : (
-                                            <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${agents.find(a => a.id === selectedAgentId)?.color || 'from-emerald-500 to-teal-500'}`}>
-                                                <IconBrain className="w-12 h-12 text-white" />
+                                    {selectedAgentId && (
+                                        <div className="relative w-32 h-32 mb-8 group animate-in fade-in zoom-in-50 duration-500">
+                                            {isDarkMode && <div className="absolute inset-0 bg-emerald-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>}
+                                            <div className={`relative w-full h-full rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl ${isDarkMode ? 'bg-surfaceHighlight border border-white/10' : 'bg-white border border-gray-200'}`}>
+                                                {agents.find(a => a.id === selectedAgentId)?.avatarUrl ? (
+                                                    <img
+                                                        src={agents.find(a => a.id === selectedAgentId)?.avatarUrl}
+                                                        alt="Agent Avatar"
+                                                        className="w-full h-full object-cover"
+                                                        style={{ objectPosition: agents.find(a => a.id === selectedAgentId)?.avatarPosition || 'center' }}
+                                                    />
+                                                ) : (
+                                                    <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${agents.find(a => a.id === selectedAgentId)?.color || 'from-emerald-500 to-teal-500'}`}>
+                                                        <IconBrain className="w-12 h-12 text-white" />
+                                                    </div>
+                                                )}
                                             </div>
+                                        </div>
+                                    )}
+                                    <h1 className="text-4xl md:text-6xl font-extrabold text-textMain mb-6 tracking-tight drop-shadow-2xl">
+                                        {selectedAgentId ? (
+                                            <>
+                                                <span className={`text-transparent bg-clip-text ${isDarkMode ? 'bg-gradient-to-r from-emerald-400 to-teal-200' : 'bg-gradient-to-r from-emerald-600 to-teal-500'}`}>
+                                                    Olá, Doutor.
+                                                </span>
+                                                <br />
+                                                <span className="text-2xl md:text-4xl font-bold text-textMuted mt-2 block">
+                                                    Sou o {agents.find(a => a.id === selectedAgentId)?.name}
+                                                </span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className={`text-transparent bg-clip-text ${isDarkMode ? 'bg-gradient-to-r from-emerald-400 to-teal-200' : 'bg-gradient-to-r from-emerald-600 to-teal-500'}`}>
+                                                    Olá, Doutor.
+                                                </span>
+                                            </>
                                         )}
+                                    </h1>
+                                    <p className="text-lg text-textMuted mb-12 max-w-xl leading-relaxed font-medium">
+                                        {selectedAgentId ? agents.find(a => a.id === selectedAgentId)?.description : 'Seu hub de inteligência avançada.'}
+                                    </p>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-3xl">
+                                        {(selectedAgentId
+                                            ? (agents.find(a => a.id === selectedAgentId)?.iceBreakers || []).map(item => ({ title: item, text: '', icon: 'Brain' })) // Adapter for simple strings
+                                            : suggestions
+                                        ).map((item: any, i: number) => {
+                                            const IconComponent = ICON_MAP[item.icon] || Brain;
+                                            const isPinned = pinnedSuggestions.includes(item.title);
+
+                                            return (
+                                                <button
+                                                    key={i}
+                                                    onClick={() => setInput(item.text || item.title)}
+                                                    className={`relative p-4 rounded-2xl text-left group transition-all duration-300 transform hover:-translate-y-1 flex items-center gap-4 h-full
+                                ${isDarkMode
+                                                            ? 'bg-[#18181b] hover:bg-[#27272a] shadow-lg hover:shadow-emerald-500/10'
+                                                            : 'bg-white border border-gray-100 hover:border-emerald-400 hover:shadow-md'}
+                                `}
+                                                >
+                                                    {isDarkMode && <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>}
+
+                                                    {/* Pin Button - Only show for main suggestions (not agent icebreakers) */}
+                                                    {!selectedAgentId && (
+                                                        <div
+                                                            onClick={(e) => togglePin(e, item.title)}
+                                                            className={`absolute top-2 right-2 p-1.5 rounded-full transition-all duration-200 z-20
+                                                        ${isPinned
+                                                                    ? (isDarkMode ? 'text-emerald-400 bg-emerald-400/10' : 'text-emerald-600 bg-emerald-50')
+                                                                    : 'text-zinc-500 opacity-0 group-hover:opacity-100 hover:bg-zinc-700/50 hover:text-zinc-300'
+                                                                }`}
+                                                            title={isPinned ? "Desafixar" : "Fixar"}
+                                                        >
+                                                            {isPinned ? <Pin size={14} fill="currentColor" /> : <Pin size={14} />}
+                                                        </div>
+                                                    )}
+
+                                                    <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-surfaceHighlight text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                        <IconComponent size={24} />
+                                                    </div>
+                                                    <h3 className={`font-bold text-base md:text-lg transition-colors ${isDarkMode ? 'text-textMain group-hover:text-emerald-400' : 'text-textMain'}`}>
+                                                        {item.title}
+                                                    </h3>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
-                            )}
-                            <h1 className="text-4xl md:text-6xl font-extrabold text-textMain mb-6 tracking-tight drop-shadow-2xl">
-                                {selectedAgentId ? (
-                                    <>
-                                        <span className={`text-transparent bg-clip-text ${isDarkMode ? 'bg-gradient-to-r from-emerald-400 to-teal-200' : 'bg-gradient-to-r from-emerald-600 to-teal-500'}`}>
-                                            Olá, Doutor.
-                                        </span>
-                                        <br />
-                                        <span className="text-2xl md:text-4xl font-bold text-textMuted mt-2 block">
-                                            Sou o {agents.find(a => a.id === selectedAgentId)?.name}
-                                        </span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <span className={`text-transparent bg-clip-text ${isDarkMode ? 'bg-gradient-to-r from-emerald-400 to-teal-200' : 'bg-gradient-to-r from-emerald-600 to-teal-500'}`}>
-                                            Olá, Doutor.
-                                        </span>
-                                    </>
-                                )}
-                            </h1>
-                            <p className="text-lg text-textMuted mb-12 max-w-xl leading-relaxed font-medium">
-                                {selectedAgentId ? agents.find(a => a.id === selectedAgentId)?.description : 'Seu hub de inteligência avançada.'}
-                            </p>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-3xl">
-                                {(selectedAgentId
-                                    ? (agents.find(a => a.id === selectedAgentId)?.iceBreakers || []).map(item => ({ title: item, text: '', icon: 'Brain' })) // Adapter for simple strings
-                                    : suggestions
-                                ).map((item: any, i: number) => {
-                                    const IconComponent = ICON_MAP[item.icon] || Brain;
-                                    const isPinned = pinnedSuggestions.includes(item.title);
-
-                                    return (
-                                        <button
-                                            key={i}
-                                            onClick={() => setInput(item.text || item.title)}
-                                            className={`relative p-4 rounded-2xl text-left group transition-all duration-300 transform hover:-translate-y-1 flex items-center gap-4 h-full
-                                ${isDarkMode
-                                                    ? 'bg-[#18181b] hover:bg-[#27272a] shadow-lg hover:shadow-emerald-500/10'
-                                                    : 'bg-white border border-gray-100 hover:border-emerald-400 hover:shadow-md'}
-                                `}
-                                        >
-                                            {isDarkMode && <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>}
-
-                                            {/* Pin Button - Only show for main suggestions (not agent icebreakers) */}
-                                            {!selectedAgentId && (
-                                                <div
-                                                    onClick={(e) => togglePin(e, item.title)}
-                                                    className={`absolute top-2 right-2 p-1.5 rounded-full transition-all duration-200 z-20
-                                                        ${isPinned
-                                                            ? (isDarkMode ? 'text-emerald-400 bg-emerald-400/10' : 'text-emerald-600 bg-emerald-50')
-                                                            : 'text-zinc-500 opacity-0 group-hover:opacity-100 hover:bg-zinc-700/50 hover:text-zinc-300'
-                                                        }`}
-                                                    title={isPinned ? "Desafixar" : "Fixar"}
-                                                >
-                                                    {isPinned ? <Pin size={14} fill="currentColor" /> : <Pin size={14} />}
-                                                </div>
-                                            )}
-
-                                            <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-surfaceHighlight text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
-                                                <IconComponent size={24} />
-                                            </div>
-                                            <h3 className={`font-bold text-base md:text-lg transition-colors ${isDarkMode ? 'text-textMain group-hover:text-emerald-400' : 'text-textMain'}`}>
-                                                {item.title}
-                                            </h3>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    ) : (
-                        // Message List
-                        <div className="w-full flex-1 pb-48 pt-20">
-                            <div className="max-w-3xl mx-auto">
-                                {activeChat.messages.map(msg => (
-                                    <MessageItem key={msg.id} message={msg} isDarkMode={isDarkMode} />
-                                ))}
-                            </div>
-                            <div ref={messagesEndRef} />
-                        </div>
-                    )}
-                </main>
-
-                {/* Input Area (Floating Glass & Carved Input) */}
-                <div className="absolute bottom-0 left-0 w-full p-4 md:p-8 z-20 pointer-events-none">
-                    <div className="max-w-3xl mx-auto pointer-events-auto">
-                        {/* Input Container */}
-                        <div className={`rounded-[32px] p-1.5 relative transition-all duration-300 ${isDarkMode ? 'shadow-2xl glass-panel' : ''}`}>
-
-                            {/* Pending Attachments Preview */}
-                            {pendingAttachments.length > 0 && (
-                                <div className="flex gap-2 px-6 pt-4 pb-2 overflow-x-auto">
-                                    {pendingAttachments.map(att => (
-                                        <div key={att.id} className="relative group">
-                                            {att.type === 'image' ? (
-                                                <img src={att.url} alt="Preview" className="h-16 w-16 object-cover rounded-lg border border-borderLight" />
-                                            ) : (
-                                                <div className="h-16 w-16 flex items-center justify-center bg-surfaceHighlight rounded-lg border border-borderLight text-xs text-center p-1">
-                                                    {att.name}
-                                                </div>
-                                            )}
-                                            <button
-                                                onClick={() => removeAttachment(att.id)}
-                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                                            </button>
-                                        </div>
-                                    ))}
+                            ) : (
+                                // Message List
+                                <div className="w-full flex-1 pb-48 pt-20">
+                                    <div className="max-w-3xl mx-auto">
+                                        {activeChat.messages.map(msg => (
+                                            <MessageItem key={msg.id} message={msg} isDarkMode={isDarkMode} />
+                                        ))}
+                                    </div>
+                                    <div ref={messagesEndRef} />
                                 </div>
                             )}
+                        </main>
 
-                            {/* The "Carved" Input Slot */}
-                            <div className={`relative rounded-[28px] overflow-visible transition-all duration-300 ${isDarkMode ? 'bg-[#18181b] border border-white/10 shadow-[0px_10px_30px_rgba(0,0,0,0.5)] hover:shadow-[0px_10px_30px_rgba(16,185,129,0.1)]' : 'bg-surface border border-borderLight shadow-sm hover:border-emerald-400'}`}>
-                                <textarea
-                                    ref={textareaRef}
-                                    value={input}
-                                    onChange={(e) => setInput(e.target.value)}
-                                    onKeyDown={handleKeyDown}
-                                    placeholder={isGenerating ? "Aguarde a resposta..." : "Pergunte algo ao Dr. GPT..."}
-                                    className={`w-full bg-transparent text-textMain placeholder-textMuted text-[16px] md:text-lg px-6 py-5 max-h-48 overflow-y-auto resize-none outline-none transition-opacity duration-200 ${isGenerating ? 'opacity-60 cursor-wait' : 'opacity-100'}`}
-                                    rows={1}
-                                    style={{ minHeight: '72px' }}
-                                    readOnly={isGenerating}
-                                />
+                        {/* Input Area (Floating Glass & Carved Input) */}
+                        <div className="absolute bottom-0 left-0 w-full p-4 md:p-8 z-20 pointer-events-none">
+                            <div className="max-w-3xl mx-auto pointer-events-auto">
+                                {/* Input Container */}
+                                <div className={`rounded-[32px] p-1.5 relative transition-all duration-300 ${isDarkMode ? 'shadow-2xl glass-panel' : ''}`}>
 
-                                {/* Hidden File Input */}
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    className="hidden"
-                                    onChange={handleFileSelect}
-                                    accept="image/*,application/pdf" // Adjust as needed
-                                />
+                                    {/* Pending Attachments Preview */}
+                                    {pendingAttachments.length > 0 && (
+                                        <div className="flex gap-2 px-6 pt-4 pb-2 overflow-x-auto">
+                                            {pendingAttachments.map(att => (
+                                                <div key={att.id} className="relative group">
+                                                    {att.type === 'image' ? (
+                                                        <img src={att.url} alt="Preview" className="h-16 w-16 object-cover rounded-lg border border-borderLight" />
+                                                    ) : (
+                                                        <div className="h-16 w-16 flex items-center justify-center bg-surfaceHighlight rounded-lg border border-borderLight text-xs text-center p-1">
+                                                            {att.name}
+                                                        </div>
+                                                    )}
+                                                    <button
+                                                        onClick={() => removeAttachment(att.id)}
+                                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
 
-                                {/* Toolbar inside the slot */}
-                                <div className="flex items-center justify-between px-4 pb-3 pt-2">
-                                    <div className="flex items-center gap-3">
-                                        <div className="relative">
-                                            <AttachmentMenu
-                                                isOpen={isAttachmentMenuOpen}
-                                                onClose={() => setIsAttachmentMenuOpen(false)}
-                                                isDarkMode={isDarkMode}
-                                                triggerRef={attachmentButtonRef}
-                                                onSelect={(option) => {
-                                                    if (option === 'upload') {
-                                                        fileInputRef.current?.click();
-                                                    } else if (option === 'photos') {
-                                                        // Handle photos
-                                                        fileInputRef.current?.click();
-                                                    } else if (option === 'prompts') {
-                                                        setIsPromptsModalOpen(true);
-                                                    }
-                                                }}
-                                            />
-                                            <button
-                                                ref={attachmentButtonRef}
-                                                onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
-                                                className={`
+                                    {/* The "Carved" Input Slot */}
+                                    <div className={`relative rounded-[28px] overflow-visible transition-all duration-300 ${isDarkMode ? 'bg-[#18181b] border border-white/10 shadow-[0px_10px_30px_rgba(0,0,0,0.5)] hover:shadow-[0px_10px_30px_rgba(16,185,129,0.1)]' : 'bg-surface border border-borderLight shadow-sm hover:border-emerald-400'}`}>
+                                        <textarea
+                                            ref={textareaRef}
+                                            value={input}
+                                            onChange={(e) => setInput(e.target.value)}
+                                            onKeyDown={handleKeyDown}
+                                            placeholder={
+                                                activeTools.web ? "Pesquisar na Web..." :
+                                                    (activeTools.image || availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.imageGeneration) ? "Descreva a imagem que você quer criar..." :
+                                                        isGenerating ? "Aguarde a resposta..." : "Pergunte algo ao Dr. GPT..."
+                                            }
+                                            className={`w-full bg-transparent text-textMain placeholder-textMuted text-[16px] md:text-lg px-6 py-5 max-h-48 overflow-y-auto resize-none outline-none transition-opacity duration-200 ${isGenerating ? 'opacity-60 cursor-wait' : 'opacity-100'}`}
+                                            rows={1}
+                                            style={{ minHeight: '72px' }}
+                                            readOnly={isGenerating}
+                                        />
+
+                                        {/* Hidden File Input */}
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            className="hidden"
+                                            onChange={handleFileSelect}
+                                            accept="image/*,application/pdf" // Adjust as needed
+                                        />
+
+                                        {/* Toolbar inside the slot */}
+                                        <div className="flex items-center justify-between px-4 pb-3 pt-2">
+                                            <div className="flex items-center gap-3">
+                                                <div className="relative">
+                                                    <AttachmentMenu
+                                                        isOpen={isAttachmentMenuOpen}
+                                                        onClose={() => setIsAttachmentMenuOpen(false)}
+                                                        isDarkMode={isDarkMode}
+                                                        triggerRef={attachmentButtonRef}
+                                                        isImageMode={!!availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.imageGeneration}
+                                                        isWebActive={activeTools.web}
+                                                        onToggleWeb={() => setActiveTools(prev => ({ ...prev, web: !prev.web }))}
+                                                        onSelect={(option) => {
+                                                            if (option === 'upload') {
+                                                                fileInputRef.current?.click();
+                                                            } else if (option === 'photos') {
+                                                                // Handle photos
+                                                                fileInputRef.current?.click();
+                                                            } else if (option === 'prompts') {
+                                                                setIsPromptsModalOpen(true);
+                                                            }
+                                                        }}
+                                                    />
+                                                    <button
+                                                        ref={attachmentButtonRef}
+                                                        onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
+                                                        className={`
                                                     w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200
                                                     ${isAttachmentMenuOpen
-                                                        ? 'bg-zinc-700 text-white'
-                                                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
-                                                    }
+                                                                ? 'bg-zinc-700 text-white'
+                                                                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+                                                            }
                                                 `}
-                                            >
-                                                <Plus size={24} />
-                                            </button>
-                                        </div>
+                                                    >
+                                                        <Plus size={24} />
+                                                    </button>
+                                                </div>
 
-                                        <div className="relative">
-                                            <ToolsMenu
-                                                isOpen={isToolsMenuOpen}
-                                                onClose={() => setIsToolsMenuOpen(false)}
-                                                onSelect={(option) => {
-                                                    if (option === 'ai_scribe') {
-                                                        setIsAIScribeModalOpen(true);
-                                                    } else if (option === 'anti_glosa') {
-                                                        setIsAntiGlosaModalOpen(true);
-                                                    }
-                                                }}
-                                                isDarkMode={isDarkMode}
-                                                triggerRef={toolsButtonRef}
-                                            />
-                                            <button
-                                                ref={toolsButtonRef}
-                                                onClick={() => setIsToolsMenuOpen(!isToolsMenuOpen)}
-                                                className={`
-                                                        flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
-                                                        ${isToolsMenuOpen
-                                                        ? 'bg-zinc-700 text-white'
-                                                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}
-                                                    `}
-                                            >
-                                                <Wrench size={18} />
-                                                <span>Ferramentas</span>
-                                            </button>
-                                        </div>
-                                    </div>
 
-                                    <div className="flex items-center gap-4">
-                                        {/* Reasoning Toggle (Raciocínio) */}
-                                        {availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.reasoning && (
-                                            <button
-                                                onClick={() => setActiveTools(prev => ({ ...prev, thinking: !prev.thinking }))}
-                                                className={`
+
+                                            </div>
+
+                                            <div className="flex items-center gap-4">
+                                                {/* Active Tool Indicators */}
+                                                {activeTools.web && (
+                                                    <div className="flex items-center gap-1 text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded text-xs">
+                                                        <Globe size={12} />
+                                                        <span>Web</span>
+                                                    </div>
+                                                )}
+                                                {activeTools.image && (
+                                                    <div className="flex items-center gap-1 text-purple-500 bg-purple-500/10 px-2 py-1 rounded text-xs">
+                                                        <Image size={12} />
+                                                        <span>Img</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Reasoning Toggle (Raciocínio) */}
+                                                {availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.reasoning && (
+                                                    <button
+                                                        onClick={() => setActiveTools(prev => ({ ...prev, thinking: !prev.thinking }))}
+                                                        className={`
                                                     flex items-center gap-2 text-sm font-medium transition-colors duration-200
                                                     ${activeTools.thinking ? 'text-emerald-400' : 'text-zinc-400 hover:text-zinc-200'}
                                                 `}
-                                            >
-                                                <span>Raciocínio</span>
-                                                <ChevronDown size={14} className={`transition-transform duration-200 ${activeTools.thinking ? 'rotate-180' : ''}`} />
-                                            </button>
-                                        )}
+                                                    >
+                                                        <span>Raciocínio</span>
+                                                        <ChevronDown size={14} className={`transition-transform duration-200 ${activeTools.thinking ? 'rotate-180' : ''}`} />
+                                                    </button>
+                                                )}
 
-                                        {hasMicSupport && (
-                                            <button
-                                                onClick={handleMicClick}
-                                                className={`transition-colors duration-200 ${isListening
-                                                    ? 'text-red-500 animate-pulse'
-                                                    : 'text-zinc-400 hover:text-zinc-200'
-                                                    }`}
-                                                title="Gravar áudio"
-                                            >
-                                                <Mic size={24} />
-                                            </button>
-                                        )}
+                                                {hasMicSupport && (
+                                                    <button
+                                                        onClick={handleMicClick}
+                                                        className={`transition-colors duration-200 ${isListening
+                                                            ? 'text-red-500 animate-pulse'
+                                                            : 'text-zinc-400 hover:text-zinc-200'
+                                                            }`}
+                                                        title="Gravar áudio"
+                                                    >
+                                                        <Mic size={24} />
+                                                    </button>
+                                                )}
 
-                                        {(input.trim() || pendingAttachments.length > 0) && (
-                                            <button
-                                                onClick={() => handleSendMessage()}
-                                                disabled={isGenerating}
-                                                className={`transition-colors duration-200 ${isDarkMode ? 'text-white' : 'text-black'}`}
-                                            >
-                                                <IconSend />
-                                            </button>
-                                        )}
+                                                {(input.trim() || pendingAttachments.length > 0) && (
+                                                    <button
+                                                        onClick={() => handleSendMessage()}
+                                                        disabled={isGenerating}
+                                                        className={`transition-colors duration-200 ${isDarkMode ? 'text-white' : 'text-black'}`}
+                                                    >
+                                                        <IconSend />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
+
+
                                 </div>
                             </div>
-
-
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <PromptsModal
-                isOpen={isPromptsModalOpen}
-                onClose={() => setIsPromptsModalOpen(false)}
-                onSelectPrompt={(content) => setInput(content)}
-                isDarkMode={isDarkMode}
-            />
 
 
+                        <PromptsModal
+                            isOpen={isPromptsModalOpen}
+                            onClose={() => setIsPromptsModalOpen(false)}
+                            onSelectPrompt={(content) => setInput(content)}
+                            isDarkMode={isDarkMode}
+                        />
 
-            <AIScribeModal
-                isOpen={isAIScribeModalOpen}
-                onClose={() => setIsAIScribeModalOpen(false)}
-                onGenerate={(text) => {
-                    const prompt = `[AI SCRIBE ACTION]\n\nContexto: O médico ditou o seguinte resumo de consulta:\n"${text}"\n\nTarefa: Atue como um médico sênior escrevendo para outro médico. Seja conciso. Transforme linguagem coloquial em termos técnicos.\n\nREGRA DE OUTPUT CONDICIONAL (MAGIC FLOW):\n\n1. Gere SEMPRE o SOAP (Subjetivo, Objetivo, Avaliação, Plano).\n\n2. Gere a seção 'RECEITA' SOMENTE SE houver medicamentos citados no áudio. Se não houver, OMITA COMPLETAMENTE ESTA SEÇÃO. Não escreva "não se aplica".\n\n3. Gere a seção 'ATESTADO' SOMENTE SE houver solicitação de afastamento/dias no áudio. Se não houver, OMITA COMPLETAMENTE ESTA SEÇÃO.\n\nFormato: Use markdown rico. Inicie com o título '# Resumo do Caso Clínico'. Use > Blockquotes para seções importantes. Use ### Headers para separar os documentos.`;
-                    handleSendMessage(prompt, "🎤 Processando áudio do ditado...");
-                }}
-                isDarkMode={isDarkMode}
-            />
+                    </>
+                )}
 
-            <AntiGlosaModal
-                isOpen={isAntiGlosaModalOpen}
-                onClose={() => setIsAntiGlosaModalOpen(false)}
-                onGenerate={(text) => {
-                    const prompt = `ROLE: Você é um Auditor Médico Sênior e Advogado Especialista em Direito à Saúde. Sua função é defender o médico prestador.
+                {activeMode === 'scribe' && (
+                    <ScribeView
+                        isDarkMode={isDarkMode}
+                        onGenerate={(text) => {
+                            // Switch to chat and send message with scribe prompt
+                            setActiveMode('chat');
+                            const prompt = `[AI SCRIBE ACTION]\n\nContexto: O médico ditou o seguinte resumo de consulta:\n"${text}"\n\nTarefa: Atue como um médico sênior escrevendo para outro médico. Seja conciso. Transforme linguagem coloquial em termos técnicos.\n\nREGRA DE OUTPUT CONDICIONAL (MAGIC FLOW):\n\n1. Gere SEMPRE o SOAP (Subjetivo, Objetivo, Avaliação, Plano).\n\n2. Gere a seção 'RECEITA' SOMENTE SE houver medicamentos citados no áudio. Se não houver, OMITA COMPLETAMENTE ESTA SEÇÃO. Não escreva "não se aplica".\n\n3. Gere a seção 'ATESTADO' SOMENTE SE houver solicitação de afastamento/dias no áudio. Se não houver, OMITA COMPLETAMENTE ESTA SEÇÃO.\n\nFormato: Use markdown rico. Inicie com o título '# Resumo do Caso Clínico'. Use > Blockquotes para seções importantes. Use ### Headers para separar os documentos.`;
 
+                            // Small timeout to ensure view transition matches state update
+                            setTimeout(() => {
+                                handleSendMessage(prompt, "🎤 Processando áudio do AI Scribe...");
+                            }, 100);
+                        }}
+                    />
+                )}
+
+                {activeMode === 'antiglosa' && (
+                    <AntiGlosaView
+                        isDarkMode={isDarkMode}
+                        onGenerate={(text) => {
+                            // Switch to chat and send message with defense prompt
+                            setActiveMode('chat');
+                            const prompt = `ROLE: Você é um Auditor Médico Sênior e Advogado Especialista em Direito à Saúde. Sua função é defender o médico prestador.
 TASK: Escreva uma CARTA DE JUSTIFICATIVA TÉCNICA (Recurso de Glosa) para uma operadora de saúde.
-
 INPUT: O usuário fornecerá o caso clínico e o motivo da negativa (ou o procedimento desejado) abaixo:
 "${text}"
-
 GUIDELINES:
 1.  **Tom de Voz:** Formal, firme, técnico e autoritativo. Não seja agressivo, seja assertivo.
 2.  **Uso de Dados:**
@@ -1079,13 +1101,28 @@ GUIDELINES:
     *   Embasamento Científico (cite que o procedimento é "Padrão Ouro" na literatura se aplicável).
     *   Embasamento Legal (cite "Rol de Procedimentos da ANS" e "Lei 9.656/98" se o procedimento for de cobertura obrigatória).
 4.  **Fechamento:** "Diante do exposto, solicitamos a revisão da negativa e a autorização imediata do procedimento, sob pena de responsabilidade civil por eventuais complicações decorrentes da demora."
-
 OUTPUT FORMAT: Markdown limpo, pronto para copiar e colar em um e-mail ou word. Sem preâmbulos do tipo "Aqui está sua carta". Comece direto na carta.`;
-                    handleSendMessage(prompt, `🛡️ Gerando defesa técnica...`);
-                }}
-                isDarkMode={isDarkMode}
-            />
-        </div>
+
+                            setTimeout(() => {
+                                handleSendMessage(prompt, "🛡️ Gerando defesa técnica...");
+                            }, 100);
+                        }}
+                    />
+                )}
+
+                {activeMode === 'settings' && (
+                    <div className="flex flex-col items-center justify-center h-full text-center p-8 animate-in fade-in duration-500">
+                        <h1 className="text-3xl font-bold bg-gradient-to-r from-zinc-200 to-zinc-400 bg-clip-text text-transparent mb-4">
+                            Configurações
+                        </h1>
+                        <p className="text-zinc-400 max-w-md">
+                            Gerencie sua conta, assinatura e preferências.
+                        </p>
+                    </div>
+                )}
+
+            </div>
+        </div >
     );
 }
 

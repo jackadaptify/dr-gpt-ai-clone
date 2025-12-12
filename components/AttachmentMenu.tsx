@@ -13,9 +13,21 @@ interface AttachmentMenuProps {
     onSelect: (option: string) => void;
     isDarkMode: boolean;
     triggerRef: React.RefObject<HTMLButtonElement>;
+    isImageMode?: boolean;
+    isWebActive?: boolean;
+    onToggleWeb?: () => void;
 }
 
-export default function AttachmentMenu({ isOpen, onClose, onSelect, isDarkMode, triggerRef }: AttachmentMenuProps) {
+export default function AttachmentMenu({
+    isOpen,
+    onClose,
+    onSelect,
+    isDarkMode,
+    triggerRef,
+    isImageMode = false,
+    isWebActive = false,
+    onToggleWeb
+}: AttachmentMenuProps) {
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -37,11 +49,20 @@ export default function AttachmentMenu({ isOpen, onClose, onSelect, isDarkMode, 
 
     if (!isOpen) return null;
 
+    // Logic:
+    // Text Mode: Upload, Photos, Deep Research (Toggle), Prompts
+    // Image Mode: Photos (Reference), Prompts
+
     const menuItems = [
-        { id: 'upload', label: 'Enviar arquivos', icon: Paperclip },
-        { id: 'photos', label: 'Fotos', icon: Image },
+        // Upload (Text only)
+        !isImageMode && { id: 'upload', label: 'Enviar arquivos', icon: Paperclip },
+
+        // Photos (Reference in Image mode)
+        { id: 'photos', label: isImageMode ? 'Imagem de Referência' : 'Fotos', icon: Image },
+
+        // Prompts (Both)
         { id: 'prompts', label: 'Biblioteca de Prompts', icon: Book },
-    ];
+    ].filter(Boolean) as { id: string; label: string; icon: any }[];
 
     return (
         <div
@@ -73,6 +94,37 @@ export default function AttachmentMenu({ isOpen, onClose, onSelect, isDarkMode, 
                         <span>{item.label}</span>
                     </button>
                 ))}
+
+                {/* Deep Research Toggle (Text Mode Only) */}
+                {!isImageMode && onToggleWeb && (
+                    <div className={`
+                        w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer
+                        ${isDarkMode
+                            ? 'hover:bg-white/5 hover:text-white'
+                            : 'hover:bg-gray-50 hover:text-black'}
+                    `}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleWeb();
+                        }}
+                    >
+                        <div className="flex items-center gap-3">
+                            <Globe className="w-4 h-4 opacity-70" />
+                            <span>Deep Research</span>
+                        </div>
+
+                        {/* Toggle Switch */}
+                        <div className={`
+                            relative w-9 h-5 rounded-full transition-colors duration-200
+                            ${isWebActive ? 'bg-emerald-500' : (isDarkMode ? 'bg-zinc-700' : 'bg-gray-300')}
+                        `}>
+                            <div className={`
+                                absolute top-1 left-1 w-3 h-3 rounded-full bg-white shadow transition-transform duration-200
+                                ${isWebActive ? 'translate-x-4' : 'translate-x-0'}
+                            `} />
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
