@@ -61,6 +61,8 @@ export const createChat = async (chat: ChatSession) => {
             user_id: (await supabase.auth.getUser()).data.user?.id,
             title: chat.title,
             model_id: chat.modelId,
+            agent_id: chat.agentId, // 🏷️ Fix: Persist agent_id
+            folder_id: chat.folderId, // 📂 Fix: Persist folder_id
             created_at: new Date(chat.updatedAt).toISOString()
         });
 

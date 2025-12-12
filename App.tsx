@@ -49,7 +49,7 @@ import RailNav from './components/RailNav';
 import ScribeView from './components/ScribeView';
 import AntiGlosaView from './components/AntiGlosaView';
 import ScribeReview from './components/Scribe/ScribeReview';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
 
 // POOL MESTRE DE SUGESTÕES
 const ALL_SUGGESTIONS = [
