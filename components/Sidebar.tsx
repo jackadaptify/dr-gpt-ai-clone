@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatSession, Folder, Agent, AppMode } from '../types';
 import { IconMessage, IconSearch, IconBrain } from './Icons';
-import { User, CreditCard, Palette, LogOut, Shield, MoreHorizontal, FolderInput, X, Share, Users, Edit2, Archive, Trash2, ChevronRight, CornerUpLeft, Plus, Folder as LucideFolder } from 'lucide-react';
+import { User, CreditCard, Palette, LogOut, Shield, MoreHorizontal, FolderInput, X, Share, Users, Edit2, Archive, Trash2, ChevronRight, CornerUpLeft, Plus, Folder as LucideFolder, ShieldAlert } from 'lucide-react';
 import AgentsList from './AgentsList';
 import { useAuth } from '../contexts/AuthContext';
 import SettingsModal from './SettingsModal';
@@ -56,11 +56,21 @@ export default function Sidebar({
   const [showMoveSubmenu, setShowMoveSubmenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Filter chats based on search and selected folder
+  // Filter chats based on search and selected folder AND active mode
   const filteredChats = chats.filter(chat => {
     const matchesSearch = chat.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFolder = selectedFolderId ? chat.folderId === selectedFolderId : true;
-    return matchesSearch && matchesFolder;
+
+    // Mode-Specific Filtering (History Isolation)
+    if (activeMode === 'scribe') {
+      return matchesSearch && matchesFolder && chat.agentId === 'scribe-mode';
+    }
+    if (activeMode === 'antiglosa') {
+      return matchesSearch && matchesFolder && chat.agentId === 'antiglosa-mode';
+    }
+    // Chat Mode: Exclude special modes
+    // Note: We might want to include 'normal' chats AND agent chats here, but exclude scribe/antiglosa
+    return matchesSearch && matchesFolder && chat.agentId !== 'scribe-mode' && chat.agentId !== 'antiglosa-mode';
   });
 
   const handleCreateFolder = (e: React.FormEvent) => {
@@ -92,6 +102,160 @@ export default function Sidebar({
     setOpenMenuChatId(openMenuChatId === chatId ? null : chatId);
     setShowMoveSubmenu(false);
   };
+
+  // Reusable Chat List Component
+  const renderChatList = (title: string, emptyMessage: string, icon: any) => (
+    <div className="px-3 mt-6">
+      <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 px-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+        {title}
+      </h3>
+      {filteredChats.length === 0 ? (
+        <div className={`text-xs p-4 rounded-lg border border-dashed text-center flex flex-col items-center gap-2 ${isDarkMode ? 'border-zinc-800 bg-zinc-900/50 text-zinc-500' : 'border-gray-200 bg-gray-50 text-gray-500'}`}>
+          {icon}
+          <span>{emptyMessage}</span>
+        </div>
+      ) : (
+        <div className="space-y-1 pb-20">
+          {filteredChats.map(chat => {
+            const isActive = chat.id === currentChatId;
+            const isMenuOpen = openMenuChatId === chat.id;
+
+            return (
+              <div key={chat.id} className="relative group">
+                <button
+                  onClick={() => {
+                    onSelectChat(chat.id);
+                    if (window.innerWidth < 768) setIsOpen(false);
+                  }}
+                  className={`
+                    w-full flex items-center gap-3 px-3 py-3 text-sm rounded-xl transition-all text-left truncate relative group/item
+                    ${isActive
+                      ? (isDarkMode ? 'bg-gradient-to-r from-emerald-500/10 to-transparent border-l-2 border-emerald-500 text-textMain shadow-inner' : 'bg-gray-200 text-textMain font-semibold')
+                      : 'text-textMuted hover:bg-black/5 hover:text-textMain border-l-2 border-transparent'}
+                  `}
+                >
+                  <span className={`shrink-0 transition-colors ${isActive ? 'text-emerald-400' : 'text-textMuted'}`}><IconMessage /></span>
+                  <span className="truncate pr-8">{chat.title}</span>
+                </button>
+
+                {/* Trigger Button */}
+                <button
+                  onClick={(e) => handleMenuClick(e, chat.id)}
+                  className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all ${isMenuOpen ? 'opacity-100 bg-white/10 text-white' : 'text-textMuted hover:bg-white/10 hover:text-white'}`}
+                >
+                  <MoreHorizontal size={16} />
+                </button>
+
+                {/* Context Menu */}
+                {isMenuOpen && (
+                  <div
+                    ref={menuRef}
+                    className={`fixed w-64 rounded-xl shadow-2xl border z-50 overflow-hidden backdrop-blur-xl ${isDarkMode ? 'bg-[#18181b]/95 border-zinc-800' : 'bg-white/95 border-gray-200'}`}
+                    style={{
+                      top: menuPosition?.top || 0,
+                      left: menuPosition?.left || 0,
+                      transform: 'translateX(10px)' // Little offset
+                    }}
+                  >
+                    <div className="p-1.5 space-y-0.5">
+                      <button className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${isDarkMode ? 'text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
+                        <Share size={15} />
+                        Compartilhar
+                      </button>
+                      <button className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${isDarkMode ? 'text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
+                        <Users size={15} />
+                        Iniciar um chat em grupo
+                      </button>
+                      <button
+                        onClick={() => {
+                          const newName = prompt('Novo nome:', chat.title);
+                          if (newName) onRenameChat(chat.id, newName);
+                          setOpenMenuChatId(null);
+                        }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${isDarkMode ? 'text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}
+                      >
+                        <Edit2 size={15} />
+                        Renomear
+                      </button>
+
+                      {/* Move to Project Submenu Trigger */}
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowMoveSubmenu(!showMoveSubmenu);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors ${isDarkMode ? 'text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'text-gray-700 hover:bg-gray-100'} ${showMoveSubmenu ? 'bg-zinc-800 text-white' : ''}`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <FolderInput size={15} />
+                            Mover para o projeto
+                          </div>
+                          <ChevronRight size={14} className={`transition-transform ${showMoveSubmenu ? 'rotate-90' : ''}`} />
+                        </button>
+
+                        {/* Nested Submenu */}
+                        {showMoveSubmenu && (
+                          <div className={`mt-1 ml-2 pl-2 border-l ${isDarkMode ? 'border-zinc-700' : 'border-gray-200'} space-y-0.5 animate-in slide-in-from-left-2 duration-200`}>
+                            <button
+                              onClick={() => {
+                                onAssignChatToProject(chat.id, null);
+                                setOpenMenuChatId(null);
+                              }}
+                              className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-md transition-colors ${isDarkMode ? 'text-zinc-400 hover:bg-zinc-800 hover:text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                            >
+                              <CornerUpLeft size={12} />
+                              Remover do Projeto
+                            </button>
+                            {folders.map(f => (
+                              <button
+                                key={f.id}
+                                onClick={() => {
+                                  onAssignChatToProject(chat.id, f.id);
+                                  setOpenMenuChatId(null);
+                                }}
+                                className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-md transition-colors ${isDarkMode ? 'text-zinc-400 hover:bg-zinc-800 hover:text-white' : 'text-gray-600 hover:bg-gray-100'}`}
+                              >
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                {f.name}
+                              </button>
+                            ))}
+                            {folders.length === 0 && (
+                              <div className="px-3 py-1.5 text-xs text-zinc-500 italic">Sem projetos criados</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <button className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${isDarkMode ? 'text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
+                        <Archive size={15} />
+                        Arquivar
+                      </button>
+
+                      <div className={`h-px my-1 ${isDarkMode ? 'bg-zinc-800' : 'bg-gray-200'}`} />
+
+                      <button
+                        onClick={() => {
+                          if (confirm('Tem certeza que deseja excluir este chat?')) {
+                            onDeleteChat(chat.id);
+                            setOpenMenuChatId(null);
+                          }
+                        }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-red-500 hover:bg-red-500/10`}
+                      >
+                        <Trash2 size={15} />
+                        Excluir
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 
   // Mode-Specific Content
   const renderContent = () => {
@@ -154,179 +318,36 @@ export default function Sidebar({
               </div>
             </div>
 
-            {/* Recent Chats */}
-            <div className="px-3 mt-6">
-              <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 px-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
-                {selectedFolderId ? `Em: ${folders.find(f => f.id === selectedFolderId)?.name}` : 'Histórico'}
-              </h3>
-              <div className="space-y-1 pb-20">
-                {filteredChats.map(chat => {
-                  const isActive = chat.id === currentChatId;
-                  const isMenuOpen = openMenuChatId === chat.id;
-
-                  return (
-                    <div key={chat.id} className="relative group">
-                      <button
-                        onClick={() => {
-                          onSelectChat(chat.id);
-                          if (window.innerWidth < 768) setIsOpen(false);
-                        }}
-                        className={`
-                                        w-full flex items-center gap-3 px-3 py-3 text-sm rounded-xl transition-all text-left truncate relative group/item
-                                        ${isActive
-                            ? (isDarkMode ? 'bg-gradient-to-r from-emerald-500/10 to-transparent border-l-2 border-emerald-500 text-textMain shadow-inner' : 'bg-gray-200 text-textMain font-semibold')
-                            : 'text-textMuted hover:bg-black/5 hover:text-textMain border-l-2 border-transparent'}
-                                        `}
-                      >
-                        <span className={`shrink-0 transition-colors ${isActive ? 'text-emerald-400' : 'text-textMuted'}`}><IconMessage /></span>
-                        <span className="truncate pr-8">{chat.title}</span>
-                      </button>
-
-                      {/* Trigger Button */}
-                      <button
-                        onClick={(e) => handleMenuClick(e, chat.id)}
-                        className={`absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all ${isMenuOpen ? 'opacity-100 bg-white/10 text-white' : 'text-textMuted hover:bg-white/10 hover:text-white'}`}
-                      >
-                        <MoreHorizontal size={16} />
-                      </button>
-
-                      {/* Context Menu */}
-                      {isMenuOpen && (
-                        <div
-                          ref={menuRef}
-                          className={`fixed w-64 rounded-xl shadow-2xl border z-50 overflow-hidden backdrop-blur-xl ${isDarkMode ? 'bg-[#18181b]/95 border-zinc-800' : 'bg-white/95 border-gray-200'}`}
-                          style={{
-                            top: menuPosition?.top || 0,
-                            left: menuPosition?.left || 0,
-                            transform: 'translateX(10px)' // Little offset
-                          }}
-                        >
-                          <div className="p-1.5 space-y-0.5">
-                            <button className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${isDarkMode ? 'text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
-                              <Share size={15} />
-                              Compartilhar
-                            </button>
-                            <button className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${isDarkMode ? 'text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
-                              <Users size={15} />
-                              Iniciar um chat em grupo
-                            </button>
-                            <button
-                              onClick={() => {
-                                const newName = prompt('Novo nome:', chat.title);
-                                if (newName) onRenameChat(chat.id, newName);
-                                setOpenMenuChatId(null);
-                              }}
-                              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${isDarkMode ? 'text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}
-                            >
-                              <Edit2 size={15} />
-                              Renomear
-                            </button>
-
-                            {/* Move to Project Submenu Trigger */}
-                            <div className="relative">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setShowMoveSubmenu(!showMoveSubmenu);
-                                }}
-                                className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors ${isDarkMode ? 'text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'text-gray-700 hover:bg-gray-100'} ${showMoveSubmenu ? 'bg-zinc-800 text-white' : ''}`}
-                              >
-                                <div className="flex items-center gap-2.5">
-                                  <FolderInput size={15} />
-                                  Mover para o projeto
-                                </div>
-                                <ChevronRight size={14} className={`transition-transform ${showMoveSubmenu ? 'rotate-90' : ''}`} />
-                              </button>
-
-                              {/* Nested Submenu */}
-                              {showMoveSubmenu && (
-                                <div className={`mt-1 ml-2 pl-2 border-l ${isDarkMode ? 'border-zinc-700' : 'border-gray-200'} space-y-0.5 animate-in slide-in-from-left-2 duration-200`}>
-                                  <button
-                                    onClick={() => {
-                                      onAssignChatToProject(chat.id, null);
-                                      setOpenMenuChatId(null);
-                                    }}
-                                    className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-md transition-colors ${isDarkMode ? 'text-zinc-400 hover:bg-zinc-800 hover:text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                                  >
-                                    <CornerUpLeft size={12} />
-                                    Remover do Projeto
-                                  </button>
-                                  {folders.map(f => (
-                                    <button
-                                      key={f.id}
-                                      onClick={() => {
-                                        onAssignChatToProject(chat.id, f.id);
-                                        setOpenMenuChatId(null);
-                                      }}
-                                      className={`w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-md transition-colors ${isDarkMode ? 'text-zinc-400 hover:bg-zinc-800 hover:text-white' : 'text-gray-600 hover:bg-gray-100'}`}
-                                    >
-                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                      {f.name}
-                                    </button>
-                                  ))}
-                                  {folders.length === 0 && (
-                                    <div className="px-3 py-1.5 text-xs text-zinc-500 italic">Sem projetos criados</div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-
-                            <button className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${isDarkMode ? 'text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
-                              <Archive size={15} />
-                              Arquivar
-                            </button>
-
-                            <div className={`h-px my-1 ${isDarkMode ? 'bg-zinc-800' : 'bg-gray-200'}`} />
-
-                            <button
-                              onClick={() => {
-                                if (confirm('Tem certeza que deseja excluir este chat?')) {
-                                  onDeleteChat(chat.id);
-                                  setOpenMenuChatId(null);
-                                }
-                              }}
-                              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-red-500 hover:bg-red-500/10`}
-                            >
-                              <Trash2 size={15} />
-                              Excluir
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            {renderChatList(selectedFolderId ? `Em: ${folders.find(f => f.id === selectedFolderId)?.name}` : 'Histórico', 'Nenhuma conversa encontrada.', <IconMessage />)}
           </>
         );
 
       case 'scribe':
         return (
-          <div className="px-4 text-center mt-10">
-            <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-500">
-              <Edit2 />
+          <>
+            <div className="px-4 text-center mt-6 mb-4">
+              <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-2 text-emerald-500">
+                <Edit2 />
+              </div>
+              <p className="text-sm font-medium text-emerald-500">AI Scribe</p>
+              <p className="text-xs text-textMuted">Suas consultas gravadas.</p>
             </div>
-            <p className="text-sm text-textMuted mb-2">Histórico de Scribe</p>
-            {/* Placeholder for future Scribe History */}
-            <div className={`text-xs p-3 rounded-lg border border-dashed ${isDarkMode ? 'border-zinc-800 bg-zinc-900/50' : 'border-gray-200 bg-gray-50'}`}>
-              Seus arquivos de áudio e transcrições aparecerão aqui.
-            </div>
-          </div>
+            {renderChatList('Consultas Recentes', 'Nenhuma consulta gravada ainda.', <Edit2 size={16} />)}
+          </>
         );
 
       case 'antiglosa':
         return (
-          <div className="px-4 text-center mt-10">
-            <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-500">
-              <Shield size={24} />
+          <>
+            <div className="px-4 text-center mt-6 mb-4">
+              <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-2 text-amber-500">
+                <Shield size={24} />
+              </div>
+              <p className="text-sm font-medium text-amber-500">Anti-Glosa</p>
+              <p className="text-xs text-textMuted">Suas defesas geradas.</p>
             </div>
-            <p className="text-sm text-textMuted mb-2">Histórico de Defesas</p>
-            {/* Placeholder for future Finance History */}
-            <div className={`text-xs p-3 rounded-lg border border-dashed ${isDarkMode ? 'border-zinc-800 bg-zinc-900/50' : 'border-gray-200 bg-gray-50'}`}>
-              Defesas e justificativas geradas aparecerão aqui.
-            </div>
-          </div>
+            {renderChatList('Defesas Recentes', 'Nenhuma defesa gerada ainda.', <ShieldAlert size={16} />)}
+          </>
         );
 
       case 'settings':

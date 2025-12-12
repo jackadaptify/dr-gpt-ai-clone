@@ -4,7 +4,7 @@ import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 interface ScribeViewProps {
     isDarkMode: boolean;
-    onGenerate: (consultation: string, thoughts: string, patientName: string, patientGender: string) => void;
+    onGenerate: (consultation: string, thoughts: string, patientName: string, patientGender: string, audioBlob?: Blob) => void;
 }
 
 type Step = 'consultation' | 'thought';
@@ -28,7 +28,12 @@ export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) 
 
     // Telemedicine specific state
     const [isSysListening, setIsSysListening] = useState(false);
+
+    // Audio Mixing Refs and State
+    const audioContextRef = useRef<AudioContext | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const [consultationBlob, setConsultationBlob] = useState<Blob | null>(null);
 
     // Sync current recording with the correct state (Mic Only)
     useEffect(() => {
@@ -41,43 +46,107 @@ export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) 
         }
     }, [transcript, step, mode]);
 
-    // Handle Telemedicine Capture
-    const startTelemedicineCapture = async () => {
+    // --- FUNÇÃO CORE: TELEMEDICINA MIXER ---
+    const startTelemedicineRecording = async () => {
         try {
-            const stream = await navigator.mediaDevices.getDisplayMedia({
-                video: { width: 1, height: 1 }, // Minimal video requirement to trigger tab picker
-                audio: true
+            // 1. Captura o Microfone do Médico (Input Local)
+            const micStream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true
+                }
             });
 
-            mediaStreamRef.current = stream;
+            // 2. Captura o Áudio do Sistema (Paciente na Aba)
+            // O pulo do gato: pedimos video: true pq alguns browsers exigem, 
+            // mas vamos ignorar o vídeo.
+            const sysStream = await navigator.mediaDevices.getDisplayMedia({
+                video: true,
+                audio: true // ISSO É CRUCIAL
+            });
+
+            // VALIDAÇÃO DE USUÁRIO (UX 10/10)
+            // Se o usuário esqueceu de marcar "Compartilhar áudio" no popup do Chrome
+            if (sysStream.getAudioTracks().length === 0) {
+                alert("⚠️ ERRO CRÍTICO: Você não marcou a caixinha 'Compartilhar áudio da guia'. O áudio do paciente não será gravado. Tente novamente.");
+                // Para tudo para não gerar gravação muda
+                micStream.getTracks().forEach(track => track.stop());
+                sysStream.getTracks().forEach(track => track.stop());
+                return;
+            }
+
+            // 3. A MÁGICA: WEB AUDIO API (MIXER)
+            // Criamos um estúdio virtual dentro do browser
+            const audioContext = new AudioContext();
+            audioContextRef.current = audioContext;
+
+            const micSource = audioContext.createMediaStreamSource(micStream);
+            const sysSource = audioContext.createMediaStreamSource(sysStream);
+            const destination = audioContext.createMediaStreamDestination();
+
+            // Conecta os dois canais no destino final
+            micSource.connect(destination);
+            sysSource.connect(destination);
+
+            // 4. Inicia o Gravador com o Stream Misto
+            const combinedStream = destination.stream;
+            const mediaRecorder = new MediaRecorder(combinedStream, {
+                mimeType: 'audio/webm;codecs=opus' // Padrão ouro para voz
+            });
+
+            mediaRecorderRef.current = mediaRecorder;
+            const chunks: BlobPart[] = [];
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) chunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const finalBlob = new Blob(chunks, { type: 'audio/webm' });
+
+                // SALVA NO STATE
+                setConsultationBlob(finalBlob);
+
+                // Limpeza de recursos
+                micStream.getTracks().forEach(t => t.stop());
+                sysStream.getTracks().forEach(t => t.stop()); // Isso para o compartilhamento de tela automaticamente
+                audioContext.close();
+
+                // Transição automática para o próximo passo? Não, o botão "Parar" já faz isso ao mudar o state.
+                // Mas aqui precisamos garantir que o UI saiba que parou.
+                setIsSysListening(false);
+            };
+
+            mediaRecorder.start(1000); // Fatias de 1s para feedback visual se precisar
             setIsSysListening(true);
+            mediaStreamRef.current = sysStream; // Salva ref para parar pelo botão também
 
-            // Handle stream stop (user clicks "Stop Sharing" on browser UI)
-            stream.getTracks().forEach(track => {
-                track.onended = () => {
-                    stopTelemedicineCapture();
-                };
-            });
+            // 5. Listener para quando o usuário clica em "Parar Compartilhamento" na barra flutuante do Chrome
+            sysStream.getVideoTracks()[0].onended = () => {
+                if (mediaRecorder.state === 'recording') {
+                    mediaRecorder.stop();
+                }
+            };
 
         } catch (error) {
-            console.error("Error sharing screen:", error);
+            console.error("Erro na Telemedicina:", error);
             setIsSysListening(false);
+            // Trate o erro de "Permissão negada" aqui
+            alert("Não foi possível iniciar. Verifique as permissões de microfone e tela.");
         }
     };
 
-    const stopTelemedicineCapture = () => {
-        if (mediaStreamRef.current) {
-            mediaStreamRef.current.getTracks().forEach(track => track.stop());
-            mediaStreamRef.current = null;
+    const stopTelemedicineRecording = () => {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.stop();
         }
-        setIsSysListening(false);
     };
 
     const toggleTelemed = () => {
         if (isSysListening) {
-            stopTelemedicineCapture();
+            stopTelemedicineRecording();
         } else {
-            startTelemedicineCapture();
+            startTelemedicineRecording();
         }
     };
 
@@ -103,7 +172,12 @@ export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) 
 
     const handleGenerate = () => {
         if (isRecording) handleToggleRecording();
-        onGenerate(consultationTranscript, thoughtTranscript, patientName, patientGender);
+        // If telemed, we might have an audio blob instead of text transcript
+        if (mode === 'telemedicine' && consultationBlob) {
+            onGenerate('Arquivo de Áudio Telemedicina', thoughtTranscript, patientName, patientGender, consultationBlob);
+        } else {
+            onGenerate(consultationTranscript, thoughtTranscript, patientName, patientGender);
+        }
     };
 
     return (
@@ -209,8 +283,8 @@ export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) 
                         </h3>
                         <p className={`text-sm ${isDarkMode ? 'text-zinc-400' : 'text-gray-500'}`}>
                             {isRecording
-                                ? (mode === 'telemedicine' && step === 'consultation' ? "Áudio da aba/janela sendo capturado." : "Capture todos os detalhes.")
-                                : (mode === 'telemedicine' && step === 'consultation' ? "Será necessário selecionar a aba do Zoom/Meet." : "Toque no microfone para começar.")}
+                                ? (mode === 'telemedicine' && step === 'consultation' ? "Áudio do Microfone + Aba sendo gravado em alta definição." : "Capture todos os detalhes.")
+                                : (mode === 'telemedicine' && step === 'consultation' ? "⚠️ Importante: Escolha a Aba do Chrome e marque 'Compartilhar áudio da guia'." : "Toque no microfone para começar.")}
                         </p>
                     </div>
 
@@ -305,7 +379,7 @@ export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) 
             {step === 'consultation' ? (
                 <button
                     onClick={handleNextStep}
-                    disabled={mode === 'presential' && !consultationTranscript && !isSysListening} // For telemed, allow proceeding even if empty (since logic is partial)
+                    disabled={mode === 'presential' && !consultationTranscript && !isSysListening} // For telemed, allow proceeding even if empty (since logic is partial) -> Now logic is robust with blob check later
                     className={`
                         w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all
                         ${(consultationTranscript || mode === 'telemedicine')
