@@ -21,7 +21,9 @@ export const loadChatHistory = async (userId: string): Promise<ChatSession[]> =>
         id: chat.id,
         title: chat.title,
         modelId: chat.model_id || 'gpt-4o',
+        agentId: chat.agent_id, // Fix: Map agent_id to support filtering
         messages: [], // 🚀 Lazy Load: Start empty
+        folderId: chat.folder_id, // Map folder_id
         updatedAt: new Date(chat.created_at).getTime()
     }));
 };
