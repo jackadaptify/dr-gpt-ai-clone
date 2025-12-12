@@ -18,7 +18,31 @@ import AttachmentMenu from './components/AttachmentMenu';
 import PromptsModal from './components/PromptsModal';
 import AIScribeModal from './components/AIScribeModal';
 import AntiGlosaModal from './components/AntiGlosaModal';
-import { Folder as FolderIcon, Settings, LogOut, Wrench, Menu, Mic, ChevronDown, Check, Video, Plus, Globe, Image } from 'lucide-react';
+import {
+    Folder as FolderIcon,
+    Settings,
+    LogOut,
+    Wrench,
+    Menu,
+    Mic,
+    ChevronDown,
+    Check,
+    Video,
+    Plus,
+    Globe,
+    Image,
+    Activity,
+    ShieldAlert,
+    FileText,
+    Siren,
+    ClipboardList,
+    Instagram,
+    MessageCircle,
+    Star,
+    Brain,
+    Mail,
+    Pin
+} from 'lucide-react';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import RailNav from './components/RailNav';
 import ScribeView from './components/ScribeView';
