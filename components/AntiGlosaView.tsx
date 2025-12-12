@@ -5,9 +5,10 @@ import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 interface AntiGlosaViewProps {
     isDarkMode: boolean;
     onGenerate: (text: string) => void;
+    isLoading?: boolean;
 }
 
-export default function AntiGlosaView({ isDarkMode, onGenerate }: AntiGlosaViewProps) {
+export default function AntiGlosaView({ isDarkMode, onGenerate, isLoading = false }: AntiGlosaViewProps) {
     const { isListening, transcript, toggleListening } = useSpeechRecognition();
     const [localText, setLocalText] = useState('');
     const [textBeforeRecording, setTextBeforeRecording] = useState('');
@@ -30,12 +31,20 @@ export default function AntiGlosaView({ isDarkMode, onGenerate }: AntiGlosaViewP
     const handleGenerate = () => {
         if (localText.trim()) {
             onGenerate(localText);
-            // Optional: clear text or show success state
         }
     };
 
     return (
-        <div className={`flex flex-col h-full w-full max-w-4xl mx-auto p-6 animate-in fade-in duration-500`}>
+        <div className={`flex flex-col h-full w-full max-w-4xl mx-auto p-6 animate-in fade-in duration-500 relative`}>
+            {/* Loading Overlay */}
+            {isLoading && (
+                <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 dark:bg-black/80 backdrop-blur-sm rounded-3xl">
+                    <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-emerald-500 mb-4"></div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Consultando Jurisprudência...</h3>
+                    <p className="text-gray-500 dark:text-zinc-400">Analisando Rol da ANS e Leis vigentes.</p>
+                </div>
+            )}
+
             {/* Header */}
             <div className="mb-8 text-center">
                 <div className="inline-flex items-center justify-center p-3 rounded-2xl mb-4 bg-emerald-500/10 text-emerald-500">
@@ -51,8 +60,9 @@ export default function AntiGlosaView({ isDarkMode, onGenerate }: AntiGlosaViewP
 
             {/* Main Input Card */}
             <div className={`
-                flex-1 flex flex-col rounded-3xl shadow-xl overflow-hidden mb-6
+                flex-1 flex flex-col rounded-3xl shadow-xl overflow-hidden mb-6 transition-opacity duration-300
                 ${isDarkMode ? 'bg-[#18181b] border border-white/10' : 'bg-white border border-gray-200'}
+                ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}
             `}>
                 <div className="p-6 md:p-8 flex-1 flex flex-col">
                     <div className="flex items-center justify-between mb-4">
@@ -101,16 +111,16 @@ export default function AntiGlosaView({ isDarkMode, onGenerate }: AntiGlosaViewP
 
                     <button
                         onClick={handleGenerate}
-                        disabled={!localText.trim()}
+                        disabled={!localText.trim() || isLoading}
                         className={`
                             px-8 py-3 rounded-xl font-bold text-base flex items-center gap-2 transition-all
-                            ${localText.trim()
+                            ${localText.trim() && !isLoading
                                 ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5'
                                 : 'bg-zinc-700 text-zinc-500 cursor-not-allowed'}
                         `}
                     >
                         <Shield size={18} />
-                        Gerar Defesa
+                        {isLoading ? 'Gerando...' : 'Gerar Defesa'}
                     </button>
                 </div>
             </div>
