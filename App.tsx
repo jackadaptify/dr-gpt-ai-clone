@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import MessageItem from './components/MessageItem';
 import { ChatSession, Message, Role, AVAILABLE_MODELS, Folder, Agent, AVAILABLE_AGENTS, Attachment, AIModel, AppMode } from './types';
-import { streamChatResponse, saveMessage, loadChatHistory, createChat, updateChat, loadMessagesForChat } from './services/chatService';
+import { streamChatResponse, saveMessage, loadChatHistory, createChat, updateChat, loadMessagesForChat, deleteChat } from './services/chatService';
 import { fetchOpenRouterModels, OpenRouterModel } from './services/openRouterService';
 import { agentService } from './services/agentService';
+import { projectService } from './services/projectService'; // Implemented
 import { IconMenu, IconSend, IconAttachment, IconGlobe, IconImage, IconBrain, IconPlus } from './components/Icons';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -47,6 +48,7 @@ import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import RailNav from './components/RailNav';
 import ScribeView from './components/ScribeView';
 import AntiGlosaView from './components/AntiGlosaView';
+import ScribeReview from './components/Scribe/ScribeReview';
 
 // POOL MESTRE DE SUGESTÕES
 const ALL_SUGGESTIONS = [
@@ -109,19 +111,14 @@ const ICON_MAP: Record<string, any> = {
     Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail
 };
 
-const INITIAL_FOLDERS: Folder[] = [
-    { id: '1', name: 'Pessoais' },
-    { id: '2', name: 'Empresa' },
-    { id: '3', name: 'Trabalho' },
-    { id: '4', name: 'Dr. GPT' },
-];
-
 function AppContent() {
     const { session, loading } = useAuth();
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [activeMode, setActiveMode] = useState<AppMode>('chat');
+    const [scribeContent, setScribeContent] = useState('');
     const [chats, setChats] = useState<ChatSession[]>([]);
+    const [folders, setFolders] = useState<Folder[]>([]); // Real folders state
     const [currentChatId, setCurrentChatId] = useState<string | null>(null);
     const [input, setInput] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
@@ -432,6 +429,41 @@ function AppContent() {
         };
     }, [chats, currentChatId, isGenerating]);
 
+    // Load Projects
+    useEffect(() => {
+        if (session?.user?.id) {
+            projectService.getProjects().then(setFolders);
+        }
+    }, [session?.user?.id]);
+
+    const handleCreateProject = async (name: string) => {
+        const { project, error } = await projectService.createProject(name);
+        if (project) {
+            setFolders(prev => [...prev, project]);
+        } else if (error) {
+            console.error('Project creation failed:', error);
+            alert(`Falha ao criar projeto: ${error.message || JSON.stringify(error)}. \n\nVerifique se você rodou o script SQL no Supabase.`);
+        }
+    };
+
+    const handleRenameChat = async (chatId: string, newTitle: string) => {
+        await updateChat(chatId, { title: newTitle });
+        setChats(prev => prev.map(c => c.id === chatId ? { ...c, title: newTitle } : c));
+    };
+
+    const handleDeleteChat = async (chatId: string) => {
+        setChats(prev => prev.filter(c => c.id !== chatId));
+        if (currentChatId === chatId) setCurrentChatId(null);
+        await deleteChat(chatId);
+    };
+
+    const handleAssignChatToProject = async (chatId: string, projectId: string | null) => {
+        const success = await projectService.assignChatToProject(chatId, projectId);
+        if (success) {
+            setChats(prev => prev.map(c => c.id === chatId ? { ...c, folderId: projectId || undefined } : c));
+        }
+    };
+
 
 
     useEffect(() => {
@@ -540,7 +572,7 @@ function AppContent() {
         setPendingAttachments(prev => prev.filter(a => a.id !== id));
     };
 
-    const handleSendMessage = async (overrideInput?: string, overrideDisplay?: string) => {
+    const handleSendMessage = async (overrideInput?: string, overrideDisplay?: string, overrideAgentId?: string) => {
         const textToSend = overrideInput || input;
         if (!textToSend.trim() || isGenerating) return;
 
@@ -553,6 +585,7 @@ function AppContent() {
                 id: uuidv4(),
                 title: (overrideDisplay || textToSend).slice(0, 30) + ((overrideDisplay || textToSend).length > 30 ? '...' : ''),
                 modelId: selectedModelId,
+                agentId: overrideAgentId || selectedAgentId || undefined, // Tag session
                 messages: [],
                 updatedAt: Date.now()
             };
@@ -762,349 +795,445 @@ function AppContent() {
             />
 
             {/* Sidebar */}
-            <Sidebar
-                chats={chats}
-                folders={INITIAL_FOLDERS}
-                currentChatId={currentChatId}
-                onSelectChat={setCurrentChatId}
-                onNewChat={handleNewChat}
-                isOpen={sidebarOpen}
-                setIsOpen={setSidebarOpen}
-                isDarkMode={isDarkMode}
-                toggleTheme={toggleTheme}
-                onSelectAgent={handleSelectAgent}
-                agents={agents}
-                activeMode={activeMode}
-            />
+            {activeMode !== 'scribe-review' && (
+                <Sidebar
+                    chats={chats}
+                    folders={folders}
+                    currentChatId={currentChatId}
+                    onSelectChat={setCurrentChatId}
+                    onNewChat={handleNewChat}
+                    isOpen={sidebarOpen}
+                    setIsOpen={setSidebarOpen}
+                    isDarkMode={isDarkMode}
+                    toggleTheme={toggleTheme}
+                    onSelectAgent={handleSelectAgent}
+                    agents={agents}
+                    activeMode={activeMode}
+                    onCreateProject={handleCreateProject}
+                    onAssignChatToProject={handleAssignChatToProject}
+                    onRenameChat={handleRenameChat}
+                    onDeleteChat={handleDeleteChat}
+                />
+            )}
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col relative h-full w-full">
 
-                {activeMode === 'chat' && (
-                    <>
-                        {/* Background Mesh Gradient Subtle */}
-                        {/* Background Mesh Gradient Subtle - Dark Mode Only */}
-                        {isDarkMode && (
-                            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900/40 via-background to-background pointer-events-none z-0" />
-                        )}
-
-                        {/* Top Floating Header */}
-                        <header className="absolute top-0 left-0 right-0 h-20 flex items-center justify-between px-6 z-10 pointer-events-none">
-                            <div className="flex items-center gap-3 pointer-events-auto">
-                                <button
-                                    onClick={() => setSidebarOpen(!sidebarOpen)}
-                                    className="md:hidden p-2 rounded-xl bg-surface/50 backdrop-blur-md text-textMuted hover:text-textMain border border-borderLight shadow-lg"
-                                >
-                                    <IconMenu />
-                                </button>
-                                <div className="relative group shadow-2xl rounded-xl">
-                                    {/* Model Selector */}
-                                    <ModelSelector
-                                        models={availableAndHealthyModels}
-                                        selectedModelId={selectedModelId}
-                                        onSelect={handleModelSelect}
-                                        isDarkMode={isDarkMode}
-                                        agents={agents}
-                                        onSelectAgent={handleSelectAgent}
-                                    />
-                                </div>
-                            </div>
-                        </header>
-
-                        {/* Chat Area */}
-                        <main className="flex-1 overflow-y-auto scroll-smooth relative flex flex-col items-center custom-scrollbar z-0">
-                            {!activeChat || activeChat.messages.length === 0 ? (
-                                // Welcome Screen with 3D Cards
-                                <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-4xl w-full animate-in fade-in zoom-in-95 duration-500">
-
-
-                                    {selectedAgentId && (
-                                        <div className="relative w-32 h-32 mb-8 group animate-in fade-in zoom-in-50 duration-500">
-                                            {isDarkMode && <div className="absolute inset-0 bg-emerald-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>}
-                                            <div className={`relative w-full h-full rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl ${isDarkMode ? 'bg-surfaceHighlight border border-white/10' : 'bg-white border border-gray-200'}`}>
-                                                {agents.find(a => a.id === selectedAgentId)?.avatarUrl ? (
-                                                    <img
-                                                        src={agents.find(a => a.id === selectedAgentId)?.avatarUrl}
-                                                        alt="Agent Avatar"
-                                                        className="w-full h-full object-cover"
-                                                        style={{ objectPosition: agents.find(a => a.id === selectedAgentId)?.avatarPosition || 'center' }}
-                                                    />
-                                                ) : (
-                                                    <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${agents.find(a => a.id === selectedAgentId)?.color || 'from-emerald-500 to-teal-500'}`}>
-                                                        <IconBrain className="w-12 h-12 text-white" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                    <h1 className="text-4xl md:text-6xl font-extrabold text-textMain mb-6 tracking-tight drop-shadow-2xl">
-                                        {selectedAgentId ? (
-                                            <>
-                                                <span className={`text-transparent bg-clip-text ${isDarkMode ? 'bg-gradient-to-r from-emerald-400 to-teal-200' : 'bg-gradient-to-r from-emerald-600 to-teal-500'}`}>
-                                                    Olá, Doutor.
-                                                </span>
-                                                <br />
-                                                <span className="text-2xl md:text-4xl font-bold text-textMuted mt-2 block">
-                                                    Sou o {agents.find(a => a.id === selectedAgentId)?.name}
-                                                </span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span className={`text-transparent bg-clip-text ${isDarkMode ? 'bg-gradient-to-r from-emerald-400 to-teal-200' : 'bg-gradient-to-r from-emerald-600 to-teal-500'}`}>
-                                                    Olá, Doutor.
-                                                </span>
-                                            </>
-                                        )}
-                                    </h1>
-                                    <p className="text-lg text-textMuted mb-12 max-w-xl leading-relaxed font-medium">
-                                        {selectedAgentId ? agents.find(a => a.id === selectedAgentId)?.description : 'Seu hub de inteligência avançada.'}
-                                    </p>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-3xl">
-                                        {(selectedAgentId
-                                            ? (agents.find(a => a.id === selectedAgentId)?.iceBreakers || []).map(item => ({ title: item, text: '', icon: 'Brain' })) // Adapter for simple strings
-                                            : suggestions
-                                        ).map((item: any, i: number) => {
-                                            const IconComponent = ICON_MAP[item.icon] || Brain;
-                                            const isPinned = pinnedSuggestions.includes(item.title);
-
-                                            return (
-                                                <button
-                                                    key={i}
-                                                    onClick={() => setInput(item.text || item.title)}
-                                                    className={`relative p-4 rounded-2xl text-left group transition-all duration-300 transform hover:-translate-y-1 flex items-center gap-4 h-full
-                                ${isDarkMode
-                                                            ? 'bg-[#18181b] hover:bg-[#27272a] shadow-lg hover:shadow-emerald-500/10'
-                                                            : 'bg-white border border-gray-100 hover:border-emerald-400 hover:shadow-md'}
-                                `}
-                                                >
-                                                    {isDarkMode && <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>}
-
-                                                    {/* Pin Button - Only show for main suggestions (not agent icebreakers) */}
-                                                    {!selectedAgentId && (
-                                                        <div
-                                                            onClick={(e) => togglePin(e, item.title)}
-                                                            className={`absolute top-2 right-2 p-1.5 rounded-full transition-all duration-200 z-20
-                                                        ${isPinned
-                                                                    ? (isDarkMode ? 'text-emerald-400 bg-emerald-400/10' : 'text-emerald-600 bg-emerald-50')
-                                                                    : 'text-zinc-500 opacity-0 group-hover:opacity-100 hover:bg-zinc-700/50 hover:text-zinc-300'
-                                                                }`}
-                                                            title={isPinned ? "Desafixar" : "Fixar"}
-                                                        >
-                                                            {isPinned ? <Pin size={14} fill="currentColor" /> : <Pin size={14} />}
-                                                        </div>
-                                                    )}
-
-                                                    <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-surfaceHighlight text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
-                                                        <IconComponent size={24} />
-                                                    </div>
-                                                    <h3 className={`font-bold text-base md:text-lg transition-colors ${isDarkMode ? 'text-textMain group-hover:text-emerald-400' : 'text-textMain'}`}>
-                                                        {item.title}
-                                                    </h3>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            ) : (
-                                // Message List
-                                <div className="w-full flex-1 pb-48 pt-20">
-                                    <div className="max-w-3xl mx-auto">
-                                        {activeChat.messages.map(msg => (
-                                            <MessageItem key={msg.id} message={msg} isDarkMode={isDarkMode} />
-                                        ))}
-                                    </div>
-                                    <div ref={messagesEndRef} />
-                                </div>
+                {/* Shared Chat UI Renderer */}
+                {(() => {
+                    const renderChatUI = () => (
+                        <>
+                            {/* Background Mesh Gradient Subtle */}
+                            {/* Background Mesh Gradient Subtle - Dark Mode Only */}
+                            {isDarkMode && (
+                                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900/40 via-background to-background pointer-events-none z-0" />
                             )}
-                        </main>
 
-                        {/* Input Area (Floating Glass & Carved Input) */}
-                        <div className="absolute bottom-0 left-0 w-full p-4 md:p-8 z-20 pointer-events-none">
-                            <div className="max-w-3xl mx-auto pointer-events-auto">
-                                {/* Input Container */}
-                                <div className={`rounded-[32px] p-1.5 relative transition-all duration-300 ${isDarkMode ? 'shadow-2xl glass-panel' : ''}`}>
+                            {/* Top Floating Header */}
+                            <header className="absolute top-0 left-0 right-0 h-20 flex items-center justify-between px-6 z-10 pointer-events-none">
+                                <div className="flex items-center gap-3 pointer-events-auto">
+                                    <button
+                                        onClick={() => setSidebarOpen(!sidebarOpen)}
+                                        className="md:hidden p-2 rounded-xl bg-surface/50 backdrop-blur-md text-textMuted hover:text-textMain border border-borderLight shadow-lg"
+                                    >
+                                        <IconMenu />
+                                    </button>
+                                    <div className="relative group shadow-2xl rounded-xl">
+                                        {/* Model Selector */}
+                                        <ModelSelector
+                                            models={availableAndHealthyModels}
+                                            selectedModelId={selectedModelId}
+                                            onSelect={handleModelSelect}
+                                            isDarkMode={isDarkMode}
+                                            agents={agents}
+                                            onSelectAgent={handleSelectAgent}
+                                        />
+                                    </div>
+                                </div>
+                            </header>
 
-                                    {/* Pending Attachments Preview */}
-                                    {pendingAttachments.length > 0 && (
-                                        <div className="flex gap-2 px-6 pt-4 pb-2 overflow-x-auto">
-                                            {pendingAttachments.map(att => (
-                                                <div key={att.id} className="relative group">
-                                                    {att.type === 'image' ? (
-                                                        <img src={att.url} alt="Preview" className="h-16 w-16 object-cover rounded-lg border border-borderLight" />
+                            {/* Chat Area */}
+                            <main className="flex-1 overflow-y-auto scroll-smooth relative flex flex-col items-center custom-scrollbar z-0">
+                                {!activeChat || activeChat.messages.length === 0 ? (
+                                    // Welcome Screen with 3D Cards
+                                    <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-4xl w-full animate-in fade-in zoom-in-95 duration-500">
+
+
+                                        {selectedAgentId && (
+                                            <div className="relative w-32 h-32 mb-8 group animate-in fade-in zoom-in-50 duration-500">
+                                                {isDarkMode && <div className="absolute inset-0 bg-emerald-500/20 rounded-3xl blur-xl group-hover:blur-2xl transition-all duration-500"></div>}
+                                                <div className={`relative w-full h-full rounded-3xl flex items-center justify-center overflow-hidden shadow-2xl ${isDarkMode ? 'bg-surfaceHighlight border border-white/10' : 'bg-white border border-gray-200'}`}>
+                                                    {agents.find(a => a.id === selectedAgentId)?.avatarUrl ? (
+                                                        <img
+                                                            src={agents.find(a => a.id === selectedAgentId)?.avatarUrl}
+                                                            alt="Agent Avatar"
+                                                            className="w-full h-full object-cover"
+                                                            style={{ objectPosition: agents.find(a => a.id === selectedAgentId)?.avatarPosition || 'center' }}
+                                                        />
                                                     ) : (
-                                                        <div className="h-16 w-16 flex items-center justify-center bg-surfaceHighlight rounded-lg border border-borderLight text-xs text-center p-1">
-                                                            {att.name}
+                                                        <div className={`w-full h-full flex items-center justify-center bg-gradient-to-br ${agents.find(a => a.id === selectedAgentId)?.color || 'from-emerald-500 to-teal-500'}`}>
+                                                            <IconBrain className="w-12 h-12 text-white" />
                                                         </div>
                                                     )}
-                                                    <button
-                                                        onClick={() => removeAttachment(att.id)}
-                                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    >
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                                                    </button>
                                                 </div>
+                                            </div>
+                                        )}
+                                        <h1 className="text-4xl md:text-6xl font-extrabold text-textMain mb-6 tracking-tight drop-shadow-2xl">
+                                            {selectedAgentId ? (
+                                                <>
+                                                    <span className={`text-transparent bg-clip-text ${isDarkMode ? 'bg-gradient-to-r from-emerald-400 to-teal-200' : 'bg-gradient-to-r from-emerald-600 to-teal-500'}`}>
+                                                        Olá, Doutor.
+                                                    </span>
+                                                    <br />
+                                                    <span className="text-2xl md:text-4xl font-bold text-textMuted mt-2 block">
+                                                        Sou o {agents.find(a => a.id === selectedAgentId)?.name}
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span className={`text-transparent bg-clip-text ${isDarkMode ? 'bg-gradient-to-r from-emerald-400 to-teal-200' : 'bg-gradient-to-r from-emerald-600 to-teal-500'}`}>
+                                                        Olá, Doutor.
+                                                    </span>
+                                                </>
+                                            )}
+                                        </h1>
+                                        <p className="text-lg text-textMuted mb-12 max-w-xl leading-relaxed font-medium">
+                                            {selectedAgentId ? agents.find(a => a.id === selectedAgentId)?.description : 'Seu hub de inteligência avançada.'}
+                                        </p>
+
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-3xl">
+                                            {(selectedAgentId
+                                                ? (agents.find(a => a.id === selectedAgentId)?.iceBreakers || []).map(item => ({ title: item, text: '', icon: 'Brain' })) // Adapter for simple strings
+                                                : suggestions
+                                            ).map((item: any, i: number) => {
+                                                const IconComponent = ICON_MAP[item.icon] || Brain;
+                                                const isPinned = pinnedSuggestions.includes(item.title);
+
+                                                return (
+                                                    <button
+                                                        key={i}
+                                                        onClick={() => setInput(item.text || item.title)}
+                                                        className={`relative p-4 rounded-2xl text-left group transition-all duration-300 transform hover:-translate-y-1 flex items-center gap-4 h-full
+                                    ${isDarkMode
+                                                                ? 'bg-[#18181b] hover:bg-[#27272a] shadow-lg hover:shadow-emerald-500/10'
+                                                                : 'bg-white border border-gray-100 hover:border-emerald-400 hover:shadow-md'}
+                                    `}
+                                                    >
+                                                        {isDarkMode && <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>}
+
+                                                        {/* Pin Button - Only show for main suggestions (not agent icebreakers) */}
+                                                        {!selectedAgentId && (
+                                                            <div
+                                                                onClick={(e) => togglePin(e, item.title)}
+                                                                className={`absolute top-2 right-2 p-1.5 rounded-full transition-all duration-200 z-20
+                                                            ${isPinned
+                                                                        ? (isDarkMode ? 'text-emerald-400 bg-emerald-400/10' : 'text-emerald-600 bg-emerald-50')
+                                                                        : 'text-zinc-500 opacity-0 group-hover:opacity-100 hover:bg-zinc-700/50 hover:text-zinc-300'
+                                                                    }`}
+                                                                title={isPinned ? "Desafixar" : "Fixar"}
+                                                            >
+                                                                {isPinned ? <Pin size={14} fill="currentColor" /> : <Pin size={14} />}
+                                                            </div>
+                                                        )}
+
+                                                        <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-surfaceHighlight text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                            <IconComponent size={24} />
+                                                        </div>
+                                                        <h3 className={`font-bold text-base md:text-lg transition-colors ${isDarkMode ? 'text-textMain group-hover:text-emerald-400' : 'text-textMain'}`}>
+                                                            {item.title}
+                                                        </h3>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    // Message List
+                                    <div className="w-full flex-1 pb-48 pt-20">
+                                        <div className="max-w-3xl mx-auto">
+                                            {activeChat.messages.map(msg => (
+                                                <MessageItem key={msg.id} message={msg} isDarkMode={isDarkMode} />
                                             ))}
                                         </div>
-                                    )}
+                                        <div ref={messagesEndRef} />
+                                    </div>
+                                )}
+                            </main>
 
-                                    {/* The "Carved" Input Slot */}
-                                    <div className={`relative rounded-[28px] overflow-visible transition-all duration-300 ${isDarkMode ? 'bg-[#18181b] border border-white/10 shadow-[0px_10px_30px_rgba(0,0,0,0.5)] hover:shadow-[0px_10px_30px_rgba(16,185,129,0.1)]' : 'bg-surface border border-borderLight shadow-sm hover:border-emerald-400'}`}>
-                                        <textarea
-                                            ref={textareaRef}
-                                            value={input}
-                                            onChange={(e) => setInput(e.target.value)}
-                                            onKeyDown={handleKeyDown}
-                                            placeholder={
-                                                activeTools.web ? "Pesquisar na Web..." :
-                                                    (activeTools.image || availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.imageGeneration) ? "Descreva a imagem que você quer criar..." :
-                                                        isGenerating ? "Aguarde a resposta..." : "Pergunte algo ao Dr. GPT..."
-                                            }
-                                            className={`w-full bg-transparent text-textMain placeholder-textMuted text-[16px] md:text-lg px-6 py-5 max-h-48 overflow-y-auto resize-none outline-none transition-opacity duration-200 ${isGenerating ? 'opacity-60 cursor-wait' : 'opacity-100'}`}
-                                            rows={1}
-                                            style={{ minHeight: '72px' }}
-                                            readOnly={isGenerating}
-                                        />
+                            {/* Input Area (Floating Glass & Carved Input) */}
+                            <div className="absolute bottom-0 left-0 w-full p-4 md:p-8 z-20 pointer-events-none">
+                                <div className="max-w-3xl mx-auto pointer-events-auto">
+                                    {/* Input Container */}
+                                    <div className={`rounded-[32px] p-1.5 relative transition-all duration-300 ${isDarkMode ? 'shadow-2xl glass-panel' : ''}`}>
 
-                                        {/* Hidden File Input */}
-                                        <input
-                                            type="file"
-                                            ref={fileInputRef}
-                                            className="hidden"
-                                            onChange={handleFileSelect}
-                                            accept="image/*,application/pdf" // Adjust as needed
-                                        />
+                                        {/* Pending Attachments Preview */}
+                                        {pendingAttachments.length > 0 && (
+                                            <div className="flex gap-2 px-6 pt-4 pb-2 overflow-x-auto">
+                                                {pendingAttachments.map(att => (
+                                                    <div key={att.id} className="relative group">
+                                                        {att.type === 'image' ? (
+                                                            <img src={att.url} alt="Preview" className="h-16 w-16 object-cover rounded-lg border border-borderLight" />
+                                                        ) : (
+                                                            <div className="h-16 w-16 flex items-center justify-center bg-surfaceHighlight rounded-lg border border-borderLight text-xs text-center p-1">
+                                                                {att.name}
+                                                            </div>
+                                                        )}
+                                                        <button
+                                                            onClick={() => removeAttachment(att.id)}
+                                                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        >
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
 
-                                        {/* Toolbar inside the slot */}
-                                        <div className="flex items-center justify-between px-4 pb-3 pt-2">
-                                            <div className="flex items-center gap-3">
-                                                <div className="relative">
-                                                    <AttachmentMenu
-                                                        isOpen={isAttachmentMenuOpen}
-                                                        onClose={() => setIsAttachmentMenuOpen(false)}
-                                                        isDarkMode={isDarkMode}
-                                                        triggerRef={attachmentButtonRef}
-                                                        isImageMode={!!availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.imageGeneration}
-                                                        isWebActive={activeTools.web}
-                                                        onToggleWeb={() => setActiveTools(prev => ({ ...prev, web: !prev.web }))}
-                                                        onSelect={(option) => {
-                                                            if (option === 'upload') {
-                                                                fileInputRef.current?.click();
-                                                            } else if (option === 'photos') {
-                                                                // Handle photos
-                                                                fileInputRef.current?.click();
-                                                            } else if (option === 'prompts') {
-                                                                setIsPromptsModalOpen(true);
-                                                            }
-                                                        }}
-                                                    />
-                                                    <button
-                                                        ref={attachmentButtonRef}
-                                                        onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
-                                                        className={`
+                                        {/* The "Carved" Input Slot */}
+                                        <div className={`relative rounded-[28px] overflow-visible transition-all duration-300 ${isDarkMode ? 'bg-[#18181b] border border-white/10 shadow-[0px_10px_30px_rgba(0,0,0,0.5)] hover:shadow-[0px_10px_30px_rgba(16,185,129,0.1)]' : 'bg-surface border border-borderLight shadow-sm hover:border-emerald-400'}`}>
+                                            <textarea
+                                                ref={textareaRef}
+                                                value={input}
+                                                onChange={(e) => setInput(e.target.value)}
+                                                onKeyDown={handleKeyDown}
+                                                placeholder={
+                                                    activeTools.web ? "Pesquisar na Web..." :
+                                                        (activeTools.image || availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.imageGeneration) ? "Descreva a imagem que você quer criar..." :
+                                                            isGenerating ? "Aguarde a resposta..." : "Pergunte algo ao Dr. GPT..."
+                                                }
+                                                className={`w-full bg-transparent text-textMain placeholder-textMuted text-[16px] md:text-lg px-6 py-5 max-h-48 overflow-y-auto resize-none outline-none transition-opacity duration-200 ${isGenerating ? 'opacity-60 cursor-wait' : 'opacity-100'}`}
+                                                rows={1}
+                                                style={{ minHeight: '72px' }}
+                                                readOnly={isGenerating}
+                                            />
+
+                                            {/* Hidden File Input */}
+                                            <input
+                                                type="file"
+                                                ref={fileInputRef}
+                                                className="hidden"
+                                                onChange={handleFileSelect}
+                                                accept="image/*,application/pdf" // Adjust as needed
+                                            />
+
+                                            {/* Toolbar inside the slot */}
+                                            <div className="flex items-center justify-between px-4 pb-3 pt-2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="relative">
+                                                        <AttachmentMenu
+                                                            isOpen={isAttachmentMenuOpen}
+                                                            onClose={() => setIsAttachmentMenuOpen(false)}
+                                                            isDarkMode={isDarkMode}
+                                                            triggerRef={attachmentButtonRef}
+                                                            isImageMode={!!availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.imageGeneration}
+                                                            isWebActive={activeTools.web}
+                                                            onToggleWeb={() => setActiveTools(prev => ({ ...prev, web: !prev.web }))}
+                                                            onSelect={(option) => {
+                                                                if (option === 'upload') {
+                                                                    fileInputRef.current?.click();
+                                                                } else if (option === 'photos') {
+                                                                    // Handle photos
+                                                                    fileInputRef.current?.click();
+                                                                } else if (option === 'prompts') {
+                                                                    setIsPromptsModalOpen(true);
+                                                                }
+                                                            }}
+                                                        />
+                                                        <button
+                                                            ref={attachmentButtonRef}
+                                                            onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
+                                                            className={`
                                                     w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200
                                                     ${isAttachmentMenuOpen
-                                                                ? 'bg-zinc-700 text-white'
-                                                                : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
-                                                            }
+                                                                    ? 'bg-zinc-700 text-white'
+                                                                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+                                                                }
                                                 `}
-                                                    >
-                                                        <Plus size={24} />
-                                                    </button>
+                                                        >
+                                                            <Plus size={24} />
+                                                        </button>
+                                                    </div>
+
+
+
                                                 </div>
 
+                                                <div className="flex items-center gap-4">
+                                                    {/* Active Tool Indicators */}
+                                                    {activeTools.web && (
+                                                        <div className="flex items-center gap-1 text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded text-xs">
+                                                            <Globe size={12} />
+                                                            <span>Web</span>
+                                                        </div>
+                                                    )}
+                                                    {activeTools.image && (
+                                                        <div className="flex items-center gap-1 text-purple-500 bg-purple-500/10 px-2 py-1 rounded text-xs">
+                                                            <Image size={12} />
+                                                            <span>Img</span>
+                                                        </div>
+                                                    )}
 
-
-                                            </div>
-
-                                            <div className="flex items-center gap-4">
-                                                {/* Active Tool Indicators */}
-                                                {activeTools.web && (
-                                                    <div className="flex items-center gap-1 text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded text-xs">
-                                                        <Globe size={12} />
-                                                        <span>Web</span>
-                                                    </div>
-                                                )}
-                                                {activeTools.image && (
-                                                    <div className="flex items-center gap-1 text-purple-500 bg-purple-500/10 px-2 py-1 rounded text-xs">
-                                                        <Image size={12} />
-                                                        <span>Img</span>
-                                                    </div>
-                                                )}
-
-                                                {/* Reasoning Toggle (Raciocínio) */}
-                                                {availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.reasoning && (
-                                                    <button
-                                                        onClick={() => setActiveTools(prev => ({ ...prev, thinking: !prev.thinking }))}
-                                                        className={`
+                                                    {/* Reasoning Toggle (Raciocínio) */}
+                                                    {availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.reasoning && (
+                                                        <button
+                                                            onClick={() => setActiveTools(prev => ({ ...prev, thinking: !prev.thinking }))}
+                                                            className={`
                                                     flex items-center gap-2 text-sm font-medium transition-colors duration-200
                                                     ${activeTools.thinking ? 'text-emerald-400' : 'text-zinc-400 hover:text-zinc-200'}
                                                 `}
-                                                    >
-                                                        <span>Raciocínio</span>
-                                                        <ChevronDown size={14} className={`transition-transform duration-200 ${activeTools.thinking ? 'rotate-180' : ''}`} />
-                                                    </button>
-                                                )}
+                                                        >
+                                                            <span>Raciocínio</span>
+                                                            <ChevronDown size={14} className={`transition-transform duration-200 ${activeTools.thinking ? 'rotate-180' : ''}`} />
+                                                        </button>
+                                                    )}
 
-                                                {hasMicSupport && (
-                                                    <button
-                                                        onClick={handleMicClick}
-                                                        className={`transition-colors duration-200 ${isListening
-                                                            ? 'text-red-500 animate-pulse'
-                                                            : 'text-zinc-400 hover:text-zinc-200'
-                                                            }`}
-                                                        title="Gravar áudio"
-                                                    >
-                                                        <Mic size={24} />
-                                                    </button>
-                                                )}
+                                                    {hasMicSupport && (
+                                                        <button
+                                                            onClick={handleMicClick}
+                                                            className={`transition-colors duration-200 ${isListening
+                                                                ? 'text-red-500 animate-pulse'
+                                                                : 'text-zinc-400 hover:text-zinc-200'
+                                                                }`}
+                                                            title="Gravar áudio"
+                                                        >
+                                                            <Mic size={24} />
+                                                        </button>
+                                                    )}
 
-                                                {(input.trim() || pendingAttachments.length > 0) && (
-                                                    <button
-                                                        onClick={() => handleSendMessage()}
-                                                        disabled={isGenerating}
-                                                        className={`transition-colors duration-200 ${isDarkMode ? 'text-white' : 'text-black'}`}
-                                                    >
-                                                        <IconSend />
-                                                    </button>
-                                                )}
+                                                    {(input.trim() || pendingAttachments.length > 0) && (
+                                                        <button
+                                                            onClick={() => handleSendMessage()}
+                                                            disabled={isGenerating}
+                                                            className={`transition-colors duration-200 ${isDarkMode ? 'text-white' : 'text-black'}`}
+                                                        >
+                                                            <IconSend />
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
+
+
                                     </div>
-
-
                                 </div>
                             </div>
-                        </div>
 
 
-                        <PromptsModal
-                            isOpen={isPromptsModalOpen}
-                            onClose={() => setIsPromptsModalOpen(false)}
-                            onSelectPrompt={(content) => setInput(content)}
-                            isDarkMode={isDarkMode}
-                        />
+                            <PromptsModal
+                                isOpen={isPromptsModalOpen}
+                                onClose={() => setIsPromptsModalOpen(false)}
+                                onSelectPrompt={(content) => setInput(content)}
+                                isDarkMode={isDarkMode}
+                            />
 
-                    </>
-                )}
+                        </>
+                    );
 
-                {activeMode === 'scribe' && (
+                    return (
+                        activeMode === 'scribe-review' ? (
+                            <ScribeReview content={scribeContent} onChange={setScribeContent} isDarkMode={isDarkMode}>
+                                {renderChatUI()}
+                            </ScribeReview>
+                        ) : (
+                            (activeMode === 'chat' || (currentChatId && (activeMode === 'scribe' || activeMode === 'antiglosa'))) && renderChatUI()
+                        )
+                    )
+                })()}
+
+                {activeMode === 'scribe' && !currentChatId && (
                     <ScribeView
                         isDarkMode={isDarkMode}
-                        onGenerate={(text) => {
-                            // Switch to chat and send message with scribe prompt
-                            setActiveMode('chat');
-                            const prompt = `[AI SCRIBE ACTION]\n\nContexto: O médico ditou o seguinte resumo de consulta:\n"${text}"\n\nTarefa: Atue como um médico sênior escrevendo para outro médico. Seja conciso. Transforme linguagem coloquial em termos técnicos.\n\nREGRA DE OUTPUT CONDICIONAL (MAGIC FLOW):\n\n1. Gere SEMPRE o SOAP (Subjetivo, Objetivo, Avaliação, Plano).\n\n2. Gere a seção 'RECEITA' SOMENTE SE houver medicamentos citados no áudio. Se não houver, OMITA COMPLETAMENTE ESTA SEÇÃO. Não escreva "não se aplica".\n\n3. Gere a seção 'ATESTADO' SOMENTE SE houver solicitação de afastamento/dias no áudio. Se não houver, OMITA COMPLETAMENTE ESTA SEÇÃO.\n\nFormato: Use markdown rico. Inicie com o título '# Resumo do Caso Clínico'. Use > Blockquotes para seções importantes. Use ### Headers para separar os documentos.`;
+                        onGenerate={async (consultation, thoughts, patientName, patientGender, audioBlob) => {
+                            // 1. Create a new Chat Session specifically for this Scribe Review
+                            const newChatId = uuidv4();
+                            const newChat: ChatSession = {
+                                id: newChatId,
+                                title: `Prontuário - ${patientName || 'Sem Nome'}`,
+                                modelId: selectedModelId,
+                                messages: [],
+                                updatedAt: Date.now()
+                            };
 
-                            // Small timeout to ensure view transition matches state update
-                            setTimeout(() => {
-                                handleSendMessage(prompt, "🎤 Processando áudio do AI Scribe...");
-                            }, 100);
+                            setChats(prev => [newChat, ...prev]);
+                            setCurrentChatId(newChatId);
+                            createChat(newChat); // Persist
+
+                            // 2. Add System/AI Message to the Char
+                            const welcomeMsg: Message = {
+                                id: uuidv4(),
+                                role: Role.MODEL,
+                                content: "Consulta processada. Precisa de algum ajuste ou documento extra (atestado/encaminhamento)?",
+                                timestamp: Date.now(),
+                                modelId: selectedModelId
+                            };
+                            saveMessage(newChatId, welcomeMsg);
+                            setChats(prev => prev.map(c => c.id === newChatId ? { ...c, messages: [welcomeMsg] } : c));
+
+                            // 3. Switch to Scribe Review Mode
+                            setActiveMode('scribe-review');
+                            setScribeContent('Processando dados da consulta...\n\nGerando SOAP...');
+
+                            let audioUrl = "";
+                            let finalPrompt = "";
+
+                            // 1. Upload Audio if present (Telemedicine Mode)
+                            if (audioBlob) {
+                                try {
+                                    const fileName = `telemed_${new Date().toISOString()}.webm`;
+                                    const { data, error } = await supabase.storage
+                                        .from('chat-attachments')
+                                        .upload(fileName, audioBlob, { contentType: 'audio/webm' });
+                                    if (error) throw error;
+                                    const { data: { publicUrl } } = supabase.storage
+                                        .from('chat-attachments')
+                                        .getPublicUrl(fileName);
+                                    audioUrl = publicUrl;
+                                } catch (error) {
+                                    console.error("Upload failed", error);
+                                    alert("Falha ao enviar áudio da consulta.");
+                                    return;
+                                }
+                            }
+
+                            const patientContext = patientName
+                                ? `PACIENTE: ${patientName} (Sexo: ${patientGender})`
+                                : `PACIENTE: Não Identificado`;
+
+                            // 2. Construct Prompt
+                            if (audioUrl) {
+                                finalPrompt = `[AI SCRIBE ACTION - AUDIO MODE]\nSOURCE 1: AUDIO DA CONSULTA (Telemedicina)\nURL: ${audioUrl}\nSOURCE 2: NOTA TÉCNICA: "${thoughts}"\nCONTEXTO: ${patientContext}\nTASK: Ouça o áudio. Gere um SOAP completo.`;
+                            } else {
+                                finalPrompt = `[AI SCRIBE ACTION - TEXT MODE]\nSOURCE 1: TRANSCRIPT: "${consultation}"\nSOURCE 2: NOTA TÉCNICA: "${thoughts}"\nCONTEXTO: ${patientContext}\nTASK: Gere um SOAP perfeito.\n\nREGRA: Gere SEMPRE o SOAP. Receita/Atestado apenas se solicitado no texto.`;
+                            }
+
+                            // 3. STREAM GENERATION DIRECTLY TO scribeContent STATE
+                            // We use a dummy chat history just for the context of the generation, but output goes to state.
+                            try {
+                                const response = await streamChatResponse(
+                                    availableAndHealthyModels.find(m => m.id === selectedModelId)?.modelId || selectedModelId,
+                                    [{ role: Role.USER, content: finalPrompt, id: 'prompt', timestamp: Date.now() }], // One-shot prompt
+                                    finalPrompt,
+                                    (chunk) => {
+                                        setScribeContent(prev => {
+                                            if (prev.startsWith('Processando')) return chunk; // Replace placeholder
+                                            return prev + chunk;
+                                        });
+                                    },
+                                    undefined,
+                                    { webSearch: false, imageGeneration: false },
+                                    newChatId, // Associate with the chat for logging
+                                    undefined
+                                );
+                                // Final update ensures sync
+                                setScribeContent(response);
+                            } catch (e) {
+                                setScribeContent('Erro ao gerar prontuário.');
+                            }
                         }}
                     />
                 )}
 
-                {activeMode === 'antiglosa' && (
+                {activeMode === 'antiglosa' && !currentChatId && (
                     <AntiGlosaView
                         isDarkMode={isDarkMode}
                         onGenerate={(text) => {
@@ -1128,7 +1257,7 @@ GUIDELINES:
 OUTPUT FORMAT: Markdown limpo, pronto para copiar e colar em um e-mail ou word. Sem preâmbulos do tipo "Aqui está sua carta". Comece direto na carta.`;
 
                             setTimeout(() => {
-                                handleSendMessage(prompt, "🛡️ Gerando defesa técnica...");
+                                handleSendMessage(prompt, "🛡️ Gerando defesa técnica...", 'antiglosa-mode');
                             }, 100);
                         }}
                     />

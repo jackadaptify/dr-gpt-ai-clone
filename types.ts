@@ -5,7 +5,7 @@ export enum Role {
   MODEL = 'model'
 }
 
-export type AppMode = 'chat' | 'scribe' | 'antiglosa' | 'settings';
+export type AppMode = 'chat' | 'scribe' | 'antiglosa' | 'settings' | 'scribe-review';
 
 export interface Attachment {
   id: string;
