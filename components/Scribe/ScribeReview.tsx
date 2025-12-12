@@ -55,7 +55,7 @@ export default function ScribeReview({ isDarkMode, content, onChange, children }
                         value={content}
                         onChange={(e) => onChange(e.target.value)}
                         className={`
-                            w-full h-full p-6 text-base leading-relaxed resize-none text-justify outline-none rounded-xl border
+                            w-full h-full p-6 text-base leading-normal resize-none text-left outline-none rounded-xl border
                             font-mono
                             ${isDarkMode
                                 ? 'bg-[#121215] border-white/5 text-zinc-300 placeholder-zinc-700 focus:border-emerald-500/50'

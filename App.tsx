@@ -840,14 +840,27 @@ function AppContent() {
                                     </button>
                                     <div className="relative group shadow-2xl rounded-xl">
                                         {/* Model Selector */}
-                                        <ModelSelector
-                                            models={availableAndHealthyModels}
-                                            selectedModelId={selectedModelId}
-                                            onSelect={handleModelSelect}
-                                            isDarkMode={isDarkMode}
-                                            agents={agents}
-                                            onSelectAgent={handleSelectAgent}
-                                        />
+                                        {/* Model Selector or Clinical Badge */}
+                                        {(activeMode === 'scribe' || activeMode === 'scribe-review') ? (
+                                            <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-md shadow-sm ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-white border-emerald-100'}`}>
+                                                <span className="relative flex h-2 w-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                                </span>
+                                                <span className={`font-semibold text-xs md:text-sm tracking-wide ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                                                    ⚡ AI Model: Clinical-Pro v1.0
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <ModelSelector
+                                                models={availableAndHealthyModels}
+                                                selectedModelId={selectedModelId}
+                                                onSelect={handleModelSelect}
+                                                isDarkMode={isDarkMode}
+                                                agents={agents}
+                                                onSelectAgent={handleSelectAgent}
+                                            />
+                                        )}
                                     </div>
                                 </div>
                             </header>
