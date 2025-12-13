@@ -851,7 +851,7 @@ function AppContent() {
     };
 
     return (
-        <div className="flex h-screen bg-background text-textMain font-sans overflow-hidden selection:bg-emerald-500/30">
+        <div className="flex h-[100dvh] bg-background text-textMain font-sans overflow-hidden selection:bg-emerald-500/30">
 
             {/* Rail Navigation (Desktop Only) */}
             <div className="hidden md:block h-full z-50">
@@ -1464,6 +1464,11 @@ function AppContent() {
                             } catch (e) {
                                 setScribeContent('Erro ao gerar prontuário.');
                             }
+                        }}
+                        toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                        onOpenSettings={() => {
+                            setActiveMode('settings');
+                            setSidebarOpen(true);
                         }}
                     />
                 )}

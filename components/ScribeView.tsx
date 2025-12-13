@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, FileText, ArrowRight, Brain, Stethoscope, Pencil, Users, MonitorPlay, Lock } from 'lucide-react';
+import { Mic, Square, FileText, ArrowRight, Brain, Stethoscope, Pencil, Users, MonitorPlay, Lock, Menu, Settings } from 'lucide-react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 interface ScribeViewProps {
     isDarkMode: boolean;
     onGenerate: (consultation: string, thoughts: string, patientName: string, patientGender: string, audioBlob?: Blob) => void;
+    toggleSidebar: () => void;
+    onOpenSettings: () => void;
 }
 
 type Step = 'consultation' | 'thought';
 type Mode = 'presential' | 'telemedicine';
 type Gender = 'M' | 'F';
 
-export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) {
+export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOpenSettings }: ScribeViewProps) {
     const { isListening: isMicListening, transcript, toggleListening: toggleMic, resetTranscript } = useSpeechRecognition();
 
     // State for the two steps
@@ -181,32 +183,54 @@ export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) 
     };
 
     return (
-        <div className={`flex flex-col h-full w-full max-w-4xl mx-auto p-4 md:p-6 animate-in fade-in duration-500`}>
+        <div className={`flex flex-col h-full w-full max-w-4xl mx-auto p-2 md:p-6 animate-in fade-in duration-500 overflow-hidden`}>
 
             {/* Header / Stepper Visual */}
-            <div className="mb-8 text-center relative">
-                <div className="flex items-center justify-center gap-4 mb-4">
-                    {/* Step 1 Indicator */}
-                    <div className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${step === 'consultation' ? 'bg-emerald-500/10 text-emerald-500 ring-2 ring-emerald-500/20' : 'opacity-50 grayscale'}`}>
-                        <Stethoscope size={18} />
-                        <span className="font-bold text-sm">1. A Consulta</span>
+            <div className="mb-4 md:mb-8 text-center relative flex items-center justify-between">
+                {/* Left: Menu Toggle */}
+                <button
+                    onClick={toggleSidebar}
+                    className={`p-2 rounded-xl transition-colors ${isDarkMode ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'}`}
+                >
+                    <Menu size={24} />
+                </button>
+
+                {/* Center: Stepper (Wrapped in div to center properly) */}
+                <div className="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center">
+                    <div className="flex items-center justify-center gap-4 mb-2 md:mb-4">
+                        {/* Step 1 Indicator */}
+                        <div className={`flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full transition-all duration-300 ${step === 'consultation' ? 'bg-emerald-500/10 text-emerald-500 ring-2 ring-emerald-500/20' : 'opacity-50 grayscale'}`}>
+                            <Stethoscope size={16} className="md:w-[18px] md:h-[18px]" />
+                            <span className="font-bold text-xs md:text-sm">1. A Consulta</span>
+                        </div>
+
+                        <div className={`h-px w-4 md:w-8 ${isDarkMode ? 'bg-zinc-800' : 'bg-gray-200'}`} />
+
+                        {/* Step 2 Indicator */}
+                        <div className={`flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full transition-all duration-300 ${step === 'thought' ? 'bg-indigo-500/10 text-indigo-400 ring-2 ring-indigo-500/20' : 'opacity-50 grayscale'}`}>
+                            <Brain size={16} className="md:w-[18px] md:h-[18px]" />
+                            <span className="font-bold text-xs md:text-sm">2. Minuto de Ouro</span>
+                        </div>
                     </div>
 
-                    <div className={`h-px w-8 ${isDarkMode ? 'bg-zinc-800' : 'bg-gray-200'}`} />
-
-                    {/* Step 2 Indicator */}
-                    <div className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 ${step === 'thought' ? 'bg-indigo-500/10 text-indigo-400 ring-2 ring-indigo-500/20' : 'opacity-50 grayscale'}`}>
-                        <Brain size={18} />
-                        <span className="font-bold text-sm">2. Minuto de Ouro</span>
-                    </div>
+                    <h1 className={`text-2xl md:text-3xl font-bold transition-all ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        {step === 'consultation' ? 'Ambient Mode' : 'Nota Técnica'}
+                    </h1>
                 </div>
 
-                <h1 className={`text-3xl font-bold mb-2 transition-all ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    {step === 'consultation' ? 'Ambient Mode' : 'Nota Técnica'}
-                </h1>
+                {/* Right: Settings Toggle */}
+                <button
+                    onClick={onOpenSettings}
+                    className={`p-2 rounded-xl transition-colors ${isDarkMode ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'}`}
+                >
+                    <Settings size={24} />
+                </button>
+            </div>
 
+            {/* Mode Switcher Wrapper to push it down below header flow */}
+            <div className="text-center mb-6">
                 {step === 'consultation' && (
-                    <div className="flex justify-center mt-4 mb-2">
+                    <div className="flex justify-center mb-2">
                         <div className={`flex p-1 rounded-xl ${isDarkMode ? 'bg-zinc-800' : 'bg-gray-100'} border ${isDarkMode ? 'border-white/5' : 'border-gray-200'}`}>
                             <button
                                 onClick={() => !isRecording && setMode('presential')}
@@ -226,7 +250,7 @@ export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) 
                     </div>
                 )}
 
-                <p className={`text-lg max-w-xl mx-auto mt-2 ${isDarkMode ? 'text-zinc-400' : 'text-gray-500'}`}>
+                <p className={`text-sm md:text-lg max-w-xl mx-auto mt-2 ${isDarkMode ? 'text-zinc-400' : 'text-gray-500'}`}>
                     {step === 'consultation'
                         ? (mode === 'presential' ? 'Grave o diálogo presencial com o paciente.' : 'Capture o áudio da videochamada (Zoom/Meet).')
                         : 'Adicione seus pensamentos médicos, suspeitas e conduta para enriquecer o prontuário.'}
@@ -235,14 +259,14 @@ export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) 
 
             {/* Main Card */}
             <div className={`
-                flex-1 flex flex-col rounded-3xl shadow-xl overflow-hidden mb-6 relative transition-all duration-500
+                flex-1 flex flex-col rounded-3xl shadow-xl overflow-hidden mb-4 md:mb-6 relative transition-all duration-500
                 ${isDarkMode ? 'bg-[#18181b] border border-white/10' : 'bg-white border border-gray-200'}
                 ${step === 'thought' && isDarkMode ? 'border-indigo-500/20' : ''}
                 ${mode === 'telemedicine' && step === 'consultation' && isDarkMode ? 'border-blue-500/20' : ''}
             `}>
 
                 {/* Visualizer Area */}
-                <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-8 min-h-[300px]">
+                <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 space-y-6 md:space-y-8 min-h-[200px] md:min-h-[300px]">
 
                     {/* Patient Context Input - Option A (Minimalist) */}
                     {step === 'consultation' && (
@@ -292,7 +316,7 @@ export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) 
                     <button
                         onClick={handleToggleRecording}
                         className={`
-                            relative w-24 h-24 md:w-32 md:h-32 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl group
+                            relative w-28 h-28 md:w-32 md:h-32 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl group
                             ${isRecording
                                 ? 'bg-red-500 hover:bg-red-600 shadow-red-500/30'
                                 : (step === 'consultation'
@@ -348,10 +372,10 @@ export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) 
                 {/* Transcript Preview & Edit */}
                 <div className={`
                     border-t p-0 transition-all duration-500
-                    ${(step === 'consultation' ? consultationTranscript : thoughtTranscript) || isRecording ? 'h-48' : 'h-0 overflow-hidden border-none'}
+                    ${(step === 'consultation' ? consultationTranscript : thoughtTranscript) || isRecording ? 'h-40 md:h-48' : 'h-0 overflow-hidden border-none'}
                     ${isDarkMode ? 'border-white/5 bg-black/20' : 'border-gray-100 bg-gray-50'}
                  `}>
-                    <div className="p-4 h-full flex flex-col">
+                    <div className="p-3 md:p-4 h-full flex flex-col">
                         <div className="flex items-center justify-between mb-2 px-1">
                             <div className={`flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-zinc-500' : 'text-zinc-400'}`}>
                                 <Pencil size={12} />
@@ -376,35 +400,37 @@ export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) 
             </div>
 
             {/* Footer Action */}
-            {step === 'consultation' ? (
-                <button
-                    onClick={handleNextStep}
-                    disabled={mode === 'presential' && !consultationTranscript && !isSysListening} // For telemed, allow proceeding even if empty (since logic is partial) -> Now logic is robust with blob check later
-                    className={`
+            {
+                step === 'consultation' ? (
+                    <button
+                        onClick={handleNextStep}
+                        disabled={mode === 'presential' && !consultationTranscript && !isSysListening} // For telemed, allow proceeding even if empty (since logic is partial) -> Now logic is robust with blob check later
+                        className={`
                         w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all
                         ${(consultationTranscript || mode === 'telemedicine')
-                            ? 'bg-zinc-800 hover:bg-zinc-700 text-white shadow-lg'
-                            : 'bg-zinc-800/50 text-zinc-600 cursor-not-allowed'}
+                                ? 'bg-zinc-800 hover:bg-zinc-700 text-white shadow-lg'
+                                : 'bg-zinc-800/50 text-zinc-600 cursor-not-allowed'}
                     `}
-                >
-                    Próximo: Minuto de Ouro
-                    <ArrowRight size={20} />
-                </button>
-            ) : (
-                <button
-                    onClick={handleGenerate}
-                    // Allow generation even if thought is empty, as long as consultation exists (handled by step flow)
-                    className={`
+                    >
+                        Próximo: Minuto de Ouro
+                        <ArrowRight size={20} />
+                    </button>
+                ) : (
+                    <button
+                        onClick={handleGenerate}
+                        // Allow generation even if thought is empty, as long as consultation exists (handled by step flow)
+                        className={`
                         w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all
                         bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/20 transform hover:-translate-y-0.5
                     `}
-                >
-                    <div className="p-1 bg-white/20 rounded-lg">
-                        <FileText size={20} />
-                    </div>
-                    Gerar Documentação (SOAP)
-                </button>
-            )}
+                    >
+                        <div className="p-1 bg-white/20 rounded-lg">
+                            <FileText size={20} />
+                        </div>
+                        Gerar Documentação (SOAP)
+                    </button>
+                )
+            }
 
             <style>{`
                 @keyframes sound-wave {
@@ -415,6 +441,6 @@ export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) 
                     animation: sound-wave 0.5s ease-in-out infinite;
                 }
             `}</style>
-        </div>
+        </div >
     );
 }
