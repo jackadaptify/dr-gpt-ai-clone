@@ -1354,7 +1354,7 @@ function AppContent() {
                 {activeMode === 'scribe' && !currentChatId && (
                     <ScribeView
                         isDarkMode={isDarkMode}
-                        onGenerate={async (consultation, thoughts, patientName, patientGender, audioBlob) => {
+                        onGenerate={async (consultation, thoughts, patientName, patientGender, audioBlob, scenario = 'evolution') => {
                             // 1. Create a new Chat Session specifically for this Scribe Review
                             const newChatId = uuidv4();
                             // Force GPT-4o Mini for Scribe Mode
@@ -1388,7 +1388,7 @@ function AppContent() {
                             // 3. Switch to Scribe Review Mode
                             setActiveMode('scribe-review');
                             setReviewTitle('Revisão de Prontuário'); // Reset title
-                            setScribeContent('Processando dados da consulta...\n\nGerando SOAP...');
+                            setScribeContent('Processando dados da consulta...\n\nGerando Documentação...');
 
                             let audioUrl = "";
                             let finalPrompt = "";
@@ -1416,11 +1416,31 @@ function AppContent() {
                                 ? `PACIENTE: ${patientName} (Sexo: ${patientGender})`
                                 : `PACIENTE: Não Identificado`;
 
-                            // 2. Construct Prompt
+                            // Map Scenario to Prompt Instructions
+                            let scenarioInstruction = "";
+                            switch (scenario) {
+                                case 'anamnesis':
+                                    scenarioInstruction = "CONTEXTO MÉDICO: ANAMNESE / PRIMEIRA CONSULTA.\nFOCO: Histórico detalhado, HDA (História da Doença Atual), HPP (História Patológica Pregressa), Medicamentos, Alergias e Exame Físico completo.";
+                                    break;
+                                case 'bedside':
+                                    scenarioInstruction = "CONTEXTO MÉDICO: VISITA BEIRA LEITO.\nFOCO: Evolução do quadro nas últimas 24h, sinais vitais, intercorrências, pendências e plano terapêutico diário.";
+                                    break;
+                                case 'clinical_meeting':
+                                    scenarioInstruction = "CONTEXTO MÉDICO: REUNIÃO CLÍNICA / DISCUSSÃO DE CASO.\nFOCO: Resumo do caso para apresentação, pontos de dúvida diagnóstica e opções terapêuticas discutidas.";
+                                    break;
+                                case 'evolution':
+                                default:
+                                    scenarioInstruction = "CONTEXTO MÉDICO: EVOLUÇÃO MÉDICA DE ROTINA (SOAP).\nFOCO: Subjetivo, Objetivo, Avaliação e Plano.";
+                                    break;
+                            }
+
+                            // 2. Construct Prompt with Scenarios
+                            const commonInstructions = `TASK: Gere o documento médico baseado no áudio/texto e na NOTA TÉCNICA.\n\n${scenarioInstruction}\n\nREGRA: Gere SEMPRE o documento completo. Receita/Atestado apenas se solicitado no texto.\n\nFORMATO OBRIGATÓRIO: Apenas o conteúdo do documento. NÃO inclua introduções como "Aqui está", NÃO inclua conclusões e NÃO use blocos de código markdown (\`\`\`). O output deve ser apenas o texto pronto para copiar.`;
+
                             if (audioUrl) {
-                                finalPrompt = `[AI SCRIBE ACTION - AUDIO MODE]\nSOURCE 1: AUDIO DA CONSULTA (Telemedicina)\nURL: ${audioUrl}\nSOURCE 2: NOTA TÉCNICA: "${thoughts}"\nCONTEXTO: ${patientContext}\nTASK: Ouça o áudio. Gere um SOAP completo.\n\nFORMATO OBRIGATÓRIO: Apenas o conteúdo do prontuário. NÃO inclua introduções como "Aqui está o SOAP", NÃO inclua conclusões como "Espero que ajude" e NÃO use blocos de código markdown (\`\`\`). O output deve ser apenas o texto do SOAP pronto para copiar.`;
+                                finalPrompt = `[AI SCRIBE ACTION - AUDIO MODE]\nSOURCE 1: AUDIO DA CONSULTA (Telemedicina)\nURL: ${audioUrl}\nSOURCE 2: NOTA TÉCNICA: "${thoughts}"\nCONTEXTO: ${patientContext}\n\n${commonInstructions}`;
                             } else {
-                                finalPrompt = `[AI SCRIBE ACTION - TEXT MODE]\nSOURCE 1: TRANSCRIPT: "${consultation}"\nSOURCE 2: NOTA TÉCNICA: "${thoughts}"\nCONTEXTO: ${patientContext}\nTASK: Gere um SOAP perfeito.\n\nREGRA: Gere SEMPRE o SOAP. Receita/Atestado apenas se solicitado no texto.\n\nFORMATO OBRIGATÓRIO: Apenas o conteúdo do prontuário. NÃO inclua introduções como "Aqui está o SOAP", NÃO inclua conclusões como "Espero que ajude" e NÃO use blocos de código markdown (\`\`\`). O output deve ser apenas o texto do SOAP pronto para copiar.`;
+                                finalPrompt = `[AI SCRIBE ACTION - TEXT MODE]\nSOURCE 1: TRANSCRIPT: "${consultation}"\nSOURCE 2: NOTA TÉCNICA: "${thoughts}"\nCONTEXTO: ${patientContext}\n\n${commonInstructions}`;
                             }
 
                             // 3. STREAM GENERATION DIRECTLY TO scribeContent STATE
