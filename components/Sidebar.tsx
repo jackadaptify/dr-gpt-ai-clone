@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChatSession, Folder, Agent, AppMode } from '../types';
 import { IconMessage, IconSearch, IconBrain } from './Icons';
 import { User, CreditCard, Palette, LogOut, Shield, MoreHorizontal, FolderInput, X, Share, Users, Edit2, Archive, Trash2, ChevronRight, CornerUpLeft, Plus, Folder as LucideFolder, ShieldAlert, ClipboardCheck } from 'lucide-react';
-import AgentsList from './AgentsList';
+
 import { useAuth } from '../contexts/AuthContext';
 import SettingsModal from './SettingsModal';
 
@@ -12,12 +12,12 @@ interface SidebarProps {
   currentChatId: string | null;
   onSelectChat: (id: string) => void;
   onNewChat: () => void;
-  onSelectAgent: (agent: Agent) => void;
+
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   isDarkMode: boolean;
   toggleTheme: () => void;
-  agents: Agent[];
+
   activeMode: AppMode;
   onCreateProject: (name: string) => void;
   onAssignChatToProject: (chatId: string, projectId: string | null) => void;
@@ -32,12 +32,12 @@ export default function Sidebar({
   currentChatId,
   onSelectChat,
   onNewChat,
-  onSelectAgent,
+
   isOpen,
   setIsOpen,
   isDarkMode,
   toggleTheme,
-  agents,
+
   activeMode,
   onCreateProject,
   onAssignChatToProject,
@@ -268,8 +268,7 @@ export default function Sidebar({
       case 'chat':
         return (
           <>
-            {/* Agents List */}
-            <AgentsList onSelectAgent={onSelectAgent} isDarkMode={isDarkMode} agents={agents} />
+
 
             {/* Folders Section */}
             <div className="px-3 mt-6">

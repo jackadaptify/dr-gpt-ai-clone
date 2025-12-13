@@ -969,8 +969,7 @@ function AppContent() {
                     setIsOpen={setSidebarOpen}
                     isDarkMode={isDarkMode}
                     toggleTheme={toggleTheme}
-                    onSelectAgent={handleSelectAgent}
-                    agents={agents}
+
                     activeMode={activeMode}
                     onCreateProject={handleCreateProject}
                     onAssignChatToProject={handleAssignChatToProject}
