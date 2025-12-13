@@ -48,6 +48,7 @@ import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import RailNav from './components/RailNav';
 import ScribeView from './components/ScribeView';
 import AntiGlosaView from './components/AntiGlosaView';
+import JustificativaView from './components/JustificativaView';
 import ScribeReview from './components/Scribe/ScribeReview';
 import { Toaster, toast } from 'react-hot-toast';
 
@@ -906,9 +907,57 @@ function AppContent() {
                                 setScribeContent('Carregando prontuário...'); // Should lazy load eventually
                             }
                         } else if (chat?.agentId === 'antiglosa-mode') {
-                            setActiveMode('antiglosa');
+                            setActiveMode('scribe-review');
+                            setReviewTitle('Defesa Anti-Glosa');
+
+                            // Robust restoration logic
+                            const lastDocMessage = [...chat.messages]
+                                .reverse()
+                                .find(m => m.role === Role.MODEL && m.content.length > 50 && !m.content.includes("Precisa de algum ajuste"));
+
+                            if (lastDocMessage) {
+                                const updateMatch = lastDocMessage.content.match(/<UPDATE_ACTION>\s*(\{[\s\S]*?\})\s*<\/UPDATE_ACTION>/);
+                                if (updateMatch && updateMatch[1]) {
+                                    try {
+                                        const json = JSON.parse(updateMatch[1]);
+                                        setScribeContent(json.new_content);
+                                    } catch (e) {
+                                        setScribeContent(lastDocMessage.content);
+                                    }
+                                } else {
+                                    setScribeContent(lastDocMessage.content);
+                                }
+                            } else {
+                                setScribeContent('Carregando defesa...');
+                            }
+
+                        } else if (chat?.agentId === 'justificativa-mode') {
+                            setActiveMode('scribe-review');
+                            setReviewTitle('Justificativa Prévia');
+
+                            // Robust restoration logic
+                            const lastDocMessage = [...chat.messages]
+                                .reverse()
+                                .find(m => m.role === Role.MODEL && m.content.length > 50 && !m.content.includes("Precisa de algum ajuste"));
+
+                            if (lastDocMessage) {
+                                const updateMatch = lastDocMessage.content.match(/<UPDATE_ACTION>\s*(\{[\s\S]*?\})\s*<\/UPDATE_ACTION>/);
+                                if (updateMatch && updateMatch[1]) {
+                                    try {
+                                        const json = JSON.parse(updateMatch[1]);
+                                        setScribeContent(json.new_content);
+                                    } catch (e) {
+                                        setScribeContent(lastDocMessage.content);
+                                    }
+                                } else {
+                                    setScribeContent(lastDocMessage.content);
+                                }
+                            } else {
+                                setScribeContent('Carregando justificativa...');
+                            }
+
                         } else {
-                            if ((activeMode as string) === 'scribe-review' || activeMode === 'scribe' || activeMode === 'antiglosa') {
+                            if ((activeMode as string) === 'scribe-review' || activeMode === 'scribe' || activeMode === 'antiglosa' || activeMode === 'justificativa') {
                                 setActiveMode('chat');
                             }
                         }
@@ -1424,8 +1473,8 @@ function AppContent() {
                         onGenerate={async (text) => {
                             // 1. Create specialized Chat Session
                             const newChatId = uuidv4();
-                            // Force GPT-4o for High Intelligence in Legal/Medical
-                            const defenseModelId = 'openai/gpt-4o';
+                            // Force GPT-4o-mini for speed/cost efficiency
+                            const defenseModelId = 'openai/gpt-4o-mini';
 
                             const newChat: ChatSession = {
                                 id: newChatId,
@@ -1517,6 +1566,106 @@ Retorne APENAS o texto da carta em Markdown. Sem introduções. Sem bloco de có
                             } catch (error) {
                                 console.error(error);
                                 setScribeContent('Erro ao gerar defesa. Tente novamente.');
+                                setIsGenerating(false);
+                            }
+                        }}
+                    />
+                )}
+
+                {activeMode === 'justificativa' && !currentChatId && (
+                    <JustificativaView
+                        isDarkMode={isDarkMode}
+                        isLoading={isGenerating}
+                        onGenerate={async (text) => {
+                            const newChatId = uuidv4();
+                            const justifModelId = 'openai/gpt-4o-mini';
+
+                            const newChat: ChatSession = {
+                                id: newChatId,
+                                title: `Justificativa - ${text.slice(0, 20)}...`,
+                                modelId: justifModelId,
+                                agentId: 'justificativa-mode',
+                                messages: [],
+                                updatedAt: Date.now()
+                            };
+
+                            setChats(prev => [newChat, ...prev]);
+                            setCurrentChatId(newChatId);
+                            setSelectedModelId(justifModelId);
+                            createChat(newChat);
+
+                            const welcomeMsg: Message = {
+                                id: uuidv4(),
+                                role: Role.MODEL,
+                                content: "Justificativa gerada com sucesso. Verifique o texto abaixo e faça ajustes se necessário.",
+                                timestamp: Date.now(),
+                                modelId: justifModelId
+                            };
+                            saveMessage(newChatId, welcomeMsg);
+                            setChats(prev => prev.map(c => c.id === newChatId ? { ...c, messages: [welcomeMsg] } : c));
+
+                            setActiveMode('scribe-review');
+                            setReviewTitle('Justificativa Prévia');
+                            setScribeContent('Aguarde... Consultando Jurisprudência e Rol da ANS...');
+                            setIsGenerating(true);
+
+                            const prompt = `ROLE: Você é um Auditor Médico Sênior e Especialista em Regulação de Saúde (ANS).
+TASK: Escreva uma CARTA TÉCNICA solicitando AUTORIZAÇÃO PRÉVIA para cirurgia ou exame.
+INPUT DO USUÁRIO: "${text}"
+
+DIRETRIZES TÉCNICAS (CRÍTICO):
+1. Objetivo: Demonstrar a necessidade técnica do procedimento para evitar glosa futura.
+2. Citação de Leis e Resoluções:
+   - Cite o "Rol de Procedimentos e Eventos em Saúde da ANS" (Resolução Normativa vigente).
+   - Cite Diretrizes de Utilização (DUT) se aplicável ao procedimento.
+   - Cite Medicina Baseada em Evidências para justificar a indicação clínica.
+3. Estrutura da Carta:
+   - Destinatário: "À Auditoria Médica da [Operadora]".
+   - Assunto: "SOLICITAÇÃO DE AUTORIZAÇÃO PRÉVIA - CARÁTER ELETIVO".
+   - Identificação do Paciente (Use os dados do input, ou [NOME DO PACIENTE] se não houver).
+   - Indicação Clínica Detalhada: Resuma a história clínica, exames anteriores e falha terapêutica.
+   - Embasamento Técnico: Por que este procedimento é o indicado?
+   - Conclusão: Solicito emissão de senha de autorização.
+   
+FORMATO:
+Retorne APENAS o texto da carta em Markdown. Sem introduções. Sem bloco de código.`;
+
+                            try {
+                                const response = await streamChatResponse(
+                                    justifModelId,
+                                    [{ role: Role.USER, content: prompt, id: 'prompt', timestamp: Date.now() }],
+                                    prompt,
+                                    (chunk) => {
+                                        setScribeContent(prev => {
+                                            if (prev.startsWith('Aguarde...')) return chunk;
+                                            return prev + chunk;
+                                        });
+                                    },
+                                    undefined,
+                                    { webSearch: false, imageGeneration: false },
+                                    newChatId,
+                                    undefined
+                                );
+                                setScribeContent(response);
+                                setIsGenerating(false);
+
+                                const docMessage: Message = {
+                                    id: uuidv4(),
+                                    role: Role.MODEL,
+                                    content: response,
+                                    displayContent: '📄 Justificativa Gerada',
+                                    timestamp: Date.now(),
+                                    modelId: justifModelId
+                                };
+                                saveMessage(newChatId, docMessage);
+                                setChats(prev => prev.map(c => c.id === newChatId ? {
+                                    ...c,
+                                    messages: [...c.messages, docMessage]
+                                } : c));
+
+                            } catch (error) {
+                                console.error(error);
+                                setScribeContent('Erro ao gerar justificativa. Tente novamente.');
                                 setIsGenerating(false);
                             }
                         }}

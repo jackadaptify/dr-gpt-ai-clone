@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatSession, Folder, Agent, AppMode } from '../types';
 import { IconMessage, IconSearch, IconBrain } from './Icons';
-import { User, CreditCard, Palette, LogOut, Shield, MoreHorizontal, FolderInput, X, Share, Users, Edit2, Archive, Trash2, ChevronRight, CornerUpLeft, Plus, Folder as LucideFolder, ShieldAlert } from 'lucide-react';
+import { User, CreditCard, Palette, LogOut, Shield, MoreHorizontal, FolderInput, X, Share, Users, Edit2, Archive, Trash2, ChevronRight, CornerUpLeft, Plus, Folder as LucideFolder, ShieldAlert, ClipboardCheck } from 'lucide-react';
 import AgentsList from './AgentsList';
 import { useAuth } from '../contexts/AuthContext';
 import SettingsModal from './SettingsModal';
@@ -68,9 +68,12 @@ export default function Sidebar({
     if (activeMode === 'antiglosa') {
       return matchesSearch && matchesFolder && chat.agentId === 'antiglosa-mode';
     }
+    if (activeMode === 'justificativa') {
+      return matchesSearch && matchesFolder && chat.agentId === 'justificativa-mode';
+    }
     // Chat Mode: Exclude special modes
     // Note: We might want to include 'normal' chats AND agent chats here, but exclude scribe/antiglosa
-    return matchesSearch && matchesFolder && chat.agentId !== 'scribe-mode' && chat.agentId !== 'antiglosa-mode';
+    return matchesSearch && matchesFolder && chat.agentId !== 'scribe-mode' && chat.agentId !== 'antiglosa-mode' && chat.agentId !== 'justificativa-mode';
   });
 
   const handleCreateFolder = (e: React.FormEvent) => {
@@ -415,6 +418,20 @@ export default function Sidebar({
           </div>
         );
 
+      case 'justificativa':
+        return (
+          <>
+            <div className="px-4 text-center mt-6 mb-4">
+              <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-2 text-blue-500">
+                <ClipboardCheck size={24} />
+              </div>
+              <p className="text-sm font-medium text-blue-500">Justificativa Prévia</p>
+              <p className="text-xs text-textMuted">Suas autorizações geradas.</p>
+            </div>
+            {renderChatList('Histórico de Justificativas', 'Nenhuma justificativa gerada ainda.', <ClipboardCheck size={16} />)}
+          </>
+        );
+
       default:
         return <div>Selecione um modo</div>;
     }
@@ -441,7 +458,7 @@ export default function Sidebar({
         <div className="p-4 space-y-4">
           <div className="flex items-center gap-1 py-4 select-none px-2">
             <span className="text-2xl font-black tracking-wide text-white">
-              {activeMode === 'chat' ? 'CHAT' : activeMode === 'scribe' ? 'SCRIBE' : activeMode === 'antiglosa' ? 'ANTI-GLOSA' : 'AJUSTES'}
+              {activeMode === 'chat' ? 'CHAT' : activeMode === 'scribe' ? 'SCRIBE' : activeMode === 'antiglosa' ? 'ANTI-GLOSA' : activeMode === 'justificativa' ? 'JUSTIFICATIVA' : 'AJUSTES'}
             </span>
           </div>
 

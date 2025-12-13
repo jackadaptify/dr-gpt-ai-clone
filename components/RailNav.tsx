@@ -1,4 +1,4 @@
-import { MessageCircle, Mic, FileText, Settings, Shield, User, LogOut } from 'lucide-react';
+import { MessageCircle, Mic, FileText, Settings, Shield, ClipboardCheck, User, LogOut } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { AppMode } from '../types';
 
@@ -14,6 +14,7 @@ const RailNav: React.FC<RailNavProps> = ({ activeMode, onModeChange, isDarkMode 
         { mode: 'chat', icon: MessageCircle, label: 'Chat IA' },
         { mode: 'scribe', icon: Mic, label: 'Scribe' },
         { mode: 'antiglosa', icon: Shield, label: 'Anti-Glosa' },
+        { mode: 'justificativa', icon: ClipboardCheck, label: 'Justificativa Prévia' },
     ];
 
     const { user } = useAuth();
