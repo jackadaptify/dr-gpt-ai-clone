@@ -5,7 +5,7 @@ export enum Role {
   MODEL = 'model'
 }
 
-export type AppMode = 'chat' | 'scribe' | 'antiglosa' | 'settings' | 'scribe-review';
+export type AppMode = 'chat' | 'scribe' | 'antiglosa' | 'justificativa' | 'settings' | 'scribe-review';
 
 export interface Attachment {
   id: string;
@@ -34,6 +34,12 @@ export interface ChatSession {
   messages: Message[];
   updatedAt: number;
   folderId?: string;
+  metadata?: {
+    estimated_value?: number;
+    patient_name?: string;
+    patient_gender?: string;
+    [key: string]: any;
+  };
 }
 
 export interface Folder {
