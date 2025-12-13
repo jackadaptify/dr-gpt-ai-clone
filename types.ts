@@ -34,6 +34,12 @@ export interface ChatSession {
   messages: Message[];
   updatedAt: number;
   folderId?: string;
+  metadata?: {
+    estimated_value?: number;
+    patient_name?: string;
+    patient_gender?: string;
+    [key: string]: any;
+  };
 }
 
 export interface Folder {

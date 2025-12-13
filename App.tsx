@@ -1470,7 +1470,7 @@ function AppContent() {
                     <AntiGlosaView
                         isDarkMode={isDarkMode}
                         isLoading={isGenerating}
-                        onGenerate={async (text) => {
+                        onGenerate={async (text, estimatedValue) => {
                             // 1. Create specialized Chat Session
                             const newChatId = uuidv4();
                             // Force GPT-4o-mini for speed/cost efficiency
@@ -1482,7 +1482,10 @@ function AppContent() {
                                 modelId: defenseModelId,
                                 agentId: 'antiglosa-mode', // Tag for filtering
                                 messages: [],
-                                updatedAt: Date.now()
+                                updatedAt: Date.now(),
+                                metadata: {
+                                    estimated_value: estimatedValue
+                                }
                             };
 
                             setChats(prev => [newChat, ...prev]);

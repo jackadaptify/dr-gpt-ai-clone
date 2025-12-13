@@ -4,7 +4,7 @@ import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 interface AntiGlosaViewProps {
     isDarkMode: boolean;
-    onGenerate: (text: string) => void;
+    onGenerate: (text: string, estimatedValue?: number) => void;
     isLoading?: boolean;
 }
 
@@ -12,6 +12,8 @@ export default function AntiGlosaView({ isDarkMode, onGenerate, isLoading = fals
     const { isListening, transcript, toggleListening } = useSpeechRecognition();
     const [localText, setLocalText] = useState('');
     const [textBeforeRecording, setTextBeforeRecording] = useState('');
+
+    const [estimatedValue, setEstimatedValue] = useState('');
 
     // Handle toggle listening wrapper to save state
     const handleToggleListening = () => {
@@ -28,9 +30,18 @@ export default function AntiGlosaView({ isDarkMode, onGenerate, isLoading = fals
         }
     }, [transcript, isListening, textBeforeRecording]);
 
+    // Format currency input
+    const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value.replace(/\D/g, '');
+        const numberValue = Number(value) / 100;
+        setEstimatedValue(numberValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
+    };
+
     const handleGenerate = () => {
         if (localText.trim()) {
-            onGenerate(localText);
+            // Extract numeric value from string
+            const numericValue = Number(estimatedValue.replace(/[^0-9,-]+/g, "").replace(",", "."));
+            onGenerate(localText, numericValue);
         }
     };
 
@@ -77,12 +88,31 @@ export default function AntiGlosaView({ isDarkMode, onGenerate, isLoading = fals
                         onChange={(e) => setLocalText(e.target.value)}
                         placeholder="Ex: Paciente João Silva, 45 anos. Convênio negou Cirurgia Bariátrica alegando falta de tratamento clínico prévio. Paciente tem IMC 40, hipertensão e tentou dieta por 2 anos sem sucesso. Preciso de uma justificativa técnica citando a resolução da ANS."
                         className={`
-                            flex-1 w-full p-4 rounded-xl text-lg resize-none outline-none border transition-all
+                            flex-1 w-full p-4 rounded-xl text-lg resize-none outline-none border transition-all mb-4
                             ${isDarkMode
                                 ? 'bg-zinc-900/50 text-zinc-300 border-white/5 focus:border-emerald-500/50 focus:bg-zinc-900'
                                 : 'bg-gray-50 text-gray-700 border-gray-200 focus:border-emerald-500/50 focus:bg-white'}
                         `}
                     />
+
+                    {/* Value Input */}
+                    <div className="relative w-full md:w-1/3">
+                        <label className={`text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-2 ${isDarkMode ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                            Valor Estimado (R$)
+                        </label>
+                        <input
+                            type="text"
+                            value={estimatedValue}
+                            onChange={handleValueChange}
+                            placeholder="R$ 0,00"
+                            className={`
+                                w-full p-3 rounded-xl text-lg outline-none border transition-all
+                                ${isDarkMode
+                                    ? 'bg-zinc-900/50 text-emerald-400 border-white/5 focus:border-emerald-500/50 focus:bg-zinc-900 placeholder-zinc-700'
+                                    : 'bg-gray-50 text-emerald-600 border-gray-200 focus:border-emerald-500/50 focus:bg-white placeholder-gray-400'}
+                            `}
+                        />
+                    </div>
                 </div>
 
                 {/* Toolbar */}
