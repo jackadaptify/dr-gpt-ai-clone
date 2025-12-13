@@ -213,7 +213,7 @@ function AppContent() {
     // Utility to clean model names
     const cleanModelName = (name: string, id: string) => {
         // Remove provider prefixes
-        let clean = name.replace(/^(google\/|openai\/|anthropic\/|deepseek\/|meta-llama\/)/i, '');
+        let clean = name.replace(/^(google|openai|anthropic|deepseek|meta-llama|meta|baidu|nvidia|qwen|microsoft|perplexity|mistral)[:\/]\s*/i, '');
 
         // Remove specific suffixes or technical jargon if needed
         clean = clean.replace(/:free/i, '');
@@ -1077,7 +1077,7 @@ function AppContent() {
                                             {selectedAgentId ? agents.find(a => a.id === selectedAgentId)?.description : 'Seu hub de inteligência avançada.'}
                                         </p>
 
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-3xl">
+                                        <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-3xl">
                                             {(selectedAgentId
                                                 ? (agents.find(a => a.id === selectedAgentId)?.iceBreakers || []).map(item => ({ title: item, text: '', icon: 'Brain' })) // Adapter for simple strings
                                                 : suggestions
