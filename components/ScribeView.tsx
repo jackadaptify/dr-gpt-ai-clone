@@ -181,7 +181,7 @@ export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) 
     };
 
     return (
-        <div className={`flex flex-col h-full w-full max-w-4xl mx-auto p-6 animate-in fade-in duration-500`}>
+        <div className={`flex flex-col h-full w-full max-w-4xl mx-auto p-4 md:p-6 animate-in fade-in duration-500`}>
 
             {/* Header / Stepper Visual */}
             <div className="mb-8 text-center relative">
@@ -274,7 +274,7 @@ export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) 
 
                     {/* Status Text with Dynamic Color */}
                     <div className={`text-center transition-opacity duration-300 ${isRecording ? 'opacity-100' : 'opacity-70'}`}>
-                        <h3 className={`text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        <h3 className={`text-xl md:text-2xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                             {isRecording
                                 ? (step === 'consultation'
                                     ? (mode === 'presential' ? "Ouvindo consulta..." : "Capturando áudio do sistema...")
@@ -292,7 +292,7 @@ export default function ScribeView({ isDarkMode, onGenerate }: ScribeViewProps) 
                     <button
                         onClick={handleToggleRecording}
                         className={`
-                            relative w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl group
+                            relative w-24 h-24 md:w-32 md:h-32 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl group
                             ${isRecording
                                 ? 'bg-red-500 hover:bg-red-600 shadow-red-500/30'
                                 : (step === 'consultation'

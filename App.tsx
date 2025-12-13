@@ -853,12 +853,14 @@ function AppContent() {
     return (
         <div className="flex h-screen bg-background text-textMain font-sans overflow-hidden selection:bg-emerald-500/30">
 
-            {/* Rail Navigation */}
-            <RailNav
-                activeMode={activeMode}
-                onModeChange={setActiveMode}
-                isDarkMode={isDarkMode}
-            />
+            {/* Rail Navigation (Desktop Only) */}
+            <div className="hidden md:block h-full z-50">
+                <RailNav
+                    activeMode={activeMode}
+                    onModeChange={setActiveMode}
+                    isDarkMode={isDarkMode}
+                />
+            </div>
 
             {/* Sidebar */}
             {activeMode !== 'scribe-review' && (
@@ -974,6 +976,7 @@ function AppContent() {
                     onAssignChatToProject={handleAssignChatToProject}
                     onRenameChat={handleRenameChat}
                     onDeleteChat={handleDeleteChat}
+                    onModeChange={setActiveMode}
                 />
             )}
 

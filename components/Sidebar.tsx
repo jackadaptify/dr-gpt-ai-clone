@@ -23,6 +23,7 @@ interface SidebarProps {
   onAssignChatToProject: (chatId: string, projectId: string | null) => void;
   onRenameChat: (chatId: string, newTitle: string) => void;
   onDeleteChat: (chatId: string) => void;
+  onModeChange: (mode: AppMode) => void;
 }
 
 export default function Sidebar({
@@ -41,7 +42,8 @@ export default function Sidebar({
   onCreateProject,
   onAssignChatToProject,
   onRenameChat,
-  onDeleteChat
+  onDeleteChat,
+  onModeChange
 }: SidebarProps) {
   const { user, signOut } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -442,25 +444,66 @@ export default function Sidebar({
       {/* Mobile Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 md:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* Sidebar Container */}
       <aside className={`
-        fixed inset-y-0 left-0 z-40 w-[280px] text-textMain flex flex-col transition-transform duration-300 transform
+        fixed inset-y-0 left-0 z-[70] w-[280px] text-textMain flex flex-col transition-transform duration-300 transform
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         md:relative md:translate-x-0
         bg-sidebar backdrop-blur-xl border-r border-borderLight
       `}>
         {/* Header */}
         <div className="p-4 space-y-4">
-          <div className="flex items-center gap-1 py-4 select-none px-2">
-            <span className="text-2xl font-black tracking-wide text-white">
-              {activeMode === 'chat' ? 'CHAT' : activeMode === 'scribe' ? 'SCRIBE' : activeMode === 'antiglosa' ? 'ANTI-GLOSA' : activeMode === 'justificativa' ? 'JUSTIFICATIVA' : 'AJUSTES'}
-            </span>
+          {/* Header Title - Removed in favor of clearer nav items, or kept small? 
+              User wants "everything in sidebar". Let's put the App Modes here.
+          */}
+
+          {/* Mobile Navigation Mode Switcher (Visible only on mobile/tablet or if RailNav is hidden) */}
+          <div className="block md:hidden space-y-2">
+            <div className="flex items-center gap-2 px-2 pb-2">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500 overflow-hidden flex items-center justify-center">
+                <span className="font-bold text-white text-xs">Dr</span>
+              </div>
+              <span className="font-bold text-lg">Dr. GPT</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => { onModeChange('chat'); if (window.innerWidth < 768) setIsOpen(false); }}
+                className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${activeMode === 'chat' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500' : 'bg-transparent border-transparent hover:bg-white/5 text-textMuted'}`}
+              >
+                <IconMessage />
+                <span className="text-sm font-medium">Chat</span>
+              </button>
+              <button
+                onClick={() => { onModeChange('scribe'); if (window.innerWidth < 768) setIsOpen(false); }}
+                className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${activeMode === 'scribe' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500' : 'bg-transparent border-transparent hover:bg-white/5 text-textMuted'}`}
+              >
+                <Edit2 size={18} />
+                <span className="text-sm font-medium">Scribe</span>
+              </button>
+              <button
+                onClick={() => { onModeChange('antiglosa'); if (window.innerWidth < 768) setIsOpen(false); }}
+                className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${activeMode === 'antiglosa' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500' : 'bg-transparent border-transparent hover:bg-white/5 text-textMuted'}`}
+              >
+                <ShieldAlert size={18} />
+                <span className="text-sm font-medium">Glosa</span>
+              </button>
+              <button
+                onClick={() => { onModeChange('justificativa'); if (window.innerWidth < 768) setIsOpen(false); }}
+                className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${activeMode === 'justificativa' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500' : 'bg-transparent border-transparent hover:bg-white/5 text-textMuted'}`}
+              >
+                <ClipboardCheck size={18} />
+                <span className="text-sm font-medium">Justif.</span>
+              </button>
+            </div>
+            <div className={`h-px w-full my-2 ${isDarkMode ? 'bg-white/10' : 'bg-gray-200'}`} />
           </div>
+
 
           <button
             onClick={onNewChat}
