@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatSession, Folder, Agent, AppMode } from '../types';
 import { IconMessage, IconSearch, IconBrain } from './Icons';
-import { User, CreditCard, Palette, LogOut, Shield, MoreHorizontal, FolderInput, X, Share, Users, Edit2, Archive, Trash2, ChevronRight, CornerUpLeft, Plus, Folder as LucideFolder, ShieldAlert, ClipboardCheck } from 'lucide-react';
+import { User, CreditCard, Palette, LogOut, Shield, MoreHorizontal, FolderInput, X, Share, Users, Edit2, Archive, Trash2, ChevronRight, CornerUpLeft, Plus, Folder as LucideFolder, ShieldAlert, ClipboardCheck, SquarePen } from 'lucide-react';
 
 import { useAuth } from '../contexts/AuthContext';
 import SettingsModal from './SettingsModal';
@@ -504,29 +504,30 @@ export default function Sidebar({
           </div>
 
 
-          <button
-            onClick={onNewChat}
-            className={`group relative w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-3.5 rounded-xl transition-all duration-200 border border-borderLight active:translate-y-[1px] ${isDarkMode ? 'bg-surface hover:bg-surfaceHighlight shadow-card-3d active:shadow-inner' : 'bg-white hover:bg-gray-50 shadow-sm'}`}
-          >
-            <div className="bg-emerald-500/20 p-1 rounded-full group-hover:bg-emerald-500/30 transition-colors">
-              <Plus size={20} />
+          {/* Search & New Chat Row */}
+          <div className="flex items-center gap-2">
+            {/* Search Input */}
+            <div className={`relative group flex-1`}>
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted group-focus-within:text-emerald-500 transition-colors">
+                <IconSearch />
+              </div>
+              <input
+                type="text"
+                placeholder="Search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={`w-full pl-9 pr-3 py-2 rounded-lg text-sm transition-all outline-none border border-transparent focus:border-emerald-500/50 ${isDarkMode ? 'bg-white/5 focus:bg-white/10 placeholder-textMuted/50' : 'bg-gray-100 focus:bg-gray-50 border-gray-200'}`}
+              />
             </div>
-            <span className="bg-gradient-to-r from-textMain to-textMuted bg-clip-text text-transparent group-hover:text-textMain transition-colors">
-              Novo Chat
-            </span>
-          </button>
 
-          <div className={`relative group ${isDarkMode ? '' : ''}`}>
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted group-focus-within:text-emerald-500 transition-colors">
-              <IconSearch />
-            </div>
-            <input
-              type="text"
-              placeholder="Buscar conversas..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm transition-all outline-none border border-transparent focus:border-emerald-500/50 ${isDarkMode ? 'bg-black/20 focus:bg-black/40 placeholder-textMuted/50' : 'bg-gray-100 focus:bg-white border-gray-200'}`}
-            />
+            {/* New Chat Button */}
+            <button
+              onClick={onNewChat}
+              className={`p-2 rounded-lg transition-colors border border-transparent ${isDarkMode ? 'hover:bg-white/10 text-textMuted hover:text-white' : 'hover:bg-gray-200 text-gray-600 hover:text-black'}`}
+              title="Novo Chat"
+            >
+              <SquarePen size={20} />
+            </button>
           </div>
         </div>
 

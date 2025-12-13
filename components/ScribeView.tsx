@@ -176,9 +176,9 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
         if (isRecording) handleToggleRecording();
         // If telemed, we might have an audio blob instead of text transcript
         if (mode === 'telemedicine' && consultationBlob) {
-            onGenerate('Arquivo de Áudio Telemedicina', thoughtTranscript, patientName, patientGender, consultationBlob);
-        } else {
-            onGenerate(consultationTranscript, thoughtTranscript, patientName, patientGender);
+            onGenerate('Arquivo de Áudio Telemedicina', thoughtTranscript, "Paciente", "Indefinido", consultationBlob);
+            // Pass generic defaults for Name/Gender to remove friction
+            onGenerate(consultationTranscript, thoughtTranscript, "Paciente", "Indefinido");
         }
     };
 
@@ -195,36 +195,24 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                     <Menu size={24} />
                 </button>
 
-                {/* Center: Stepper (Wrapped in div to center properly) */}
+                {/* Center: Title & Subtle Phase Indicator */}
                 <div className="absolute left-1/2 transform -translate-x-1/2 flex flex-col items-center">
-                    <div className="flex items-center justify-center gap-4 mb-2 md:mb-4">
-                        {/* Step 1 Indicator */}
-                        <div className={`flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full transition-all duration-300 ${step === 'consultation' ? 'bg-emerald-500/10 text-emerald-500 ring-2 ring-emerald-500/20' : 'opacity-50 grayscale'}`}>
-                            <Stethoscope size={16} className="md:w-[18px] md:h-[18px]" />
-                            <span className="font-bold text-xs md:text-sm">1. A Consulta</span>
-                        </div>
-
-                        <div className={`h-px w-4 md:w-8 ${isDarkMode ? 'bg-zinc-800' : 'bg-gray-200'}`} />
-
-                        {/* Step 2 Indicator */}
-                        <div className={`flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-full transition-all duration-300 ${step === 'thought' ? 'bg-indigo-500/10 text-indigo-400 ring-2 ring-indigo-500/20' : 'opacity-50 grayscale'}`}>
-                            <Brain size={16} className="md:w-[18px] md:h-[18px]" />
-                            <span className="font-bold text-xs md:text-sm">2. Minuto de Ouro</span>
-                        </div>
-                    </div>
-
-                    <h1 className={`text-2xl md:text-3xl font-bold transition-all ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {step === 'consultation' ? 'Ambient Mode' : 'Nota Técnica'}
+                    <h1 className={`text-lg md:text-xl font-bold transition-all flex items-center gap-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        Ambient Mode
                     </h1>
+
+                    {/* Subtle Phase Pill */}
+                    <div className={`mt-1 flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] uppercase tracking-wider font-semibold border ${step === 'consultation'
+                        ? (isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-50 border-emerald-200 text-emerald-600')
+                        : (isDarkMode ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-indigo-50 border-indigo-200 text-indigo-600')
+                        }`}>
+                        <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${step === 'consultation' ? 'bg-emerald-500' : 'bg-indigo-500'}`} />
+                        {step === 'consultation' ? 'Fase 1: Consulta' : 'Fase 2: Minuto de Ouro'}
+                    </div>
                 </div>
 
-                {/* Right: Settings Toggle */}
-                <button
-                    onClick={onOpenSettings}
-                    className={`p-2 rounded-xl transition-colors ${isDarkMode ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'}`}
-                >
-                    <Settings size={24} />
-                </button>
+                {/* Right: Settings Toggle - Removed as per user request */}
+                <div className="w-10" /> {/* Spacer to balance the header if needed, or just empty */}
             </div>
 
             {/* Mode Switcher Wrapper to push it down below header flow */}
@@ -269,31 +257,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                 <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 space-y-6 md:space-y-8 min-h-[200px] md:min-h-[300px]">
 
                     {/* Patient Context Input - Option A (Minimalist) */}
-                    {step === 'consultation' && (
-                        <div className={`flex flex-col sm:flex-row items-center gap-3 mb-2 animate-in fade-in slide-in-from-top-4 duration-500`}>
-                            <input
-                                type="text"
-                                value={patientName}
-                                onChange={(e) => setPatientName(e.target.value)}
-                                placeholder="Nome do Paciente..."
-                                className={`bg-transparent border-b-2 ${isDarkMode ? 'border-white/10 text-white placeholder-zinc-600 focus:border-emerald-500' : 'border-gray-200 text-gray-900 placeholder-gray-400 focus:border-emerald-500'} px-2 py-1 text-center outline-none transition-all w-64 text-lg font-medium`}
-                            />
-                            <div className={`flex p-1 rounded-lg ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
-                                <button
-                                    onClick={() => setPatientGender('M')}
-                                    className={`px-3 py-1 rounded-md text-sm font-bold transition-all ${patientGender === 'M' ? (isDarkMode ? 'bg-zinc-700 text-white shadow-sm' : 'bg-white text-black shadow-sm') : 'text-zinc-500 hover:text-zinc-400'}`}
-                                >
-                                    M
-                                </button>
-                                <button
-                                    onClick={() => setPatientGender('F')}
-                                    className={`px-3 py-1 rounded-md text-sm font-bold transition-all ${patientGender === 'F' ? (isDarkMode ? 'bg-zinc-700 text-white shadow-sm' : 'bg-white text-black shadow-sm') : 'text-zinc-500 hover:text-zinc-400'}`}
-                                >
-                                    F
-                                </button>
-                            </div>
-                        </div>
-                    )}
+
 
 
                     {/* Status Text with Dynamic Color */}
