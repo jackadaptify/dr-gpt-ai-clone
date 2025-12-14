@@ -1077,51 +1077,7 @@ function AppContent() {
                                             {selectedAgentId ? agents.find(a => a.id === selectedAgentId)?.description : 'Seu hub de inteligência avançada.'}
                                         </p>
 
-                                        <div className="hidden md:grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-3xl">
-                                            {(selectedAgentId
-                                                ? (agents.find(a => a.id === selectedAgentId)?.iceBreakers || []).map(item => ({ title: item, text: '', icon: 'Brain' })) // Adapter for simple strings
-                                                : suggestions
-                                            ).map((item: any, i: number) => {
-                                                const IconComponent = ICON_MAP[item.icon] || Brain;
-                                                const isPinned = pinnedSuggestions.includes(item.title);
 
-                                                return (
-                                                    <button
-                                                        key={i}
-                                                        onClick={() => setInput(item.text || item.title)}
-                                                        className={`relative p-4 rounded-2xl text-left group transition-all duration-300 transform hover:-translate-y-1 flex items-center gap-4 h-full
-                                    ${isDarkMode
-                                                                ? 'bg-[#18181b] hover:bg-[#27272a] shadow-lg hover:shadow-emerald-500/10'
-                                                                : 'bg-white border border-gray-100 hover:border-emerald-400 hover:shadow-md'}
-                                    `}
-                                                    >
-                                                        {isDarkMode && <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>}
-
-                                                        {/* Pin Button - Only show for main suggestions (not agent icebreakers) */}
-                                                        {!selectedAgentId && (
-                                                            <div
-                                                                onClick={(e) => togglePin(e, item.title)}
-                                                                className={`absolute top-2 right-2 p-1.5 rounded-full transition-all duration-200 z-20
-                                                            ${isPinned
-                                                                        ? (isDarkMode ? 'text-emerald-400 bg-emerald-400/10' : 'text-emerald-600 bg-emerald-50')
-                                                                        : 'text-zinc-500 opacity-0 group-hover:opacity-100 hover:bg-zinc-700/50 hover:text-zinc-300'
-                                                                    }`}
-                                                                title={isPinned ? "Desafixar" : "Fixar"}
-                                                            >
-                                                                {isPinned ? <Pin size={14} fill="currentColor" /> : <Pin size={14} />}
-                                                            </div>
-                                                        )}
-
-                                                        <div className={`p-3 rounded-xl ${isDarkMode ? 'bg-surfaceHighlight text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
-                                                            <IconComponent size={24} />
-                                                        </div>
-                                                        <h3 className={`font-bold text-base md:text-lg transition-colors ${isDarkMode ? 'text-textMain group-hover:text-emerald-400' : 'text-textMain'}`}>
-                                                            {item.title}
-                                                        </h3>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
                                     </div>
                                 ) : (
                                     // Message List
@@ -1140,7 +1096,7 @@ function AppContent() {
                             <div className="absolute bottom-0 left-0 w-full p-4 md:p-8 z-20 pointer-events-none">
                                 <div className="max-w-3xl mx-auto pointer-events-auto">
                                     {/* Input Container */}
-                                    <div className={`rounded-[32px] p-1.5 relative transition-all duration-300 ${isDarkMode ? 'shadow-2xl glass-panel' : ''}`}>
+                                    <div className={`rounded-[32px] p-1.5 relative transition-all duration-300 ${isDarkMode ? 'shadow-2xl glass-panel' : 'bg-white border border-slate-300 shadow-sm'}`}>
 
                                         {/* Pending Attachments Preview */}
                                         {pendingAttachments.length > 0 && (

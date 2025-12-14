@@ -49,24 +49,32 @@
   </script>
   <style>
     :root {
-      /* Light Mode Defaults - Flat & Clean */
+      /* Light Mode Defaults - Medical Grade (Slate Palette) */
       --bg-background: #ffffff;
-      --bg-sidebar: #f9f9f9;
+      --bg-sidebar: #f8fafc;
+      /* Slate 50 */
       --bg-surface: #ffffff;
-      --bg-surface-highlight: #f3f3f3;
-      --border-light: #e5e5e5;
-      --text-main: #0f0f0f;
-      --text-muted: #6b7280;
+      --bg-surface-highlight: #f1f5f9;
+      /* Slate 100 */
+      --border-light: #cbd5e1;
+      /* Slate 300 - Distinct Borders */
+      --text-main: #0f172a;
+      /* Slate 900 - High Ink */
+      --text-muted: #64748b;
+      /* Slate 500 */
+      --text-strong: #020617;
+      /* Slate 950 - Pitch Black */
 
       /* Flattened Shadows for Light Mode */
       --shadow-card-3d: none;
-      --shadow-card-3d-hover: 0 2px 8px rgba(0, 0, 0, 0.05);
+      --shadow-card-3d-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
       --shadow-inner-depth: none;
       --shadow-convex: none;
       --shadow-concave: none;
 
-      --glass-panel-bg: rgba(255, 255, 255, 0.9);
-      --glass-panel-border: transparent;
+      --glass-panel-bg: rgba(255, 255, 255, 0.95);
+      --glass-panel-border: #cbd5e1;
+      /* Slate 300 */
     }
 
     .dark {
@@ -78,6 +86,8 @@
       --border-light: transparent;
       --text-main: #E4E4E7;
       --text-muted: #a1a1aa;
+      --text-strong: #ffffff;
+      /* New variable for strong text */
 
       --shadow-card-3d: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
       --shadow-card-3d-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
@@ -184,8 +194,8 @@
       font-size: 16px;
       line-height: 1.75;
       /* O "Respiro" crucial */
-      color: #d4d4d8;
-      /* Cinza claro (Zinc 300) - NÃO USE BRANCO PURO */
+      color: var(--text-main);
+      /* FIXED: Replaced #d4d4d8 with var */
       -webkit-font-smoothing: antialiased;
       /* Deixa a fonte fina e chique */
     }
@@ -193,8 +203,8 @@
     /* O SEGREDO DO NEGRITO (Isso que falta no seu) */
     .ai-response strong,
     .ai-response b {
-      color: #ffffff;
-      /* Branco Puro para destacar */
+      color: var(--text-strong);
+      /* FIXED: Replaced #ffffff with var */
       font-weight: 700 !important;
       /* BEM grosso */
     }
@@ -206,7 +216,8 @@
     .ai-response h4,
     .ai-response h5,
     .ai-response h6 {
-      color: #ffffff !important;
+      color: var(--text-strong) !important;
+      /* FIXED: Replaced #ffffff with var */
       font-weight: 700 !important;
       margin-top: 1.5em;
       margin-bottom: 0.5em;
@@ -230,8 +241,8 @@
     .prose b {
       font-weight: 700 !important;
       /* Deixa BEM grosso */
-      color: #ffffff !important;
-      /* Branco Puro para destacar do cinza */
+      color: var(--text-strong) !important;
+      /* FIXED: Replaced #ffffff with var */
     }
   </style>
   <script type="importmap">

@@ -23,7 +23,7 @@ const RailNav: React.FC<RailNavProps> = ({ activeMode, onModeChange, isDarkMode 
         <div className={`
             w-[70px] flex flex-col items-center py-6 h-full z-50 border-r
             transition-colors duration-300
-            ${isDarkMode ? 'bg-zinc-950 border-white/10' : 'bg-white border-gray-200'}
+            ${isDarkMode ? 'bg-zinc-950 border-white/10' : 'bg-white border-slate-200'}
         `}>
             {/* Logo Icon (Optional or Small) */}
             <div className="mb-8 p-2">
@@ -47,7 +47,7 @@ const RailNav: React.FC<RailNavProps> = ({ activeMode, onModeChange, isDarkMode 
                                 transition-all duration-200
                                 ${isActive
                                     ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
-                                    : (isDarkMode ? 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50')
+                                    : (isDarkMode ? 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100')
                                 }
                             `}
                             title={item.label}

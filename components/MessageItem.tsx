@@ -111,7 +111,7 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
               </div>
             )}
 
-            <div className={`prose prose-invert ${isUser ? 'prose-p:my-0' : 'prose-base ai-response text-gray-300'} leading-relaxed prose-p:leading-relaxed prose-li:leading-relaxed prose-pre:bg-surface prose-pre:shadow-inner-depth prose-pre:border prose-pre:border-borderLight prose-pre:rounded-xl max-w-none font-normal tracking-wide`}>
+            <div className={`prose ${isDarkMode ? 'prose-invert text-gray-300' : 'prose-slate text-textMain'} ${isUser ? 'prose-p:my-0' : 'prose-base ai-response'} leading-relaxed prose-p:leading-relaxed prose-li:leading-relaxed prose-pre:bg-surface prose-pre:shadow-inner-depth prose-pre:border prose-pre:border-borderLight prose-pre:rounded-xl max-w-none font-normal tracking-wide`}>
               {/* Thinking State */}
               {message.isStreaming && !message.content && (
                 <div className="flex items-center gap-2 text-textMuted animate-pulse">
@@ -193,16 +193,37 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
                     },
                     thead({ children }) {
                       return (
-                        <thead className="bg-surfaceHighlight text-textMain font-bold shadow-sm">
+                        <thead className="bg-surfaceHighlight text-textMain font-semibold shadow-sm">
                           {children}
                         </thead>
                       );
                     },
+                    tbody({ children }) {
+                      return (
+                        <tbody className="divide-y divide-borderLight">
+                          {children}
+                        </tbody>
+                      );
+                    },
                     tr({ children }) {
                       return (
-                        <tr className="transition-colors hover:bg-surfaceHighlight/50">
+                        <tr className="transition-colors hover:bg-surfaceHighlight/70">
                           {children}
                         </tr>
+                      );
+                    },
+                    th({ children }) {
+                      return (
+                        <th className="px-4 py-3 font-semibold text-textMain text-left border-b border-borderLight uppercase tracking-wider text-xs">
+                          {children}
+                        </th>
+                      );
+                    },
+                    td({ children }) {
+                      return (
+                        <td className="px-4 py-3 text-textMain whitespace-normal">
+                          {children}
+                        </td>
                       );
                     },
                     p({ children }) {
