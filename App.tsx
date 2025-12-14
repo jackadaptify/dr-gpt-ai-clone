@@ -1342,6 +1342,10 @@ function AppContent() {
                                         }
                                     });
                                 }}
+                                onClose={() => {
+                                    setActiveMode('chat');
+                                    setCurrentChatId(null);
+                                }}
                             >
                                 {renderChatUI()}
                             </ScribeReview>
@@ -1420,17 +1424,17 @@ function AppContent() {
                             let scenarioInstruction = "";
                             switch (scenario) {
                                 case 'anamnesis':
-                                    scenarioInstruction = "CONTEXTO MÉDICO: ANAMNESE / PRIMEIRA CONSULTA.\nFOCO: Histórico detalhado, HDA (História da Doença Atual), HPP (História Patológica Pregressa), Medicamentos, Alergias e Exame Físico completo.";
+                                    scenarioInstruction = "System Prompt Interno: 'O médico está realizando uma primeira consulta completa (Anamnese). Estruture a saída com os tópicos: Identificação, Queixa Principal (QP), História da Doença Atual (HDA), Revisão de Sistemas, Histórico Pessoal/Familiar e Conduta. Seja detalhista.'";
                                     break;
                                 case 'bedside':
-                                    scenarioInstruction = "CONTEXTO MÉDICO: VISITA BEIRA LEITO.\nFOCO: Evolução do quadro nas últimas 24h, sinais vitais, intercorrências, pendências e plano terapêutico diário.";
+                                    scenarioInstruction = "System Prompt Interno: 'O contexto é uma visita hospitalar beira-leito. Estruture focando em: Dias de Internação, Dispositivos em uso (sondas, cateteres), Balanço Hídrico, Sinais Vitais atuais e Pendências para Alta.'";
                                     break;
                                 case 'clinical_meeting':
-                                    scenarioInstruction = "CONTEXTO MÉDICO: REUNIÃO CLÍNICA / DISCUSSÃO DE CASO.\nFOCO: Resumo do caso para apresentação, pontos de dúvida diagnóstica e opções terapêuticas discutidas.";
+                                    scenarioInstruction = "System Prompt Interno: 'O contexto é uma discussão de caso entre médicos. Estruture como uma Ata de Reunião: Lista de Pacientes Discutidos, Decisões Tomadas para cada um, Responsáveis e Próximos Passos.'";
                                     break;
                                 case 'evolution':
                                 default:
-                                    scenarioInstruction = "CONTEXTO MÉDICO: EVOLUÇÃO MÉDICA DE ROTINA (SOAP).\nFOCO: Subjetivo, Objetivo, Avaliação e Plano.";
+                                    scenarioInstruction = "System Prompt Interno: 'Você é um assistente de documentação médica. O médico está realizando uma evolução de rotina. Sua saída deve seguir estritamente o formato SOAP (Subjetivo, Objetivo, Avaliação, Plano). Ignore saudações. Foque em mudanças clínicas nas últimas 24h.'";
                                     break;
                             }
 

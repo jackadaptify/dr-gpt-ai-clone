@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Copy, Check, FileText, Save } from 'lucide-react';
+import { Copy, Check, FileText, Save, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface ScribeReviewProps {
@@ -7,15 +7,17 @@ interface ScribeReviewProps {
     content: string;
     onChange: (value: string) => void;
     onSave?: () => void;
+    onClose?: () => void; // New Prop
     typewriterTrigger?: { content: string; timestamp: number } | null;
     children: React.ReactNode; // The Chat Component
     title?: string; // Customizable Title
 }
 
-export default function ScribeReview({ isDarkMode, content, onChange, onSave, typewriterTrigger, children, title = "Revisão de Prontuário" }: ScribeReviewProps) {
+export default function ScribeReview({ isDarkMode, content, onChange, onSave, onClose, typewriterTrigger, children, title = "Revisão de Prontuário" }: ScribeReviewProps) {
     const [copied, setCopied] = React.useState(false);
     const [saving, setSaving] = React.useState(false);
     const [isUpdating, setIsUpdating] = React.useState(false);
+    const [mobileTab, setMobileTab] = React.useState<'document' | 'chat'>('document'); // Mobile Tab State
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const handleCopy = () => {
@@ -79,70 +81,112 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, ty
     }, [typewriterTrigger]); // Only trigger when typewriterTrigger changes
 
     return (
-        <div className={`flex w-full h-full overflow-hidden animate-in fade-in duration-300 ${isDarkMode ? 'bg-[#09090b]' : 'bg-gray-50'}`}>
+        <div className={`flex flex-col md:flex-row w-full h-full overflow-hidden animate-in fade-in duration-300 ${isDarkMode ? 'bg-[#09090b]' : 'bg-gray-50'}`}>
 
-            {/* Left Column: SOAP Editor (60%) */}
-            <div className={`w-[60%] flex flex-col border-r h-full relative ${isDarkMode ? 'border-white/10' : 'border-gray-200'}`}>
+            {/* Mobile Tabs */}
+            <div className={`md:hidden flex border-b ${isDarkMode ? 'border-white/10 bg-[#18181b]' : 'border-gray-200 bg-white'}`}>
+                {/* Back Button (Mobile Only in Tab Bar?? No, maybe better in header or above tabs) */}
+                {/* Actually, let's put a small back button to the left of tabs if needed, OR just rely on the main header back button which we are about to add */}
+
+                <button
+                    onClick={() => setMobileTab('document')}
+                    className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${mobileTab === 'document'
+                            ? (isDarkMode ? 'border-emerald-500 text-emerald-500' : 'border-emerald-600 text-emerald-600')
+                            : 'border-transparent text-gray-500'
+                        }`}
+                >
+                    Documento
+                </button>
+                <button
+                    onClick={() => setMobileTab('chat')}
+                    className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${mobileTab === 'chat'
+                            ? (isDarkMode ? 'border-emerald-500 text-emerald-500' : 'border-emerald-600 text-emerald-600')
+                            : 'border-transparent text-gray-500'
+                        }`}
+                >
+                    Chat e Ajustes
+                </button>
+            </div>
+
+            {/* Left Column: SOAP Editor (60%) or Mobile 'document' tab */}
+            <div className={`
+                ${mobileTab === 'document' ? 'flex' : 'hidden'} 
+                md:flex w-full md:w-[60%] flex-col border-r h-full relative 
+                ${isDarkMode ? 'border-white/10' : 'border-gray-200'}
+            `}>
 
                 {/* Header */}
-                <div className={`h-16 flex items-center justify-between px-6 border-b ${isDarkMode ? 'bg-[#18181b] border-white/5' : 'bg-white border-gray-100'}`}>
-                    <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-emerald-500/10 text-emerald-500' : 'bg-emerald-50 text-emerald-600'}`}>
-                            <FileText size={20} />
+                <div className={`h-16 flex items-center justify-between px-4 md:px-6 border-b shrink-0 ${isDarkMode ? 'bg-[#18181b] border-white/5' : 'bg-white border-gray-100'}`}>
+                    <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
+                        {/* Back Button */}
+                        {onClose && (
+                            <button
+                                onClick={onClose}
+                                className={`p-2 rounded-lg mr-1 transition-colors ${isDarkMode ? 'hover:bg-white/10 text-zinc-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'}`}
+                                title="Voltar"
+                            >
+                                <ArrowLeft size={20} />
+                            </button>
+                        )}
+
+                        <div className={`p-1.5 md:p-2 rounded-lg shrink-0 ${isDarkMode ? 'bg-emerald-500/10 text-emerald-500' : 'bg-emerald-50 text-emerald-600'}`}>
+                            <FileText size={18} />
                         </div>
-                        <h2 className={`font-bold text-lg ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        <h2 className={`font-bold text-base md:text-lg truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                             {title}
                         </h2>
                         {isUpdating && (
-                            <span className={`text-xs px-2 py-1 rounded-full ${isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                            <span className={`text-[10px] md:text-xs px-2 py-0.5 rounded-full ${isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
                                 Atualizando...
                             </span>
                         )}
                     </div>
 
-                    <button
-                        onClick={handleCopy}
-                        disabled={isUpdating}
-                        className={`
-                            flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
-                            ${copied
-                                ? 'bg-emerald-500 text-white'
-                                : (isDarkMode ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50')
-                            }
-                            ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}
-                        `}
-                    >
-                        {copied ? <Check size={16} /> : <Copy size={16} />}
-                        {copied ? 'Copiado!' : 'Copiar Prontuário'}
-                    </button>
+                    <div className="flex items-center shrink-0">
+                        <button
+                            onClick={handleCopy}
+                            disabled={isUpdating}
+                            className={`
+                                flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-all
+                                ${copied
+                                    ? 'bg-emerald-500 text-white'
+                                    : (isDarkMode ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50')
+                                }
+                                ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}
+                            `}
+                        >
+                            {copied ? <Check size={14} /> : <Copy size={14} />}
+                            <span className="hidden sm:inline">{copied ? 'Copiado!' : 'Copiar'}</span>
+                        </button>
 
-                    <button
-                        onClick={handleSave}
-                        disabled={isUpdating}
-                        className={`
-                            flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ml-2
-                            ${saving
-                                ? 'bg-emerald-500 text-white'
-                                : (isDarkMode ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50')
-                            }
-                            ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}
-                        `}
-                    >
-                        {saving ? <Check size={16} /> : <Save size={16} />}
-                        {saving ? 'Salvo!' : 'Salvar'}
-                    </button>
+                        <button
+                            onClick={handleSave}
+                            disabled={isUpdating}
+                            className={`
+                                flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-all ml-2
+                                ${saving
+                                    ? 'bg-emerald-500 text-white'
+                                    : (isDarkMode ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50')
+                                }
+                                ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}
+                            `}
+                        >
+                            {saving ? <Check size={14} /> : <Save size={14} />}
+                            <span className="hidden sm:inline">{saving ? 'Salvo!' : 'Salvar'}</span>
+                        </button>
+                    </div>
 
                 </div>
 
                 {/* Editor Area */}
-                <div className="flex-1 p-6 overflow-hidden">
+                <div className="flex-1 p-4 md:p-6 overflow-hidden">
                     <textarea
                         ref={textareaRef}
                         value={content}
                         onChange={(e) => onChange(e.target.value)}
                         readOnly={isUpdating}
                         className={`
-                            w-full h-full p-6 text-base leading-normal resize-none text-left outline-none rounded-xl border
+                            w-full h-full p-4 md:p-6 text-sm md:text-base leading-relaxed resize-none text-left outline-none rounded-xl border
                             font-mono
                             ${isDarkMode
                                 ? 'bg-[#121215] border-white/5 text-zinc-300 placeholder-zinc-700 focus:border-emerald-500/50'
@@ -157,8 +201,11 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, ty
                 </div>
             </div>
 
-            {/* Right Column: Chat (40%) */}
-            <div className="w-[40%] h-full relative flex flex-col">
+            {/* Right Column: Chat (40%) or Mobile 'chat' tab */}
+            <div className={`
+                ${mobileTab === 'chat' ? 'flex' : 'hidden'} 
+                md:flex w-full md:w-[40%] h-full relative flex-col
+            `}>
                 {children}
             </div>
         </div>
