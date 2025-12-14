@@ -1501,6 +1501,7 @@ function AppContent() {
                     <AntiGlosaView
                         isDarkMode={isDarkMode}
                         isLoading={isGenerating}
+                        toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
                         onGenerate={async (text, estimatedValue) => {
                             // 1. Create specialized Chat Session
                             const newChatId = uuidv4();
@@ -1610,6 +1611,7 @@ Retorne APENAS o texto da carta em Markdown. Sem introduções. Sem bloco de có
                     <JustificativaView
                         isDarkMode={isDarkMode}
                         isLoading={isGenerating}
+                        toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
                         onGenerate={async (text) => {
                             const newChatId = uuidv4();
                             const justifModelId = 'openai/gpt-4o-mini';
