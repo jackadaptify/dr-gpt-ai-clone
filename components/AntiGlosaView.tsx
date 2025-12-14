@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Mic, Square, Shield, Pencil, Send } from 'lucide-react';
+import { Mic, Square, Shield, Pencil, Send, Menu } from 'lucide-react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 interface AntiGlosaViewProps {
     isDarkMode: boolean;
     onGenerate: (text: string, estimatedValue?: number) => void;
     isLoading?: boolean;
+    toggleSidebar: () => void;
 }
 
-export default function AntiGlosaView({ isDarkMode, onGenerate, isLoading = false }: AntiGlosaViewProps) {
+export default function AntiGlosaView({ isDarkMode, onGenerate, isLoading = false, toggleSidebar }: AntiGlosaViewProps) {
     const { isListening, transcript, toggleListening } = useSpeechRecognition();
     const [localText, setLocalText] = useState('');
     const [textBeforeRecording, setTextBeforeRecording] = useState('');
@@ -57,7 +58,15 @@ export default function AntiGlosaView({ isDarkMode, onGenerate, isLoading = fals
             )}
 
             {/* Header */}
-            <div className="mb-8 text-center">
+            <div className="mb-8 text-center relative">
+                <button
+                    onClick={toggleSidebar}
+                    className={`absolute top-0 left-0 p-2 rounded-xl transition-colors md:hidden ${isDarkMode ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'
+                        }`}
+                    title="Menu"
+                >
+                    <Menu size={24} />
+                </button>
                 <div className="inline-flex items-center justify-center p-3 rounded-2xl mb-4 bg-emerald-500/10 text-emerald-500">
                     <Shield size={32} />
                 </div>
