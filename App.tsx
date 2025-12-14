@@ -1096,7 +1096,7 @@ function AppContent() {
                             <div className="absolute bottom-0 left-0 w-full p-4 md:p-8 z-20 pointer-events-none">
                                 <div className="max-w-3xl mx-auto pointer-events-auto">
                                     {/* Input Container */}
-                                    <div className={`rounded-[32px] p-1.5 relative transition-all duration-300 ${isDarkMode ? 'shadow-2xl glass-panel' : ''}`}>
+                                    <div className={`rounded-[32px] p-1.5 relative transition-all duration-300 ${isDarkMode ? 'shadow-2xl glass-panel' : 'bg-white border border-slate-300 shadow-sm'}`}>
 
                                         {/* Pending Attachments Preview */}
                                         {pendingAttachments.length > 0 && (

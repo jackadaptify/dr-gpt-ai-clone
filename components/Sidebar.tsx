@@ -111,11 +111,11 @@ export default function Sidebar({
   // Reusable Chat List Component
   const renderChatList = (title: string, emptyMessage: string, icon: any) => (
     <div className="px-3 mt-6">
-      <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 px-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+      <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 px-2 ${isDarkMode ? 'text-zinc-500' : 'text-slate-500'}`}>
         {title}
       </h3>
       {filteredChats.length === 0 ? (
-        <div className={`text-xs p-4 rounded-lg border border-dashed text-center flex flex-col items-center gap-2 ${isDarkMode ? 'border-zinc-800 bg-zinc-900/50 text-zinc-500' : 'border-gray-200 bg-gray-50 text-gray-500'}`}>
+        <div className={`text-xs p-4 rounded-lg border border-dashed text-center flex flex-col items-center gap-2 ${isDarkMode ? 'border-zinc-800 bg-zinc-900/50 text-zinc-500' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
           {icon}
           <span>{emptyMessage}</span>
         </div>
@@ -135,7 +135,7 @@ export default function Sidebar({
                   className={`
                     w-full flex items-center gap-3 px-3 py-3 text-sm rounded-xl transition-all text-left truncate relative group/item
                     ${isActive
-                      ? (isDarkMode ? 'bg-gradient-to-r from-emerald-500/10 to-transparent border-l-2 border-emerald-500 text-textMain shadow-inner' : 'bg-gray-200 text-textMain font-semibold')
+                      ? (isDarkMode ? 'bg-gradient-to-r from-emerald-500/10 to-transparent border-l-2 border-emerald-500 text-textMain shadow-inner' : 'bg-slate-200 text-slate-900 font-semibold')
                       : 'text-textMuted hover:bg-black/5 hover:text-textMain border-l-2 border-transparent'}
                   `}
                 >
@@ -155,7 +155,7 @@ export default function Sidebar({
                 {isMenuOpen && (
                   <div
                     ref={menuRef}
-                    className={`fixed w-64 rounded-xl shadow-2xl border z-50 overflow-hidden backdrop-blur-xl ${isDarkMode ? 'bg-[#18181b]/95 border-zinc-800' : 'bg-white/95 border-gray-200'}`}
+                    className={`fixed w-64 rounded-xl shadow-2xl border z-50 overflow-hidden backdrop-blur-xl ${isDarkMode ? 'bg-[#18181b]/95 border-zinc-800' : 'bg-white/95 border-slate-200'}`}
                     style={{
                       top: menuPosition?.top || 0,
                       left: menuPosition?.left || 0,
@@ -163,7 +163,7 @@ export default function Sidebar({
                     }}
                   >
                     <div className="p-1.5 space-y-0.5">
-                      <button className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${isDarkMode ? 'text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
+                      <button className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors ${isDarkMode ? 'text-zinc-300 hover:bg-zinc-800 hover:text-white' : 'text-slate-700 hover:bg-slate-100'}`}>
                         <Share size={15} />
                         Compartilhar
                       </button>
@@ -303,9 +303,9 @@ export default function Sidebar({
               <div className="space-y-1">
                 <button
                   onClick={() => setSelectedFolderId(null)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${!selectedFolderId ? (isDarkMode ? 'text-emerald-400 bg-white/5' : 'text-emerald-600 bg-black/5') : (isDarkMode ? 'text-textMuted hover:text-textMain hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-black/5')}`}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${!selectedFolderId ? (isDarkMode ? 'text-emerald-400 bg-white/5' : 'text-emerald-600 bg-black/5') : (isDarkMode ? 'text-textMuted hover:text-textMain hover:bg-white/5' : 'text-slate-600 hover:text-slate-900 hover:bg-black/5')}`}
                 >
-                  <span className={!selectedFolderId ? 'text-emerald-500' : 'text-gray-500'}><LucideFolder size={16} /></span>
+                  <span className={!selectedFolderId ? 'text-emerald-500' : 'text-slate-400'}><LucideFolder size={16} /></span>
                   Todos os Chats
                 </button>
 
@@ -313,7 +313,7 @@ export default function Sidebar({
                   <button
                     key={folder.id}
                     onClick={() => setSelectedFolderId(folder.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors group ${selectedFolderId === folder.id ? (isDarkMode ? 'text-emerald-400 bg-white/5' : 'text-emerald-600 bg-black/5') : (isDarkMode ? 'text-textMuted hover:text-textMain hover:bg-white/5' : 'text-gray-600 hover:text-gray-900 hover:bg-black/5')}`}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors group ${selectedFolderId === folder.id ? (isDarkMode ? 'text-emerald-400 bg-white/5' : 'text-emerald-600 bg-black/5') : (isDarkMode ? 'text-textMuted hover:text-textMain hover:bg-white/5' : 'text-slate-600 hover:text-slate-900 hover:bg-black/5')}`}
                   >
                     <span className={`${selectedFolderId === folder.id ? 'text-emerald-500' : 'text-emerald-500/80 group-hover:text-emerald-500'} transition-colors`}><LucideFolder size={16} /></span>
                     {folder.name}
@@ -516,14 +516,14 @@ export default function Sidebar({
                 placeholder="Search"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className={`w-full pl-9 pr-3 py-2 rounded-lg text-sm transition-all outline-none border border-transparent focus:border-emerald-500/50 ${isDarkMode ? 'bg-white/5 focus:bg-white/10 placeholder-textMuted/50' : 'bg-gray-100 focus:bg-gray-50 border-gray-200'}`}
+                className={`w-full pl-9 pr-3 py-2 rounded-lg text-sm transition-all outline-none border border-transparent focus:border-emerald-500/50 ${isDarkMode ? 'bg-white/5 focus:bg-white/10 placeholder-textMuted/50' : 'bg-slate-100 focus:bg-white border-slate-200 placeholder-slate-500 text-slate-900'}`}
               />
             </div>
 
             {/* New Chat Button */}
             <button
               onClick={onNewChat}
-              className={`p-2 rounded-lg transition-colors border border-transparent ${isDarkMode ? 'hover:bg-white/10 text-textMuted hover:text-white' : 'hover:bg-gray-200 text-gray-600 hover:text-black'}`}
+              className={`p-2 rounded-lg transition-colors border border-transparent ${isDarkMode ? 'hover:bg-white/10 text-textMuted hover:text-white' : 'hover:bg-slate-200 text-slate-600 hover:text-black'}`}
               title="Novo Chat"
             >
               <SquarePen size={20} />
