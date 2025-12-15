@@ -113,5 +113,57 @@ export const adminService = {
             console.error('AdminService: Error updating model categories:', error);
             throw error;
         }
+    },
+
+    async getModelOverrides() {
+        const { data, error } = await supabase
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'model_overrides')
+            .single();
+
+        if (error && error.code !== 'PGRST116') {
+            console.error('AdminService: Error fetching model overrides:', error);
+            return {};
+        }
+
+        return data?.value || {};
+    },
+
+    async updateModelOverrides(overrides: Record<string, { description?: string; category?: string; badge?: string }>) {
+        const { error } = await supabase
+            .from('app_settings')
+            .upsert({ key: 'model_overrides', value: overrides }, { onConflict: 'key' });
+
+        if (error) {
+            console.error('AdminService: Error updating model overrides:', error);
+            throw error;
+        }
+    },
+
+    async getApiKey() {
+        const { data, error } = await supabase
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'openrouter_api_key')
+            .single();
+
+        if (error && error.code !== 'PGRST116') {
+            console.error('AdminService: Error fetching API key:', error);
+            return null;
+        }
+
+        return data?.value || null;
+    },
+
+    async saveApiKey(key: string) {
+        const { error } = await supabase
+            .from('app_settings')
+            .upsert({ key: 'openrouter_api_key', value: key }, { onConflict: 'key' });
+
+        if (error) {
+            console.error('AdminService: Error saving API key:', error);
+            throw error;
+        }
     }
 };

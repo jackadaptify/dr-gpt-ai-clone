@@ -25,10 +25,12 @@ serve(async (req: Request) => {
             image_config,
             stream = true,
             reviewMode = false,
-            currentContent = ''
+            currentContent = '',
+            apiKey: requestApiKey // Get from body
         } = await req.json();
 
-        const apiKey = Deno.env.get('OPENROUTER_API_KEY');
+        // 🛡️ Priority: Env Var (Server) > Body (Client Provided via Admin Settings)
+        const apiKey = Deno.env.get('OPENROUTER_API_KEY') || requestApiKey;
 
         if (!apiKey) {
             throw new Error('OPENROUTER_API_KEY is not set');

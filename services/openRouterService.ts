@@ -51,6 +51,28 @@ export const createOpenRouterChatStream = async (
         const { data: { session } } = await supabase.auth.getSession();
         const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/openrouter-chat`;
 
+        // Fetch custom API Key if available
+        // We import adminService dynamically or assume it's available global/imported
+        // But better to use the import at top if possible. 
+        // Since we can't easily add import at top in this chunk, we'll assume we can fetch it via same method or pass it.
+        // Actually best is to import adminService at top.
+        // Let's rely on adminService being imported (I'll add the import in a separate call if needed or just use database check here if safer).
+        // Actually, I can just use adminService if I import it.
+
+        // Wait, for now let's use the supabase client to fetch it directly to avoid circular dependency if adminService uses openRouterService.
+        // adminService uses supabase.
+        // openRouterService uses supabase.
+        // Circular dependency is unlikely but possible if adminService imports openRouterService.
+        // Let's just do the DB query manually here, it's safer.
+
+        const { data: setting } = await supabase
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'openrouter_api_key')
+            .single();
+
+        const customApiKey = setting?.value;
+
         const response = await fetch(functionUrl, {
             method: 'POST',
             headers: {
@@ -62,7 +84,8 @@ export const createOpenRouterChatStream = async (
                 messages: messages,
                 systemPrompt: systemPrompt,
                 reviewMode: reviewMode,
-                currentContent: currentContent
+                currentContent: currentContent,
+                apiKey: customApiKey // 🔑 Inject the API key!
             }),
         });
 
