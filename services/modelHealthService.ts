@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { supabase } from '../lib/supabase';
 import { AVAILABLE_MODELS, AIModel } from '../types';
+import { adminService } from './adminService';
 
 export interface ProviderHealth {
     provider: 'OpenRouter';
@@ -50,6 +51,14 @@ async function asyncPool<T>(poolLimit: number, array: any[], iteratorFn: (item: 
     return Promise.all(ret);
 }
 
+// Helper to get key
+async function getOpenRouterKey(): Promise<string> {
+    if (openRouterKey) return openRouterKey;
+    const storedKey = await adminService.getApiKey(); // You might need to import adminService
+    if (storedKey) return storedKey;
+    throw new Error("No API Key found (Env or DB)");
+}
+
 export const modelHealthService = {
 
     async checkAllProviders(): Promise<ProviderHealth[]> {
@@ -60,10 +69,10 @@ export const modelHealthService = {
     async checkOpenRouter(): Promise<ProviderHealth> {
         const start = Date.now();
         try {
-            if (!openRouterKey) throw new Error("Missing API Key");
+            const apiKey = await getOpenRouterKey();
 
             const openai = new OpenAI({
-                apiKey: openRouterKey,
+                apiKey: apiKey,
                 baseURL: "https://openrouter.ai/api/v1",
                 dangerouslyAllowBrowser: true
             });
@@ -82,12 +91,16 @@ export const modelHealthService = {
                 lastCheck: Date.now()
             };
         } catch (error: any) {
+            let errorMessage = error.message || 'Unknown error';
+            if (errorMessage.includes('No API Key')) {
+                errorMessage = 'API Key não configurada. Adicione em .env ou no Admin.';
+            }
             return {
                 provider: 'OpenRouter',
                 status: 'offline',
                 latency: Date.now() - start,
                 lastCheck: Date.now(),
-                error: error.message
+                error: errorMessage
             };
         }
     },
@@ -100,26 +113,16 @@ export const modelHealthService = {
     async checkModel(model: AIModel): Promise<ModelHealth> {
         const start = Date.now();
         try {
-            if (!openRouterKey) throw new Error("No API Key");
+            const apiKey = await getOpenRouterKey();
 
             const openai = new OpenAI({
-                apiKey: openRouterKey,
+                apiKey: apiKey,
                 baseURL: "https://openrouter.ai/api/v1",
                 dangerouslyAllowBrowser: true
             });
 
             // Handle image/video models
             if (model.modelId.includes('flux') || model.modelId.includes('dall-e') || model.modelId.includes('image')) {
-                // For check, we might skip generation to save cost/time or try a very small generation if possible.
-                // OpenRouter doesn't always support generation check without cost.
-                // We'll try a simple chat completion check if the model supports it (many do for capability check)
-                // OR just assume online if the provider is online to save credits.
-                // BUT user wants verification.
-                // Let's try a minimal text request. Most multimodal models accept text input.
-                // If it fails, we assume it's because it's an image-only model and try generation?
-                // Actually, Flux/Dall-E on OpenRouter might be via standard completions or image endpoint.
-                // Let's try the standard completion first as a "ping".
-
                 await openai.chat.completions.create({
                     model: model.modelId,
                     messages: [{ role: 'user', content: 'ping' }],
@@ -152,6 +155,8 @@ export const modelHealthService = {
                 errorMessage = 'Erro de API Key (401)';
             } else if (errorMessage.includes('404') || errorMessage.toLowerCase().includes('not found')) {
                 errorMessage = 'Modelo não encontrado (404)';
+            } else if (errorMessage.includes('No API Key')) {
+                errorMessage = 'Sem API Key';
             }
 
             return {

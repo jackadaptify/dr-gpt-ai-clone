@@ -102,8 +102,10 @@ export interface AIModel {
   id: string;
   name: string;
   description: string;
-  provider: 'Google' | 'OpenAI' | 'Anthropic' | 'xAI' | 'DeepSeek' | 'DrPro' | 'Meta';
+  provider: 'Google' | 'OpenAI' | 'Anthropic' | 'xAI' | 'DeepSeek' | 'DrPro' | 'Meta' | 'Mistral' | 'Amazon' | 'Qwen' | 'Prime' | 'Z-AI'; // Expanded providers
   modelId: string;
+  category?: string; // New field for grouping
+  badge?: string; // New field for badges
   capabilities: ModelCapabilities;
   details?: {
     function: string;
@@ -119,205 +121,260 @@ export interface AIModel {
   };
 }
 
+
+
 export const AVAILABLE_AGENTS: Agent[] = [
   {
-    id: 'high-ticket-planner',
-    name: 'Construtor de Planos',
-    role: 'High-Ticket Strategist',
-    description: 'Especialista em criar ofertas de alto valor e estruturar planos de tratamento premium.',
-    icon: 'IconDiamond',
-    color: 'from-amber-400 to-orange-500',
-    systemPrompt: 'Você é um estrategista de negócios focado em medicina de alto ticket. Sua especialidade é ajudar médicos a estruturar, precificar e vender planos de tratamento premium. Foco em valor percebido, experiência do paciente e ancoragem de preço.',
-    modelId: 'gemini-2.0-flash'
-  },
-  {
-    id: 'pricing-agent',
-    name: 'Agente Precificador',
-    role: 'Financial Analyst',
-    description: 'Calcula custos, margens e define o preço ideal para maximizar lucros.',
-    icon: 'IconCalculator',
-    color: 'from-emerald-400 to-green-600',
-    systemPrompt: 'Você é um especialista em precificação médica. Ajude a calcular custos de procedimentos, hora clínica, margens de lucro e a definir tabelas de preços estratégicas. Seja analítico e focado em rentabilidade.',
-    modelId: 'gemini-2.0-flash'
-  },
-  {
-    id: 'sales-doctor',
-    name: 'Médico Vendedor',
-    role: 'Sales Expert',
-    description: 'Treina scripts de vendas, quebra de objeções e fechamento de consultas.',
+    id: 'general',
+    name: 'Dr. GPT (Generalista)',
+    role: 'Clínico Geral',
+    description: 'Assistente médico versátil para diagnóstico, conduta e prescrição geral.',
     icon: 'IconStethoscope',
-    color: 'from-blue-400 to-indigo-600',
-    systemPrompt: 'Você é um mentor de vendas para médicos. Ensine técnicas de persuasão ética, scripts para apresentar planos de tratamento, como contornar objeções de preço ("tá caro") e técnicas de fechamento. Use linguagem adequada para o ambiente médico.',
-    modelId: 'gemini-2.0-flash'
+    color: 'from-emerald-500 to-teal-700',
+    modelId: 'anthropic/claude-3.5-haiku',
+    systemPrompt: 'Você é o Dr. GPT, um especialista em Medicina Interna e Clínica Geral...',
+    is_active: true
   },
   {
-    id: 'viral-reels',
-    name: 'Criador de Reels',
-    role: 'Social Media Manager',
-    description: 'Gera roteiros de vídeos curtos com ganchos virais e CTAs poderosos.',
-    icon: 'IconVideo',
-    color: 'from-pink-500 to-rose-600',
-    systemPrompt: 'Você é um especialista em marketing viral para redes sociais (Instagram/TikTok) focado na área da saúde. Crie roteiros de Reels com ganchos (hooks) fortes nos primeiros 3 segundos, conteúdo educativo rápido e Call to Actions (CTAs) claros. Mantenha a ética médica.',
-    modelId: 'gemini-2.0-flash'
+    id: 'cardiologist',
+    name: 'Cardiologista',
+    role: 'Cardiologia',
+    description: 'Especialista em saúde cardiovascular, ECG e hemodinâmica.',
+    icon: 'IconActivity',
+    color: 'from-red-500 to-rose-700',
+    modelId: 'anthropic/claude-3.5-haiku',
+    systemPrompt: 'Você é um Cardiologista Sênior. Foque em diretrizes da SBC/AHA...'
+  },
+  {
+    id: 'pediatrician',
+    name: 'Pediatra',
+    role: 'Pediatria',
+    description: 'Especialista em saúde infantil e desenvolvimento.',
+    icon: 'IconBaby',
+    color: 'from-blue-400 to-cyan-600',
+    modelId: 'anthropic/claude-3.5-haiku',
+    systemPrompt: 'Você é um Pediatra experiente. Ajuste doses por peso/idade...'
+  },
+  {
+    id: 'dermatologist',
+    name: 'Dermatologista',
+    role: 'Dermatologia',
+    description: 'Identificação de lesões de pele e tratamentos tópicos.',
+    icon: 'IconSkin',
+    color: 'from-pink-500 to-purple-600',
+    modelId: 'anthropic/claude-3.5-haiku',
+    systemPrompt: 'Você é um Dermatologista. Analise descrições de lesões...'
+  },
+  {
+    id: 'psychiatrist',
+    name: 'Psiquiatra',
+    role: 'Psiquiatria',
+    description: 'Saúde mental, psicofarmacologia e DSM-5.',
+    icon: 'IconBrain',
+    color: 'from-violet-500 to-indigo-700',
+    modelId: 'anthropic/claude-3.5-haiku',
+    systemPrompt: 'Você é um Psiquiatra. Foque em diagnósticos do DSM-5 e psicofármacos...'
   }
 ];
 
 export const AVAILABLE_MODELS: AIModel[] = [
-  // --- Gemini Series (Google) ---
+  // --- TIER 1: A ELITE (DESTAQUES) ---
   {
-    id: 'gemini-2.0-flash',
-    name: 'Gemini 2.0 Flash',
-    description: 'Multimodal equilibrado (Geração 2)',
-    provider: 'Google',
-    modelId: 'google/gemini-2.0-flash-exp:free',
-    capabilities: { vision: true, imageGeneration: true, videoGeneration: false, audioGeneration: false, webSearch: true, reasoning: true, upload: true },
-    details: {
-      function: 'Modelo multimodal equilibrado de segunda geração com suporte a geração de imagem.',
-      inputTypes: ['Áudio', 'Imagens', 'Vídeo', 'Texto'],
-      outputTypes: ['Texto', 'Imagens'],
-      features: ['Free Preview', 'Image Generation'],
-      pricing: { input: 'Grátis', output: 'Grátis' }
-    }
+    id: "anthropic/claude-3.5-haiku",
+    name: "Claude 3.5 Haiku",
+    description: "O modelo mais rápido e inteligente da Anthropic.",
+    category: "Elite 🏆",
+    badge: "Novo",
+    provider: 'Anthropic',
+    modelId: 'anthropic/claude-3.5-haiku',
+    capabilities: { vision: true, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: true, upload: true }
   },
   {
-    id: 'gemini-1.5-pro',
-    name: 'Gemini 1.5 Pro',
-    description: 'Excelência em raciocínio complexo',
-    provider: 'Google',
-    modelId: 'google/gemini-pro-1.5',
-    capabilities: { vision: true, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: true, reasoning: true, upload: true },
-    details: {
-      function: 'Modelo de raciocínio avançado.',
-      inputTypes: ['Texto', 'Imagens', 'PDF'],
-      outputTypes: ['Texto'],
-      features: ['1M Context'],
-      pricing: { input: '$2.50', output: '$7.50' }
-    }
-  },
-  {
-    id: 'gemini-1.5-flash',
-    name: 'Gemini 1.5 Flash',
-    description: 'Rápido e eficiente',
-    provider: 'Google',
-    modelId: 'google/gemini-flash-1.5',
-    capabilities: { vision: true, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: true, reasoning: false, upload: true },
-    details: {
-      function: 'Modelo rápido e custo-eficiente.',
-      inputTypes: ['Texto', 'Imagens'],
-      outputTypes: ['Texto'],
-      features: ['High Speed'],
-      pricing: { input: '$0.075', output: '$0.30' }
-    }
-  },
-
-  // --- OpenAI Series ---
-  {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
-    description: 'Multimodal versátil',
+    id: "openai/gpt-5.2-pro",
+    name: "GPT-5.2 Pro",
+    description: "Inteligência máxima. O estado da arte.",
+    category: "Elite 🏆",
+    badge: "Recomendado",
     provider: 'OpenAI',
-    modelId: 'openai/gpt-4o',
-    capabilities: { vision: true, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: false, upload: true },
-    details: {
-      function: 'Modelo flagship da OpenAI.',
-      inputTypes: ['Texto', 'Imagem'],
-      outputTypes: ['Texto'],
-      features: ['Multimodal'],
-      pricing: { input: '$2.50', output: '$10.00' }
-    }
+    modelId: 'openai/gpt-5.2-pro',
+    capabilities: { vision: true, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: true, reasoning: true, upload: true }
   },
   {
-    id: 'gpt-4o-mini',
-    name: 'GPT-4o Mini',
-    description: 'Pequeno e eficiente',
+    id: "openai/gpt-5.2",
+    name: "GPT-5.2",
+    description: "Equilíbrio perfeito entre velocidade e IQ.",
+    category: "Elite 🏆",
     provider: 'OpenAI',
-    modelId: 'openai/gpt-4o-mini',
-    capabilities: { vision: true, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: false, upload: true },
-    details: {
-      function: 'Modelo econômico da OpenAI.',
-      inputTypes: ['Texto', 'Imagem'],
-      outputTypes: ['Texto'],
-      features: ['Efficiency'],
-      pricing: { input: '$0.15', output: '$0.60' }
-    }
+    modelId: 'openai/gpt-5.2',
+    capabilities: { vision: true, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: true, reasoning: true, upload: true }
   },
   {
-    id: 'o1-preview',
-    name: 'OpenAI o1 Preview',
-    description: 'Raciocínio profundo',
-    provider: 'OpenAI',
-    modelId: 'openai/o1-preview',
-    capabilities: { vision: false, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: true, upload: false },
-    details: {
-      function: 'Modelo focado em raciocínio complexo (STEM).',
-      inputTypes: ['Texto'],
-      outputTypes: ['Texto'],
-      features: ['Reasoning'],
-      pricing: { input: '$15', output: '$60' }
-    }
+    id: "google/gemini-3-pro-preview",
+    name: "Gemini 3 Pro",
+    description: "Contexto Infinito (1M+ tokens). Lê livros inteiros.",
+    category: "Elite 🏆",
+    badge: "Docs Heavy",
+    provider: 'Google',
+    modelId: 'google/gemini-3-pro-preview',
+    capabilities: { vision: true, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: true, reasoning: true, upload: true }
   },
-
-  // --- Anthropic Claude Series ---
   {
-    id: 'claude-3.5-sonnet',
-    name: 'Claude 3.5 Sonnet',
-    description: 'Alta performance e código',
+    id: "anthropic/claude-3.5-sonnet",
+    name: "Claude 3.5 Sonnet",
+    description: "A melhor escrita humana e empatia do mercado.",
+    category: "Elite 🏆",
     provider: 'Anthropic',
     modelId: 'anthropic/claude-3.5-sonnet',
-    capabilities: { vision: true, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: true, upload: true },
-    details: {
-      function: 'Excelente para codificação e raciocínio.',
-      inputTypes: ['Texto', 'Imagem'],
-      outputTypes: ['Texto'],
-      features: ['Coding'],
-      pricing: { input: '$3.00', output: '$15.00' }
-    }
+    capabilities: { vision: true, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: true, upload: true }
   },
   {
-    id: 'claude-3-haiku',
-    name: 'Claude 3 Haiku',
-    description: 'Rápido e econômico',
-    provider: 'Anthropic',
-    modelId: 'anthropic/claude-3-haiku',
-    capabilities: { vision: true, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: false, upload: true },
-    details: {
-      function: 'Modelo mais rápido da Anthropic.',
-      inputTypes: ['Texto', 'Imagem'],
-      outputTypes: ['Texto'],
-      features: ['Speed'],
-      pricing: { input: '$0.25', output: '$1.25' }
-    }
+    id: "deepseek/deepseek-v3.2",
+    name: "DeepSeek V3.2",
+    description: "Raciocínio avançado com custo eficiente.",
+    category: "Elite 🏆",
+    provider: 'DeepSeek',
+    modelId: 'deepseek/deepseek-v3.2',
+    capabilities: { vision: false, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: true, upload: true }
+  },
+  {
+    id: "x-ai/grok-4.1",
+    name: "Grok 4.1",
+    description: "A IA da xAI. Acesso a dados em tempo real.",
+    category: "Elite 🏆",
+    provider: 'xAI',
+    modelId: 'x-ai/grok-4.1',
+    capabilities: { vision: true, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: true, reasoning: true, upload: false }
   },
 
-  // --- Open Source / Others ---
+  // --- TIER 2: RACIOCÍNIO (THINKING MODELS) ---
   {
-    id: 'llama-3.1-405b',
-    name: 'Llama 3.1 405B',
-    description: 'Open Source Frontier',
-    provider: 'Meta',
-    modelId: 'meta-llama/llama-3.1-405b-instruct',
-    capabilities: { vision: false, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: true, upload: false },
-    details: {
-      function: 'Modelo open source mais poderoso.',
-      inputTypes: ['Texto'],
-      outputTypes: ['Texto'],
-      features: ['Open Source'],
-      pricing: { input: '$2.00', output: '$2.00' }
-    }
+    id: "deepseek/deepseek-v3.2-speciale",
+    name: "DeepSeek Speciale",
+    description: "Supera GPT-5 em lógica pura e diagnóstico.",
+    category: "Raciocínio Clínico 🧠",
+    provider: 'DeepSeek',
+    modelId: 'deepseek/deepseek-v3.2-speciale',
+    capabilities: { vision: false, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: true, upload: true }
   },
   {
-    id: 'deepseek-coder',
-    name: 'DeepSeek Coder V2',
-    description: 'Especialista em código',
-    provider: 'DeepSeek',
-    modelId: 'deepseek/deepseek-coder',
-    capabilities: { vision: false, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: true, upload: false },
-    details: {
-      function: 'Modelo especializado em programação.',
-      inputTypes: ['Texto'],
-      outputTypes: ['Texto'],
-      features: ['Coding'],
-      pricing: { input: '$0.14', output: '$0.28' }
-    }
+    id: "openai/o3",
+    name: "OpenAI o3",
+    description: "Pensa antes de responder. Para casos complexos.",
+    category: "Raciocínio Clínico 🧠",
+    provider: 'OpenAI',
+    modelId: 'openai/o3',
+    capabilities: { vision: true, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: true, upload: true }
+  },
+  {
+    id: "prime-intellect/intellect-3",
+    name: "Intellect-3",
+    description: "Otimizado para Matemática e Ciências.",
+    category: "Raciocínio Clínico 🧠",
+    provider: 'Prime',
+    modelId: 'prime-intellect/intellect-3',
+    capabilities: { vision: false, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: true, upload: false }
+  },
+
+  // --- TIER 3: ESPECIALISTAS (CÓDIGO & VISÃO) ---
+  {
+    id: "openai/gpt-5.1-codex-max",
+    name: "GPT-5.1 Codex",
+    description: "Especialista em criar planilhas e scripts.",
+    category: "Ferramentas 🛠️",
+    provider: 'OpenAI',
+    modelId: 'openai/gpt-5.1-codex-max',
+    capabilities: { vision: false, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: true, upload: true }
+  },
+  {
+    id: "mistralai/devstral-2-2512",
+    name: "Devstral 2",
+    description: "O melhor para automação e código.",
+    category: "Ferramentas 🛠️",
+    provider: 'Mistral',
+    modelId: 'mistralai/devstral-2-2512',
+    capabilities: { vision: false, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: true, upload: true }
+  },
+  {
+    id: "z-ai/glm-4.6v",
+    name: "GLM 4.6 Vision",
+    description: "Visão computacional avançada para exames.",
+    category: "Ferramentas 🛠️",
+    provider: 'Z-AI',
+    modelId: 'z-ai/glm-4.6v',
+    capabilities: { vision: true, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: true, upload: true }
+  },
+
+  // --- TIER 4: VOLUME & VELOCIDADE (SPEED) ---
+  {
+    id: "openai/gpt-5.2-chat",
+    name: "GPT-5.2 Instant",
+    description: "Respostas imediatas para o dia a dia.",
+    category: "Velocidade ⚡",
+    provider: 'OpenAI',
+    modelId: 'openai/gpt-5.2-chat',
+    capabilities: { vision: false, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: false, upload: true }
+  },
+  {
+    id: "mistralai/mistral-large-3-2512",
+    name: "Mistral Large 3",
+    description: "Potência europeia. Alta precisão.",
+    category: "Velocidade ⚡",
+    provider: 'Mistral',
+    modelId: 'mistralai/mistral-large-3-2512',
+    capabilities: { vision: false, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: false, upload: true }
+  },
+  {
+    id: "meta-llama/llama-3.1-405b-instruct",
+    name: "Llama 3.1 405B",
+    description: "O maior modelo Open Source do mundo.",
+    category: "Open Source 🔓",
+    provider: 'Meta',
+    modelId: 'meta-llama/llama-3.1-405b-instruct',
+    capabilities: { vision: false, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: true, upload: false }
+  },
+  {
+    id: "meta-llama/llama-3.1-70b-instruct",
+    name: "Llama 3.1 70B",
+    description: "Rápido e eficiente.",
+    category: "Open Source 🔓",
+    provider: 'Meta',
+    modelId: 'meta-llama/llama-3.1-70b-instruct',
+    capabilities: { vision: false, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: true, upload: false }
+  },
+  {
+    id: "mistralai/ministral-3-14b-2512",
+    name: "Ministral 14B",
+    description: "Ultrarrapido para notas simples.",
+    category: "Velocidade ⚡",
+    provider: 'Mistral',
+    modelId: 'mistralai/ministral-3-14b-2512',
+    capabilities: { vision: false, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: false, upload: true }
+  },
+  {
+    id: "amazon/nova-2-lite",
+    name: "Nova 2 Lite",
+    description: "Robustez AWS com baixo custo.",
+    category: "Velocidade ⚡",
+    provider: 'Amazon',
+    modelId: 'amazon/nova-2-lite',
+    capabilities: { vision: false, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: false, upload: true }
+  },
+  {
+    id: "google/gemini-flash-1.5",
+    name: "Gemini Flash 1.5",
+    description: "O melhor custo-benefício para volume.",
+    category: "Velocidade ⚡",
+    provider: 'Google',
+    modelId: 'google/gemini-flash-1.5',
+    capabilities: { vision: true, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: true, reasoning: false, upload: true }
+  },
+  {
+    id: "qwen/qwen-2.5-72b-instruct",
+    name: "Qwen 2.5 72B",
+    description: "Performance surpreendente em lógica.",
+    category: "Velocidade ⚡",
+    provider: 'Qwen',
+    modelId: 'qwen/qwen-2.5-72b-instruct',
+    capabilities: { vision: false, imageGeneration: false, videoGeneration: false, audioGeneration: false, webSearch: false, reasoning: true, upload: true }
   }
 ];

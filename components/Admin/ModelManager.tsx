@@ -3,7 +3,8 @@ import { adminService } from '../../services/adminService';
 import { modelHealthService, ProviderHealth, ModelHealth, UsageStats } from '../../services/modelHealthService';
 import { AVAILABLE_MODELS, AIModel } from '../../types';
 import { fetchOpenRouterModels } from '../../services/openRouterService';
-import { IconActivity, IconCheck, IconAlertTriangle, IconX, IconRefresh, IconServer } from '../Icons';
+import { IconActivity, IconCheck, IconAlertTriangle, IconX, IconRefresh, IconServer, IconBrain, IconEdit } from '../Icons';
+import { streamChatResponse } from '../../services/chatService';
 
 export default function ModelManager() {
     const [enabledModels, setEnabledModels] = useState<string[]>([]);
@@ -15,6 +16,134 @@ export default function ModelManager() {
     const [checkingHealth, setCheckingHealth] = useState(false);
     const [dynamicModels, setDynamicModels] = useState<AIModel[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
+
+    // AI Agent State
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [isProcessingAI, setIsProcessingAI] = useState(false);
+
+    // API Key State
+    const [apiKeyInput, setApiKeyInput] = useState('');
+    const [savingKey, setSavingKey] = useState(false);
+    const [apiKeyStatus, setApiKeyStatus] = useState<'configured' | 'missing'>('missing');
+
+    // Edit State
+    const [editingModel, setEditingModel] = useState<AIModel | null>(null);
+    const [editForm, setEditForm] = useState({ description: '', category: '', badge: '' });
+
+    const handleEditClick = (model: AIModel) => {
+        setEditingModel(model);
+        setEditForm({
+            description: model.description || '',
+            category: model.category || 'Outros',
+            badge: model.badge || ''
+        });
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingModel) return;
+
+        try {
+            const overrides = await adminService.getModelOverrides();
+            overrides[editingModel.id] = {
+                description: editForm.description,
+                category: editForm.category,
+                badge: editForm.badge
+            };
+            await adminService.updateModelOverrides(overrides);
+
+            // Update local state immediately
+            setDynamicModels(prev => prev.map(m =>
+                m.id === editingModel.id
+                    ? { ...m, description: editForm.description, category: editForm.category, badge: editForm.badge }
+                    : m
+            ));
+
+            setEditingModel(null);
+        } catch (error) {
+            console.error('Failed to save model override', error);
+            alert('Erro ao salvar alterações.');
+        }
+    };
+
+    const handleSaveApiKey = async () => {
+        if (!apiKeyInput.trim()) return;
+        setSavingKey(true);
+        try {
+            await adminService.saveApiKey(apiKeyInput.trim());
+            setApiKeyStatus('configured');
+            setApiKeyInput(''); // Clear for security
+            alert('API Key salva com sucesso!');
+            refreshHealth(); // Auto-refresh status
+        } catch (error) {
+            console.error('Failed to save API Key', error);
+            alert('Erro ao salvar API Key.');
+        } finally {
+            setSavingKey(false);
+        }
+    };
+
+    const handleAIConfig = async () => {
+        if (!aiPrompt.trim()) return;
+
+        setIsProcessingAI(true);
+        try {
+            // 1. Prepare Context
+            const availableModelsList = dynamicModels.map(m => `- ID: ${m.id} | Name: ${m.name} | Provider: ${m.provider}`).join('\n');
+            const currentEnabled = enabledModels.join(', ');
+
+            const systemPrompt = `
+You are an AI Model Configuration Agent for the Dr. GPT platform.
+Your task is to decide which AI models should be ENABLED based on the user's request and the list of available models.
+
+AVAILABLE MODELS:
+${availableModelsList}
+
+CURRENTLY ENABLED:
+${currentEnabled}
+
+USER REQUEST:
+"${aiPrompt}"
+
+INSTRUCTIONS:
+1. Analyze the user's request (e.g., "Enable only OpenAI models", "Turn off everything except Flash", "I want distinct providers").
+2. Select the IDs of the models that match the criteria.
+3. Return a JSON object with a single key "enabled_models" containing the array of strings (model IDs).
+4. Do not return markdown formatting, just the raw JSON.`;
+
+            // 2. Call AI (using a cheap, fast model like gpt-4o-mini)
+            let responseText = "";
+            await streamChatResponse(
+                'openai/gpt-4o-mini',
+                [],
+                "Execute configuration task.",
+                (chunk) => { responseText += chunk; },
+                systemPrompt
+            );
+
+            // 3. Parse Response
+            const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const result = JSON.parse(cleanJson);
+
+            if (result.enabled_models && Array.isArray(result.enabled_models)) {
+                const newEnabled = result.enabled_models;
+                console.log("AI Agent selected models:", newEnabled);
+
+                // 4. Update State & DB
+                setEnabledModels(newEnabled);
+                await adminService.updateModelStatusBatch(newEnabled);
+                setAiPrompt('');
+                alert(`Configuração aplicada! ${newEnabled.length} modelos ativos.`);
+            } else {
+                throw new Error("Invalid response format from AI Agent");
+            }
+
+        } catch (error) {
+            console.error("AI Config Agent failed:", error);
+            alert("Falha ao processar solicitação com IA. Tente ser mais específico.");
+        } finally {
+            setIsProcessingAI(false);
+        }
+    };
 
     // Utility to clean model names (Duplicated from App.tsx for now to ensure consistency)
     const cleanModelName = (name: string, id: string) => {
@@ -60,7 +189,8 @@ export default function ModelManager() {
                 modelHealthService.checkAllProviders(),
                 modelHealthService.checkAllModels(),
                 modelHealthService.getGlobalStats(),
-                adminService.getModelCategories()
+                adminService.getModelCategories(),
+                adminService.getModelOverrides() // Load overrides here too
             ]);
 
             const settings = results[0].status === 'fulfilled' ? results[0].value : { enabled_models: [] };
@@ -68,24 +198,38 @@ export default function ModelManager() {
             const modelsHealth = results[2].status === 'fulfilled' ? results[2].value : [];
             const stats = results[3].status === 'fulfilled' ? results[3].value : null;
             const categories = results[4].status === 'fulfilled' ? results[4].value : { text: [], image: [], expert: [] };
+            const overrides = results[5].status === 'fulfilled' ? results[5].value : {};
 
-            if (results[0].status === 'rejected') console.error('Failed to load settings', results[0].reason);
-            if (results[1].status === 'rejected') console.error('Failed to load provider health', results[1].reason);
-            if (results[2].status === 'rejected') console.error('Failed to load model health', results[2].reason);
-            if (results[3].status === 'rejected') console.error('Failed to load stats', results[3].reason);
-            if (results[4].status === 'rejected') console.error('Failed to load categories', results[4].reason);
+            // Check API Key
+            const hasKey = await adminService.getApiKey();
+            // Also check env var if possible, but safe to assume it's missing if we are here or just show status based on specific check
+            if (hasKey || import.meta.env.VITE_OPENROUTER_API_KEY) {
+                setApiKeyStatus('configured');
+            } else {
+                setApiKeyStatus('missing');
+            }
 
             // Fetch Dynamic Models
             const fetchedModels = await fetchOpenRouterModels();
             const mergedModels: AIModel[] = fetchedModels.map(fm => {
                 const staticDef = AVAILABLE_MODELS.find(am => am.modelId === fm.id);
+                const override = overrides[fm.id] || {};
+
                 if (staticDef) {
-                    return { ...staticDef, name: cleanModelName(fm.name, fm.id) };
+                    return {
+                        ...staticDef,
+                        name: cleanModelName(fm.name, fm.id),
+                        description: override.description || staticDef.description,
+                        category: override.category || staticDef.category,
+                        badge: override.badge !== undefined ? override.badge : staticDef.badge
+                    };
                 }
                 return {
                     id: fm.id,
                     name: cleanModelName(fm.name, fm.id),
-                    description: 'Modelo OpenRouter',
+                    description: override.description || 'Modelo OpenRouter',
+                    category: override.category || 'Novos 🆕',
+                    badge: override.badge,
                     provider: fm.id.split('/')[0] as any,
                     modelId: fm.id,
                     capabilities: {
@@ -107,17 +251,29 @@ export default function ModelManager() {
                 };
             });
 
-            if (mergedModels.length > 0) {
-                setDynamicModels(mergedModels);
-                // Ensure enabledModels has defaults if empty
-                if (!settings.enabled_models || settings.enabled_models.length === 0) {
-                    setEnabledModels(mergedModels.map(m => m.id));
-                } else {
-                    setEnabledModels(settings.enabled_models);
-                }
+            // Also handle overrides for static models if not in fetched (similar logic to App.tsx)
+            // Ideally we should unify this logic in a service or hook, but duplication is acceptable for now.
+            // For Admin, we want to see ALL models.
+
+            let allActiveModels = mergedModels;
+            if (allActiveModels.length === 0) {
+                allActiveModels = AVAILABLE_MODELS.map(m => {
+                    const override = overrides[m.id] || {};
+                    return {
+                        ...m,
+                        description: override.description || m.description,
+                        category: override.category || m.category,
+                        badge: override.badge !== undefined ? override.badge : m.badge
+                    };
+                });
+            }
+
+            setDynamicModels(allActiveModels);
+
+            if (!settings.enabled_models || settings.enabled_models.length === 0) {
+                setEnabledModels(allActiveModels.map(m => m.id));
             } else {
-                setDynamicModels(AVAILABLE_MODELS);
-                setEnabledModels(settings.enabled_models || AVAILABLE_MODELS.map(m => m.id));
+                setEnabledModels(settings.enabled_models);
             }
 
             setModelCategories(categories);
@@ -141,9 +297,6 @@ export default function ModelManager() {
 
             const health = results[0].status === 'fulfilled' ? results[0].value : [];
             const modelsHealth = results[1].status === 'fulfilled' ? results[1].value : [];
-
-            if (results[0].status === 'rejected') console.error('Failed to refresh provider health', results[0].reason);
-            if (results[1].status === 'rejected') console.error('Failed to refresh model health', results[1].reason);
 
             setHealthStatus(health);
             setModelHealth(modelsHealth);
@@ -192,6 +345,23 @@ export default function ModelManager() {
             case 'offline': return 'text-red-400 bg-red-500/10 border-red-500/20';
             default: return 'text-zinc-400 bg-zinc-500/10 border-zinc-500/20';
         }
+    };
+
+    // Helper to filter and sort models
+    const getFilteredModels = (type: 'text' | 'image') => {
+        // Only show checked models if we wanted to filter by enabled? 
+        // Admin usually shows ALL available so you can enable them.
+        const list = dynamicModels.length > 0 ? dynamicModels : AVAILABLE_MODELS;
+        return list.filter(m => {
+            const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                m.provider.toLowerCase().includes(searchQuery.toLowerCase());
+
+            if (!matchesSearch) return false;
+
+            if (type === 'image') return m.capabilities.imageGeneration;
+            return !m.capabilities.imageGeneration; // Default to text/expert if not image
+        });
     };
 
     if (loading) return <div className="text-zinc-500 animate-pulse">Carregando painel de IA...</div>;
@@ -256,128 +426,324 @@ export default function ModelManager() {
                 </div>
             </div>
 
-            {/* Models Grid */}
-            <div>
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <h2 className="text-2xl font-bold">Gerenciamento de Modelos ({dynamicModels.length})</h2>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={handleAutoSelectPopular}
-                            className="px-4 py-2 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 text-sm font-bold transition-colors"
-                        >
-                            Auto-Select Popular
-                        </button>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="Buscar modelo..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10 pr-4 py-2 rounded-xl bg-[#0a0a0a] border border-white/10 text-sm focus:outline-none focus:border-emerald-500/50 w-64"
-                            />
-                            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            {/* AI Configuration Agent */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* API Key Configuration */}
+                <div className="p-6 rounded-2xl bg-zinc-900 border border-white/5 shadow-lg">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 rounded-lg bg-orange-500/10 text-orange-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                         </div>
+                        <div>
+                            <h3 className="text-lg font-bold text-white">Configuração da API Key</h3>
+                            <p className="text-sm text-zinc-400">OpenRouter API (Necessário para conexão)</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 text-sm">
+                            <span className="text-zinc-500">Status atual:</span>
+                            {apiKeyStatus === 'configured' ? (
+                                <span className="flex items-center gap-1 text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full text-xs font-bold border border-emerald-500/20">
+                                    <IconCheck className="w-3 h-3" /> Configurada
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-1 text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full text-xs font-bold border border-red-500/20">
+                                    <IconX className="w-3 h-3" /> Ausente
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="flex gap-2">
+                            <input
+                                type="password"
+                                placeholder="sk-or-v1-..."
+                                value={apiKeyInput}
+                                onChange={(e) => setApiKeyInput(e.target.value)}
+                                className="flex-1 bg-black/30 border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500/50"
+                            />
+                            <button
+                                onClick={handleSaveApiKey}
+                                disabled={savingKey || !apiKeyInput.trim()}
+                                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-bold transition-colors disabled:opacity-50"
+                            >
+                                {savingKey ? 'Salvando...' : 'Salvar'}
+                            </button>
+                        </div>
+                        <p className="text-xs text-zinc-500">
+                            A chave será salva de forma segura no banco de dados e usada se não houver uma variável de ambiente definida.
+                        </p>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {(dynamicModels.length > 0 ? dynamicModels : AVAILABLE_MODELS)
-                        .filter(m =>
-                            m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            m.provider.toLowerCase().includes(searchQuery.toLowerCase())
-                        )
-                        .map(model => {
-                            const isEnabled = enabledModels.includes(model.id);
-                            const health = modelHealth.find(h => h.id === model.id);
-                            const isOnline = health?.status === 'online';
-
-                            return (
-                                <div key={model.id} className={`p-6 rounded-2xl border transition-all ${isEnabled
-                                    ? 'bg-emerald-500/5 border-emerald-500/20'
-                                    : 'bg-[#0a0a0a] border-white/5 opacity-60'
-                                    }`}>
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="font-bold text-lg">{model.name}</h3>
-                                                {health && (
-                                                    <div className="flex flex-col items-start gap-1">
-                                                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${isOnline
-                                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                                            : 'bg-red-500/10 text-red-400 border-red-500/20'
-                                                            }`}>
-                                                            <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                                                            {isOnline ? `${health.latency}ms` : 'OFFLINE'}
-                                                        </div>
-                                                        {!isOnline && health.error && (
-                                                            <span className="text-[10px] text-red-400 max-w-[200px] truncate" title={health.rawError || health.error}>
-                                                                {health.error}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <p className="text-xs text-zinc-500 uppercase tracking-wider font-bold mt-1">{model.provider}</p>
-                                        </div>
-                                        <label className="relative inline-flex items-center cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                className="sr-only peer"
-                                                checked={isEnabled}
-                                                onChange={(e) => toggleModel(model.id, e.target.checked)}
-                                            />
-                                            <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                                        </label>
-                                    </div>
-
-                                    <p className="text-sm text-zinc-400 mb-4">{model.description}</p>
-
-                                    {/* Category Selection */}
-                                    <div className="flex items-center gap-4 mb-4 p-3 rounded-xl bg-black/20 border border-white/5">
-                                        <span className="text-xs font-bold text-zinc-500 uppercase">Categorias:</span>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                className="rounded border-zinc-700 bg-zinc-800 text-emerald-500 focus:ring-emerald-500/20"
-                                                checked={modelCategories.text.includes(model.id)}
-                                                onChange={(e) => toggleCategory(model.id, 'text', e.target.checked)}
-                                            />
-                                            <span className="text-xs text-zinc-300">Texto</span>
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                className="rounded border-zinc-700 bg-zinc-800 text-emerald-500 focus:ring-emerald-500/20"
-                                                checked={modelCategories.image.includes(model.id)}
-                                                onChange={(e) => toggleCategory(model.id, 'image', e.target.checked)}
-                                            />
-                                            <span className="text-xs text-zinc-300">Imagens</span>
-                                        </label>
-                                        <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                                type="checkbox"
-                                                className="rounded border-zinc-700 bg-zinc-800 text-emerald-500 focus:ring-emerald-500/20"
-                                                checked={modelCategories.expert.includes(model.id)}
-                                                onChange={(e) => toggleCategory(model.id, 'expert', e.target.checked)}
-                                            />
-                                            <span className="text-xs text-zinc-300">Experts</span>
-                                        </label>
-                                    </div>
-
-                                    {model.details && (
-                                        <div className="space-y-3 pt-4 border-t border-white/5 text-xs">
-                                            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-zinc-400">
-                                                <span>Input: <span className="text-zinc-300">{model.details.pricing.input}</span></span>
-                                                <span>Output: <span className="text-zinc-300">{model.details.pricing.output}</span></span>
-                                            </div>
-                                        </div>
+                {/* AI Configuration Agent */}
+                <div className="p-6 rounded-2xl bg-gradient-to-br from-[#0a0a0a] to-[#121212] border border-emerald-500/20 shadow-lg">
+                    <div className="flex items-start gap-4">
+                        <div className="p-3 rounded-xl bg-emerald-500/10 text-emerald-400">
+                            <IconBrain className="w-8 h-8" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold text-white mb-2">Agente de Configuração de Modelos</h3>
+                            <p className="text-sm text-zinc-400 mb-4">
+                                Descreva quais modelos você quer ativos. Ex: "Ative apenas os modelos da OpenAI e o Gemini Pro".
+                            </p>
+                            <div className="flex gap-3">
+                                <textarea
+                                    value={aiPrompt}
+                                    onChange={(e) => setAiPrompt(e.target.value)}
+                                    placeholder="Digite sua solicitação para o agente..."
+                                    className="flex-1 bg-black/30 border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-500/50 resize-none h-24"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleAIConfig();
+                                        }
+                                    }}
+                                />
+                                <button
+                                    onClick={handleAIConfig}
+                                    disabled={isProcessingAI || !aiPrompt.trim()}
+                                    className={`px-6 rounded-xl font-bold transition-all flex items-center justify-center gap-2 ${isProcessingAI
+                                        ? 'bg-emerald-500/20 text-emerald-500 cursor-not-allowed'
+                                        : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20'
+                                        }`}
+                                >
+                                    {isProcessingAI ? (
+                                        <IconRefresh className="w-5 h-5 animate-spin" />
+                                    ) : (
+                                        <span className="text-xl">✨</span>
                                     )}
-                                </div>
-                            );
-                        })}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            {/* Model Management Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <h2 className="text-2xl font-bold">Gerenciamento de Modelos</h2>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleAutoSelectPopular}
+                        className="px-4 py-2 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 text-sm font-bold transition-colors"
+                    >
+                        Auto-Select Popular
+                    </button>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Buscar modelo..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10 pr-4 py-2 rounded-xl bg-[#0a0a0a] border border-white/10 text-sm focus:outline-none focus:border-emerald-500/50 w-64"
+                        />
+                        <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Text Models Section */}
+            <section>
+                <div className="flex items-center gap-2 mb-4 px-2">
+                    <div className="w-1 h-6 bg-blue-500 rounded-full" />
+                    <h3 className="text-lg font-bold text-zinc-200">Modelos de Texto & Raciocínio</h3>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-500">
+                        {getFilteredModels('text').length}
+                    </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {getFilteredModels('text').map(model => (
+                        <ModelCard
+                            key={model.id}
+                            model={model}
+                            isEnabled={enabledModels.includes(model.id)}
+                            onToggle={toggleModel}
+                            onEdit={() => handleEditClick(model)}
+                            health={modelHealth.find(h => h.id === model.id)}
+                            categories={modelCategories}
+                            onCategoryToggle={toggleCategory}
+                        />
+                    ))}
+                </div>
+            </section>
+
+            {/* Image Models Section */}
+            <section>
+                <div className="flex items-center gap-2 mb-4 px-2 pt-8 border-t border-white/5">
+                    <div className="w-1 h-6 bg-purple-500 rounded-full" />
+                    <h3 className="text-lg font-bold text-zinc-200">Modelos de Imagem</h3>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-500">
+                        {getFilteredModels('image').length}
+                    </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {getFilteredModels('image').map(model => (
+                        <ModelCard
+                            key={model.id}
+                            model={model}
+                            isEnabled={enabledModels.includes(model.id)}
+                            onToggle={toggleModel}
+                            onEdit={() => handleEditClick(model)}
+                            health={modelHealth.find(h => h.id === model.id)}
+                            categories={modelCategories}
+                            onCategoryToggle={toggleCategory}
+                        />
+                    ))}
+                </div>
+            </section>
+
+            {/* Edit Modal */}
+            {editingModel && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div className="w-full max-w-lg bg-[#121212] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+                        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                            <h3 className="text-xl font-bold text-white">Editar Modelo</h3>
+                            <button onClick={() => setEditingModel(null)} className="p-1 hovered:bg-white/10 rounded-lg transition">
+                                <IconX className="w-5 h-5 text-zinc-500" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Nome do Modelo (ID)</label>
+                                <div className="p-3 rounded-lg bg-black/20 border border-white/5 text-zinc-400 text-sm font-mono">
+                                    {editingModel.name} <span className="opacity-50">({editingModel.id})</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Categoria</label>
+                                <select
+                                    value={editForm.category}
+                                    onChange={e => setEditForm(prev => ({ ...prev, category: e.target.value }))}
+                                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                                >
+                                    <option value="Elite 🏆">Elite 🏆</option>
+                                    <option value="Raciocínio Clínico 🧠">Raciocínio Clínico 🧠</option>
+                                    <option value="Ferramentas 🛠️">Ferramentas 🛠️</option>
+                                    <option value="Velocidade ⚡">Velocidade ⚡</option>
+                                    <option value="Open Source 🔓">Open Source 🔓</option>
+                                    <option value="Outros">Outros</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Badge (Opcional)</label>
+                                <input
+                                    type="text"
+                                    value={editForm.badge}
+                                    onChange={e => setEditForm(prev => ({ ...prev, badge: e.target.value }))}
+                                    placeholder="Ex: Recomendado, Novo, Beta..."
+                                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Descrição</label>
+                                <textarea
+                                    value={editForm.description}
+                                    onChange={e => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-500/50 min-h-[100px] resize-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="p-6 border-t border-white/5 flex justify-end gap-3 bg-[#0a0a0a]">
+                            <button
+                                onClick={() => setEditingModel(null)}
+                                className="px-4 py-2 rounded-xl text-sm font-bold text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleSaveEdit}
+                                className="px-6 py-2 rounded-xl text-sm font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-900/20 transition-all"
+                            >
+                                Salvar Alterações
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
+}
+
+// Extracted Model Card Component
+function ModelCard({ model, isEnabled, onToggle, onEdit, health, categories, onCategoryToggle }: any) {
+    const isOnline = health?.status === 'online';
+
+    return (
+        <div className={`p-6 rounded-2xl border transition-all ${isEnabled
+            ? 'bg-emerald-500/5 border-emerald-500/20'
+            : 'bg-[#0a0a0a] border-white/5 opacity-60'
+            }`}>
+            <div className="flex items-start justify-between mb-4">
+                <div>
+                    <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-lg">{model.name}</h3>
+                        <button onClick={onEdit} className="p-1 rounded hover:bg-white/10 text-zinc-500 hover:text-zinc-300 transition-colors" title="Editar informações">
+                            <IconEdit className="w-3.5 h-3.5" />
+                        </button>
+                        {health && (
+                            <div className="flex flex-col items-start gap-1">
+                                <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${isOnline
+                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                    : 'bg-red-500/10 text-red-400 border-red-500/20'
+                                    }`}>
+                                    <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                    {isOnline ? `${health.latency}ms` : 'OFFLINE'}
+                                </div>
+                                {!isOnline && health.error && (
+                                    <span className="text-[10px] text-red-400 max-w-[200px] truncate" title={health.rawError || health.error}>
+                                        {health.error}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-zinc-500 uppercase tracking-wider font-bold">{model.provider}</p>
+                        {model.category && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-zinc-800 text-zinc-400 border border-white/5">
+                                {model.category}
+                            </span>
+                        )}
+                    </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={isEnabled}
+                        onChange={(e) => onToggle(model.id, e.target.checked)}
+                    />
+                    <div className="w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+            </div>
+
+            <p className="text-sm text-zinc-400 mb-4 min-h-[40px]">{model.description}</p>
+
+            {/* Model Details (Pricing etc) */}
+            {model.details && (
+                <div className="space-y-3 pt-4 border-t border-white/5 text-xs">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-zinc-400">
+                        <span>Input: <span className="text-zinc-300">{model.details.pricing.input}</span></span>
+                        <span>Output: <span className="text-zinc-300">{model.details.pricing.output}</span></span>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// Icon wrapper for search
+function IconSearch(props: any) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+    )
 }

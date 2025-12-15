@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import MessageItem from './components/MessageItem';
-import { ChatSession, Message, Role, AVAILABLE_MODELS, Folder, Agent, AVAILABLE_AGENTS, Attachment, AIModel, AppMode } from './types';
+import { ChatSession, Message, Role, AVAILABLE_MODELS, Folder, Agent, Attachment, AIModel, AppMode } from './types';
 import { streamChatResponse, saveMessage, loadChatHistory, createChat, updateChat, loadMessagesForChat, deleteChat } from './services/chatService';
 import { fetchOpenRouterModels, OpenRouterModel } from './services/openRouterService';
 import { agentService } from './services/agentService';
 import { projectService } from './services/projectService'; // Implemented
+import { adminService } from './services/adminService';
 import { IconMenu, IconSend, IconAttachment, IconGlobe, IconImage, IconBrain, IconPlus } from './components/Icons';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -235,16 +236,23 @@ function AppContent() {
     useEffect(() => {
         const loadModels = async () => {
             const fetched = await fetchOpenRouterModels();
+            // Fetch overrides from admin settings
+            const overrides = await adminService.getModelOverrides();
 
             // Merge with local definitions to get capabilities
             const mergedModels: AIModel[] = fetched.map(fm => {
                 // Try to find a matching static definition
                 const staticDef = AVAILABLE_MODELS.find(am => am.modelId === fm.id);
+                const override = overrides[fm.id] || {};
 
                 if (staticDef) {
                     return {
                         ...staticDef,
-                        name: cleanModelName(fm.name, fm.id) // Use cleaned name
+                        name: cleanModelName(fm.name, fm.id), // Use cleaned name
+                        // Apply overrides if present
+                        description: override.description || staticDef.description,
+                        category: override.category || staticDef.category,
+                        badge: override.badge !== undefined ? override.badge : staticDef.badge
                     };
                 }
 
@@ -255,7 +263,9 @@ function AppContent() {
                 return {
                     id: fm.id, // Use OpenRouter ID as internal ID for dynamic ones
                     name: cleanModelName(fm.name, fm.id),
-                    description: 'Modelo disponível via OpenRouter',
+                    description: override.description || 'Modelo disponível via OpenRouter',
+                    category: override.category || 'Novos 🆕',
+                    badge: override.badge,
                     provider: fm.id.split('/')[0] as any, // Rough inference
                     modelId: fm.id,
                     capabilities: {
@@ -277,11 +287,33 @@ function AppContent() {
                 };
             });
 
-            // If we fetched models, use them. Otherwise fallback to static.
+            // Also check if any purely static models (AVAILABLE_MODELS that aren't in OpenRouter yet or are custom) need overriding
+            // and aren't covered by the merged list if the fetched list is missing them.
+            // Actually, we generally construct the list heavily based on AVAILABLE_MODELS if fetch fails or is partial.
+            // But let's assume mergedModels handles the bulk. 
+
+            // However, we must ensure that ALL AVAILABLE_MODELS are present even if not in fetched, 
+            // incase OpenRouter list is partial.
+            // Ideally we iterate over a superset of IDs.
+            // For now, let's just stick to the existing logic which prefers mergedModels but falls back if empty.
+            // Better logic: Map over AVAILABLE_MODELS too to apply overrides if they are NOT in fetched?
+            // The current logic only overrides things founded in `fetched`. 
+            // If `fetched` is empty, we setDynamicModels(AVAILABLE_MODELS). We need to override that too.
+
             if (mergedModels.length > 0) {
                 setDynamicModels(mergedModels);
             } else {
-                setDynamicModels(AVAILABLE_MODELS);
+                // Apply overrides to static list
+                const overriddenStatic = AVAILABLE_MODELS.map(m => {
+                    const override = overrides[m.id] || {};
+                    return {
+                        ...m,
+                        description: override.description || m.description,
+                        category: override.category || m.category,
+                        badge: override.badge !== undefined ? override.badge : m.badge
+                    };
+                });
+                setDynamicModels(overriddenStatic);
             }
         };
 
@@ -293,12 +325,16 @@ function AppContent() {
     const activeModelList = dynamicModels.length > 0 ? dynamicModels : AVAILABLE_MODELS;
 
     const availableAndHealthyModels = activeModelList.filter(m => {
-        // 🔧 FIX: Disable strict filtering to ensure models appear on Vercel
-        // The previous logic was hiding models that:
-        // 1. Weren't in the initial whitelist (enabledModels)
-        // 2. Failed the health check (e.g. 429 on free models)
+        // 1. Check if model is enabled in Admin settings
+        if (enabledModels.length > 0 && !enabledModels.includes(m.id)) {
+            return false;
+        }
 
-        // We want to show everything for now.
+        // 2. Optional: We could check health here, but we'll keep it permissive 
+        // to avoid hiding models that might just be temporarily slow.
+        // const health = modelHealthService.find(h => h.id === m.id || h.id === m.modelId);
+        // const isHealthy = health ? health.status !== 'offline' : true;
+
         return true;
 
         /* 
@@ -850,6 +886,18 @@ function AppContent() {
         }
     };
 
+    // 🔧 FIX: Handle Mode Change with Cleanup
+    const handleModeChange = (newMode: AppMode) => {
+        setActiveMode(newMode);
+
+        // If switching to a dashboard mode (Scribe, Anti-Glosa, Justificativa),
+        // we MUST clear the current chat so the dashboard view renders instead of the chat view.
+        if (newMode === 'scribe' || newMode === 'antiglosa' || newMode === 'justificativa') {
+            setCurrentChatId(null);
+            setSelectedAgentId(null); // Optional: also clear agent context
+        }
+    };
+
     return (
         <div className="flex h-[100dvh] bg-background text-textMain font-sans overflow-hidden selection:bg-emerald-500/30">
 
@@ -857,7 +905,7 @@ function AppContent() {
             <div className="hidden md:block h-full z-50">
                 <RailNav
                     activeMode={activeMode}
-                    onModeChange={setActiveMode}
+                    onModeChange={handleModeChange}
                     isDarkMode={isDarkMode}
                 />
             </div>
@@ -975,7 +1023,7 @@ function AppContent() {
                     onAssignChatToProject={handleAssignChatToProject}
                     onRenameChat={handleRenameChat}
                     onDeleteChat={handleDeleteChat}
-                    onModeChange={setActiveMode}
+                    onModeChange={handleModeChange}
                 />
             )}
 
@@ -1022,6 +1070,7 @@ function AppContent() {
                                                 isDarkMode={isDarkMode}
                                                 agents={agents}
                                                 onSelectAgent={handleSelectAgent}
+                                                selectedAgentId={selectedAgentId} // Pass selected Agent ID
                                             />
                                         )}
                                     </div>
@@ -1326,6 +1375,11 @@ function AppContent() {
                                 modelId: scribeModelId, // 🔒 Force Text Model
                                 agentId: 'scribe-mode', // 🏷️ FIX: Tag chat for Sidebar filtering
                                 messages: [],
+                                metadata: {
+                                    agentId: 'scribe-mode', // 🛡️ Backup persistence
+                                    patient_name: patientName,
+                                    patient_gender: patientGender
+                                },
                                 updatedAt: Date.now()
                             };
 

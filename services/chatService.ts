@@ -21,7 +21,7 @@ export const loadChatHistory = async (userId: string): Promise<ChatSession[]> =>
         id: chat.id,
         title: chat.title,
         modelId: chat.model_id || 'gpt-4o',
-        agentId: chat.agent_id, // Fix: Map agent_id to support filtering
+        agentId: chat.agent_id || chat.metadata?.agentId, // 🛡️ Fix: Fallback to metadata
         messages: [], // 🚀 Lazy Load: Start empty
         folderId: chat.folder_id, // Map folder_id
         metadata: chat.metadata || {}, // Map metadata
@@ -64,7 +64,10 @@ export const createChat = async (chat: ChatSession) => {
             model_id: chat.modelId,
             agent_id: chat.agentId, // 🏷️ Fix: Persist agent_id
             folder_id: chat.folderId, // 📂 Fix: Persist folder_id
-            metadata: chat.metadata, // 💾 Fix: Persist metadata
+            metadata: {
+                ...chat.metadata,
+                agentId: chat.agentId // 🛡️ Backup: Also save in metadata
+            },
             created_at: new Date(chat.updatedAt).toISOString()
         });
 
