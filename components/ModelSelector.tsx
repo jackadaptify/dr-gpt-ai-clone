@@ -64,6 +64,16 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
     // Helper to get icon content
     const getDisplayIcon = () => {
         if (selectedAgent) {
+            if (selectedAgent.avatarUrl) {
+                return (
+                    <img
+                        src={selectedAgent.avatarUrl}
+                        alt={selectedAgent.name}
+                        className="w-5 h-5 rounded object-cover"
+                        style={{ objectPosition: selectedAgent.avatarPosition || 'center' }}
+                    />
+                );
+            }
             return (
                 <div className={`w-5 h-5 rounded flex items-center justify-center bg-gradient-to-br ${selectedAgent.color || 'from-gray-500 to-gray-700'} text-[10px] text-white font-bold`}>
                     {selectedAgent.name.charAt(0)}
@@ -311,8 +321,19 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
                                     `}
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className={`p-1.5 rounded-lg flex items-center justify-center w-8 h-8 font-bold text-white bg-gradient-to-br ${agent.color}`}>
-                                            {agent.name.charAt(0)}
+                                        <div className={`relative flex-shrink-0 w-8 h-8 rounded-lg overflow-hidden ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
+                                            {agent.avatarUrl ? (
+                                                <img
+                                                    src={agent.avatarUrl}
+                                                    alt={agent.name}
+                                                    className="w-full h-full object-cover"
+                                                    style={{ objectPosition: agent.avatarPosition || 'center' }}
+                                                />
+                                            ) : (
+                                                <div className={`w-full h-full flex items-center justify-center font-bold text-white bg-gradient-to-br ${agent.color}`}>
+                                                    {agent.name.charAt(0)}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="flex flex-col gap-0.5">
                                             <div className="flex items-center gap-2">
