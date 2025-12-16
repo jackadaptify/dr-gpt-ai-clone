@@ -23,6 +23,7 @@ import AntiGlosaModal from './components/AntiGlosaModal';
 import {
     Folder as FolderIcon,
     Settings,
+    Shield,
     LogOut,
     Wrench,
     Menu,
@@ -46,8 +47,10 @@ import {
     Pin,
     CreditCard,
     User,
-    Palette
+    Palette,
+    ChevronRight,
 } from 'lucide-react';
+import { settingsService, UserSettings } from './services/settingsService';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import RailNav from './components/RailNav';
 import ScribeView from './components/ScribeView';
@@ -118,7 +121,7 @@ const ICON_MAP: Record<string, any> = {
 };
 
 function AppContent() {
-    const { session, loading } = useAuth();
+    const { session, user, loading } = useAuth();
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [activeMode, setActiveMode] = useState<AppMode>('chat');
@@ -128,12 +131,97 @@ function AppContent() {
     const [currentChatId, setCurrentChatId] = useState<string | null>(null);
     const [input, setInput] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
+
+    // -- SETTINGS STATE --
+    const [settingsState, setSettingsState] = useState<UserSettings>({
+        custom_instructions: '',
+        response_preferences: '',
+        theme: 'dark',
+        language: 'pt-BR'
+    });
+    const [nickname, setNickname] = useState('');
+    const [specialty, setSpecialty] = useState('');
+    const [otherSpecialty, setOtherSpecialty] = useState('');
+    const [professionalFocus, setProfessionalFocus] = useState('');
+    const [specificPreference, setSpecificPreference] = useState('');
+    const [isSettingsLoading, setIsSettingsLoading] = useState(false);
+    const [isSettingsSaving, setIsSettingsSaving] = useState(false);
+
+    // Load Settings
+    useEffect(() => {
+        if (activeMode === 'settings' && user) {
+            setIsSettingsLoading(true);
+            settingsService.getUserSettings(user.id)
+                .then(data => {
+                    if (data) {
+                        setSettingsState(data);
+
+                        // Parse Custom Instructions
+                        const instructions = data.custom_instructions || '';
+                        const nameMatch = instructions.match(/Name: (.*?)(\n|$)/);
+                        const specialtyMatch = instructions.match(/Specialty: (.*?)(\n|$)/);
+
+                        if (nameMatch) setNickname(nameMatch[1]);
+                        if (specialtyMatch) {
+                            const spec = specialtyMatch[1];
+                            const knownSpecialties = ['Cardiologia', 'Dermatologia', 'Clínica Geral', 'Pediatria', 'Ortopedia', 'Neurologia', 'Ginecologia', 'Psiquiatria'];
+                            if (knownSpecialties.includes(spec)) {
+                                setSpecialty(spec);
+                            } else {
+                                setSpecialty('Outra');
+                                setOtherSpecialty(spec);
+                            }
+                        }
+
+                        // Parse Preferences
+                        const preferences = data.response_preferences || '';
+                        const focusMatch = preferences.match(/Focus: (.*?)(\n|$)/);
+                        const specificMatch = preferences.match(/Preferences: (.*?)(\n|$)/);
+
+                        if (focusMatch) setProfessionalFocus(focusMatch[1]);
+                        if (specificMatch) setSpecificPreference(specificMatch[1]);
+                    }
+                })
+                .finally(() => setIsSettingsLoading(false));
+        }
+    }, [activeMode, user]);
+
+    const handleSaveProfile = async () => {
+        if (!user) return;
+        setIsSettingsSaving(true);
+
+        const finalSpecialty = specialty === 'Outra' ? otherSpecialty : specialty;
+        const formattedInstructions = `Name: ${nickname}\nSpecialty: ${finalSpecialty}`;
+        const formattedPreferences = `Focus: ${professionalFocus}\nPreferences: ${specificPreference}`;
+
+        const newSettings = {
+            ...settingsState,
+            custom_instructions: formattedInstructions,
+            response_preferences: formattedPreferences
+        };
+
+        try {
+            console.log('Saving profile settings:', newSettings);
+            await settingsService.updateUserSettings(user.id, newSettings);
+            setSettingsState(newSettings);
+            toast.success('Perfil atualizado com sucesso!');
+        } catch (error: any) {
+            console.error('Error saving settings FULL:', error);
+            console.error('Error message:', error.message);
+            console.error('Error details:', error.details);
+            console.error('Error hint:', error.hint);
+            toast.error('Erro ao salvar perfil: ' + (error.message || 'Erro desconhecido'));
+        } finally {
+            setIsSettingsSaving(false);
+        }
+    };
+
     const [selectedModelId, setSelectedModelId] = useState<string>(AVAILABLE_MODELS[0].id);
     const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
     const [agents, setAgents] = useState<Agent[]>([]);
 
     // Settings State
-    const [settingsTab, setSettingsTab] = useState<'profile' | 'subscription' | 'appearance'>('profile');
+    const [settingsTab, setSettingsTab] = useState<'profile' | 'subscription' | 'appearance' | 'security'>('profile');
 
     // Rotating Suggestions Logic
     // Load pinned suggestions from localStorage
@@ -1925,6 +2013,7 @@ Retorne APENAS o texto da carta em Markdown. Sem introduções. Sem bloco de có
                                 {settingsTab === 'profile' && 'Gerencie seus dados pessoais.'}
                                 {settingsTab === 'subscription' && 'Detalhes do seu plano e faturamento.'}
                                 {settingsTab === 'appearance' && 'Personalize a aparência do Dr. GPT.'}
+                                {settingsTab === 'security' && 'Gerencie a segurança da sua conta.'}
                             </p>
                         </div>
 
@@ -1948,7 +2037,7 @@ Retorne APENAS o texto da carta em Markdown. Sem introduções. Sem bloco de có
 
                                         <div className="flex items-baseline gap-3 mb-6">
                                             <h2 className="text-5xl font-extrabold text-white">
-                                                {session?.user?.plan?.name || 'Plano Gratuito'}
+                                                {user?.plan?.name || 'Plano Gratuito'}
                                             </h2>
                                             <span className="px-3 py-1 rounded-full bg-emerald-500 text-black text-xs font-bold uppercase tracking-wider">
                                                 Ativo
@@ -1983,8 +2072,8 @@ Retorne APENAS o texto da carta em Markdown. Sem introduções. Sem bloco de có
                                         <div className="flex items-center gap-2 text-zinc-200">
                                             <Activity className="w-5 h-5 text-zinc-500" />
                                             <span className="font-semibold text-lg">
-                                                {session?.user?.billing_current_period_end
-                                                    ? new Date(session.user.billing_current_period_end).toLocaleDateString('pt-BR')
+                                                {user?.billing_current_period_end
+                                                    ? new Date(user.billing_current_period_end).toLocaleDateString('pt-BR')
                                                     : 'N/A'
                                                 }
                                             </span>
@@ -2001,22 +2090,260 @@ Retorne APENAS o texto da carta em Markdown. Sem introduções. Sem bloco de có
                             </div>
                         )}
 
-                        {/* PROFILE PLACEHOLDER */}
+                        {/* PROFILE VIEW */}
                         {settingsTab === 'profile' && (
-                            <div className="flex flex-col items-center justify-center h-64 text-zinc-500 animate-in fade-in">
-                                <User className="w-16 h-16 mb-4 opacity-20" />
-                                <p>Edição de perfil será habilitada em breve.</p>
+                            <div className="max-w-4xl mx-auto w-full space-y-8 animate-in slide-in-from-bottom-4 duration-300">
+                                <div className="bg-[#2A2B32] border border-white/5 rounded-2xl p-8 space-y-8">
+                                    <div className="flex items-center gap-4 mb-2">
+                                        <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400">
+                                            <User className="w-6 h-6" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-xl font-bold text-white">Dados Pessoais</h2>
+                                            <p className="text-zinc-400 text-sm">Personalize como a IA interage com você.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Field 1: Nickname */}
+                                        <div className="space-y-3">
+                                            <label className="text-sm font-semibold text-zinc-200">Como o Dr. GPT deve te chamar?</label>
+                                            <input
+                                                type="text"
+                                                value={nickname}
+                                                onChange={(e) => setNickname(e.target.value)}
+                                                className="w-full bg-[#343541] border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-600"
+                                                placeholder="Ex: Dr. Jack"
+                                            />
+                                        </div>
+
+                                        {/* Field 2: Specialty */}
+                                        <div className="space-y-3">
+                                            <label className="text-sm font-semibold text-zinc-200">Especialidade Médica</label>
+                                            <div className="relative">
+                                                <select
+                                                    value={specialty}
+                                                    onChange={(e) => setSpecialty(e.target.value)}
+                                                    className="w-full bg-[#343541] border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none cursor-pointer"
+                                                >
+                                                    <option value="" disabled>Selecione sua área...</option>
+                                                    <option value="Cardiologia">Cardiologia</option>
+                                                    <option value="Dermatologia">Dermatologia</option>
+                                                    <option value="Clínica Geral">Clínica Geral</option>
+                                                    <option value="Pediatria">Pediatria</option>
+                                                    <option value="Ortopedia">Ortopedia</option>
+                                                    <option value="Neurologia">Neurologia</option>
+                                                    <option value="Ginecologia">Ginecologia</option>
+                                                    <option value="Psiquiatria">Psiquiatria</option>
+                                                    <option value="Outra">Outra Especialidade</option>
+                                                </select>
+                                                <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 rotate-90" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Conditional Input for 'Outra' */}
+                                    {specialty === 'Outra' && (
+                                        <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                                            <label className="text-sm font-semibold text-zinc-200">Qual sua especialidade?</label>
+                                            <input
+                                                type="text"
+                                                value={otherSpecialty}
+                                                onChange={(e) => setOtherSpecialty(e.target.value)}
+                                                className="w-full bg-[#343541] border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-600"
+                                                placeholder="Digite sua especialidade..."
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Field 3: Professional Focus */}
+                                    <div className="space-y-3">
+                                        <label className="text-sm font-semibold text-zinc-200">Qual seu objetivo principal?</label>
+                                        <div className="relative">
+                                            <select
+                                                value={professionalFocus}
+                                                onChange={(e) => setProfessionalFocus(e.target.value)}
+                                                className="w-full bg-[#343541] border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none cursor-pointer"
+                                            >
+                                                <option value="" disabled>Selecione o foco...</option>
+                                                <option value="Auxílio Clínico & Segunda Opinião">Auxílio Clínico & Segunda Opinião</option>
+                                                <option value="Burocracia & Documentação">Burocracia & Documentação (Laudos/Atestados)</option>
+                                                <option value="Estudos & Atualização Científica">Estudos & Atualização Científica</option>
+                                                <option value="Marketing Médico & Redes Sociais">Marketing Médico & Redes Sociais</option>
+                                                <option value="Gestão de Clínica">Gestão de Clínica</option>
+                                            </select>
+                                            <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 rotate-90" />
+                                        </div>
+                                    </div>
+
+                                    {/* Field 4: Specific Preference */}
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between items-baseline">
+                                            <label className="text-sm font-semibold text-zinc-200">Alguma preferência específica?</label>
+                                            <span className={`text-xs ${specificPreference.length > 180 ? 'text-red-400' : 'text-zinc-500'}`}>
+                                                {specificPreference.length}/200
+                                            </span>
+                                        </div>
+                                        <textarea
+                                            value={specificPreference}
+                                            onChange={(e) => {
+                                                if (e.target.value.length <= 200) {
+                                                    setSpecificPreference(e.target.value);
+                                                }
+                                            }}
+                                            className="w-full h-24 bg-[#343541] border border-white/10 rounded-xl p-4 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all resize-none placeholder-zinc-600 custom-scrollbar"
+                                            placeholder="Ex: Cite sempre fontes da SBC; Prefiro respostas em tópicos..."
+                                        />
+                                    </div>
+
+                                    <div className="flex justify-end pt-4 border-t border-white/5">
+                                        <button
+                                            onClick={handleSaveProfile}
+                                            disabled={isSettingsSaving}
+                                            className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                        >
+                                            {isSettingsSaving ? (
+                                                <>
+                                                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                                                    Salvando...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Check className="w-5 h-5" />
+                                                    Salvar Alterações
+                                                </>
+                                            )}
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
-                        {/* APPEARANCE PLACEHOLDER */}
+                        {/* APPEARANCE VIEW */}
                         {settingsTab === 'appearance' && (
-                            <div className="flex flex-col items-center justify-center h-64 text-zinc-500 animate-in fade-in">
-                                <Palette className="w-16 h-16 mb-4 opacity-20" />
-                                <p>Configurações de aparência (Tema Escuro/Claro) já estão aplicadas.</p>
+                            <div className="max-w-4xl mx-auto w-full space-y-8 animate-in slide-in-from-bottom-4 duration-300">
+                                <div className="bg-[#2A2B32] border border-white/5 rounded-2xl p-8 space-y-6">
+                                    <h2 className="text-xl font-bold text-white mb-6">Aparência e Cores</h2>
+
+                                    <div className="flex items-center justify-between p-4 bg-[#343541] rounded-xl border border-white/5">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-zinc-700/50 rounded-lg flex items-center justify-center">
+                                                <Palette className="w-5 h-5 text-zinc-400" />
+                                            </div>
+                                            <div>
+                                                <label className="block font-bold text-zinc-200">Tema da Interface</label>
+                                                <p className="text-sm text-zinc-500">Escolha entre modo claro ou escuro.</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex bg-black/20 p-1 rounded-lg border border-white/5">
+                                            <button
+                                                onClick={() => {
+                                                    setIsDarkMode(false);
+                                                    setSettingsState({ ...settingsState, theme: 'light' });
+                                                }}
+                                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${!isDarkMode ? 'bg-white text-black shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                                                    }`}
+                                            >
+                                                Claro
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setIsDarkMode(true);
+                                                    setSettingsState({ ...settingsState, theme: 'dark' });
+                                                }}
+                                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${isDarkMode ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                                                    }`}
+                                            >
+                                                Escuro
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-4 bg-[#343541] rounded-xl border border-white/5">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-zinc-700/50 rounded-lg flex items-center justify-center">
+                                                <Globe className="w-5 h-5 text-zinc-400" />
+                                            </div>
+                                            <div>
+                                                <label className="block font-bold text-zinc-200">Idioma</label>
+                                                <p className="text-sm text-zinc-500">Idioma principal do sistema.</p>
+                                            </div>
+                                        </div>
+                                        <select
+                                            value={settingsState.language}
+                                            onChange={(e) => setSettingsState({ ...settingsState, language: e.target.value })}
+                                            className="bg-[#2A2B32] border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                                        >
+                                            <option value="pt-BR">Português (Brasil)</option>
+                                            <option value="en-US">English (US)</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-xl flex gap-3">
+                                        <div className="mt-1">
+                                            <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-bold text-emerald-400">Preferência de Tema Salva</h4>
+                                            <p className="text-xs text-zinc-500 mt-1">Sua preferência de tema é salva localmente e sincronizada com seu perfil.</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         )}
 
+                        {/* SECURITY VIEW */}
+                        {settingsTab === 'security' && (
+                            <div className="max-w-4xl mx-auto w-full space-y-8 animate-in slide-in-from-bottom-4 duration-300">
+                                <div className="bg-[#2A2B32] border border-white/5 rounded-2xl p-8 space-y-6">
+                                    <h2 className="text-xl font-bold text-white mb-6">Segurança da Conta</h2>
+
+                                    <div className="p-4 bg-[#343541] rounded-xl border border-white/5 flex flex-col md:flex-row items-start md:items-center gap-6">
+                                        <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center shrink-0">
+                                            <Shield className="w-6 h-6 text-red-400" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="font-bold text-white text-lg">Redefinir Senha</h3>
+                                            <p className="text-sm text-zinc-400 mt-1">
+                                                Para garantir a segurança máxima da sua conta, enviaremos um link seguro para o seu email registrado ({user?.email}) para você criar uma nova senha.
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                console.log('Attempting reset for:', user?.email);
+                                                if (user?.email) {
+                                                    const { error } = await authService.resetPasswordForEmail(user.email);
+                                                    console.log('Reset result error:', error);
+                                                    if (error) {
+                                                        toast.error('Erro ao enviar email: ' + error.message);
+                                                    } else {
+                                                        toast.success('Email de redefinição enviado com sucesso!');
+                                                    }
+                                                } else {
+                                                    console.error('User email not found');
+                                                    toast.error('Email do usuário não encontrado.');
+                                                }
+                                            }}
+                                            className="px-6 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-red-900/20 active:scale-95 whitespace-nowrap"
+                                        >
+                                            Enviar Link
+                                        </button>
+                                    </div>
+
+                                    <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-xl flex gap-3">
+                                        <div className="mt-1">
+                                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-bold text-blue-400">Método 100% Seguro</h4>
+                                            <p className="text-xs text-zinc-500 mt-1">
+                                                Não solicitamos sua senha antiga. A confirmação via email garante que apenas o proprietário da conta possa realizar alterações críticas.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 

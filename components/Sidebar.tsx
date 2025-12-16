@@ -24,8 +24,9 @@ interface SidebarProps {
   onRenameChat: (chatId: string, newTitle: string) => void;
   onDeleteChat: (chatId: string) => void;
   onModeChange: (mode: AppMode) => void;
-  settingsTab: 'profile' | 'subscription' | 'appearance';
-  onSettingsTabChange: (tab: 'profile' | 'subscription' | 'appearance') => void;
+  onModeChange: (mode: AppMode) => void;
+  settingsTab: 'profile' | 'subscription' | 'appearance' | 'security';
+  onSettingsTabChange: (tab: 'profile' | 'subscription' | 'appearance' | 'security') => void;
 }
 
 export default function Sidebar({
@@ -414,6 +415,18 @@ export default function Sidebar({
                 >
                   <Palette size={18} className="text-zinc-500" />
                   <span>Aparência e Cores</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    onModeChange('settings');
+                    onSettingsTabChange('security');
+                    if (window.innerWidth < 768) setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${activeMode === 'settings' && settingsTab === 'security' ? (isDarkMode ? 'bg-white/10 text-white' : 'bg-black/5 text-black') : (isDarkMode ? 'text-textMain hover:bg-white/5' : 'text-gray-800 hover:bg-black/5')}`}
+                >
+                  <Shield size={18} className="text-zinc-500" />
+                  <span>Segurança</span>
                 </button>
               </div>
             </div>

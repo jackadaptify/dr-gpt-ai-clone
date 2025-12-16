@@ -10,6 +10,8 @@ export default function AuthPage() {
     const [loading, setLoading] = useState(false);
     const [confirmationSent, setConfirmationSent] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isReset, setIsReset] = useState(false);
+    const [resetSent, setResetSent] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -17,7 +19,11 @@ export default function AuthPage() {
         setError(null);
 
         try {
-            if (isLogin) {
+            if (isReset) {
+                const { error } = await authService.resetPasswordForEmail(email);
+                if (error) throw error;
+                setResetSent(true);
+            } else if (isLogin) {
                 const { error } = await authService.signIn(email, password);
                 if (error) throw error;
             } else {
@@ -52,7 +58,9 @@ export default function AuthPage() {
                         Dr. <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">GPT</span>
                     </h1>
                     <p className="text-zinc-500 text-sm">
-                        {isLogin ? 'Bem-vindo de volta, doutor.' : 'Crie sua conta para começar.'}
+                        {isReset
+                            ? 'Recupere sua senha.'
+                            : (isLogin ? 'Bem-vindo de volta, doutor.' : 'Crie sua conta para começar.')}
                     </p>
                 </div>
 
@@ -60,7 +68,7 @@ export default function AuthPage() {
                     {/* Glass Shine */}
                     <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
 
-                    {confirmationSent ? (
+                    {confirmationSent || resetSent ? (
                         <div className="text-center py-4 animate-in fade-in zoom-in-95 duration-500">
                             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-500/10 mb-4">
                                 <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -69,12 +77,18 @@ export default function AuthPage() {
                             </div>
                             <h3 className="text-xl font-bold text-white mb-2">Verifique seu email</h3>
                             <p className="text-zinc-400 text-sm mb-6">
-                                Enviamos um link de confirmação para <span className="text-white font-medium">{email}</span>.
-                                <br />Please check your inbox (and spam) to activate your account.
+                                {resetSent
+                                    ? 'Enviamos as instruções de recuperação para '
+                                    : 'Enviamos um link de confirmação para '
+                                }
+                                <span className="text-white font-medium">{email}</span>.
+                                <br />Verifique sua caixa de entrada (e spam).
                             </p>
                             <button
                                 onClick={() => {
                                     setConfirmationSent(false);
+                                    setResetSent(false);
+                                    setIsReset(false);
                                     setIsLogin(true);
                                 }}
                                 className="w-full bg-[#18181b] border border-white/10 hover:bg-[#27272a] text-white font-medium py-3 rounded-xl transition-all"
@@ -90,7 +104,7 @@ export default function AuthPage() {
                                 </div>
                             )}
 
-                            {!isLogin && (
+                            {!isLogin && !isReset && (
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-medium text-zinc-400 ml-1">Nome Completo</label>
                                     <input
@@ -116,17 +130,34 @@ export default function AuthPage() {
                                 />
                             </div>
 
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-medium text-zinc-400 ml-1">Senha</label>
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required
-                                    className="w-full bg-[#0a0a0a] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
-                                    placeholder="••••••••"
-                                />
-                            </div>
+                            {!isReset && (
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-medium text-zinc-400 ml-1">Senha</label>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                        className="w-full bg-[#0a0a0a] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                                        placeholder="••••••••"
+                                    />
+                                    {isLogin && (
+                                        <div className="flex justify-end">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsReset(true);
+                                                    setIsLogin(false);
+                                                    setError(null);
+                                                }}
+                                                className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors"
+                                            >
+                                                Esqueci minha senha
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             <button
                                 type="submit"
@@ -142,21 +173,33 @@ export default function AuthPage() {
                                         Processando...
                                     </span>
                                 ) : (
-                                    isLogin ? 'Entrar' : 'Criar Conta'
+                                    isReset ? 'Enviar Email de Recuperação' : (isLogin ? 'Entrar' : 'Criar Conta')
                                 )}
                             </button>
                         </form>
                     )}
                 </div>
 
-                {!confirmationSent && (
-                    <div className="text-center mt-8">
-                        <button
-                            onClick={() => setIsLogin(!isLogin)}
-                            className="text-sm text-zinc-500 hover:text-emerald-400 transition-colors"
-                        >
-                            {isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Entre'}
-                        </button>
+                {!confirmationSent && !resetSent && (
+                    <div className="text-center mt-8 space-y-2">
+                        {isReset ? (
+                            <button
+                                onClick={() => {
+                                    setIsReset(false);
+                                    setIsLogin(true);
+                                }}
+                                className="text-sm text-zinc-500 hover:text-white transition-colors"
+                            >
+                                Voltar para o Login
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setIsLogin(!isLogin)}
+                                className="text-sm text-zinc-500 hover:text-emerald-400 transition-colors"
+                            >
+                                {isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Entre'}
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

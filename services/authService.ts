@@ -24,6 +24,14 @@ export const authService = {
         return { data, error };
     },
 
+
+    async resetPasswordForEmail(email: string) {
+        const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + '/reset-password', // Ensure this route is handled if we want deep linking, or just let Supabase handle the magic link logic. Usually defaults to site URL.
+        });
+        return { data, error };
+    },
+
     async signOut() {
         const { error } = await supabase.auth.signOut();
         return { error };
