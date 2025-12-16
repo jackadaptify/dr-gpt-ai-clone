@@ -766,10 +766,16 @@ function AppContent() {
                 return `\n\n--- Contexto do Documento (${p.name}) ---\n${text}`;
             }).join('');
 
-            finalContent = `${textToSend}${pdfContext}`;
+            // 🔒 HIDE PDF TEXT FROM UI (Bubble)
+            // The UI splits by :::HIDDEN::: and shows the first part.
+            // The backend receives the full content via chatService logic.
+            finalContent = `${textToSend} :::HIDDEN::: ${pdfContext}`;
         }
 
-        const messageContent = overrideDisplay ? `${overrideDisplay}:::HIDDEN:::${finalContent}` : finalContent;
+        // If overrideDisplay exists, it takes precedence as the visible part, but we still append the hidden content
+        const messageContent = overrideDisplay
+            ? `${overrideDisplay} :::HIDDEN::: ${finalContent.includes(':::HIDDEN:::') ? finalContent.split(':::HIDDEN:::')[1] : finalContent}`
+            : finalContent;
         const messageAttachments = [...pendingAttachments];
         const capturedTools = { ...activeTools };
 
