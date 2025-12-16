@@ -7,7 +7,7 @@ import { fetchOpenRouterModels, OpenRouterModel } from './services/openRouterSer
 import { agentService } from './services/agentService';
 import { projectService } from './services/projectService'; // Implemented
 import { adminService } from './services/adminService';
-import { IconMenu, IconSend, IconAttachment, IconGlobe, IconImage, IconBrain, IconPlus } from './components/Icons';
+import { IconMenu, IconSend, IconAttachment, IconGlobe, IconImage, IconBrain, IconPlus, IconCreditCard } from './components/Icons';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthPage from './components/Auth/AuthPage';
@@ -43,7 +43,10 @@ import {
     Star,
     Brain,
     Mail,
-    Pin
+    Pin,
+    CreditCard,
+    User,
+    Palette
 } from 'lucide-react';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import RailNav from './components/RailNav';
@@ -128,6 +131,9 @@ function AppContent() {
     const [selectedModelId, setSelectedModelId] = useState<string>(AVAILABLE_MODELS[0].id);
     const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
     const [agents, setAgents] = useState<Agent[]>([]);
+
+    // Settings State
+    const [settingsTab, setSettingsTab] = useState<'profile' | 'subscription' | 'appearance'>('profile');
 
     // Rotating Suggestions Logic
     // Load pinned suggestions from localStorage
@@ -1023,7 +1029,9 @@ function AppContent() {
                     onAssignChatToProject={handleAssignChatToProject}
                     onRenameChat={handleRenameChat}
                     onDeleteChat={handleDeleteChat}
-                    onModeChange={handleModeChange}
+                    onModeChange={setActiveMode}
+                    settingsTab={settingsTab}
+                    onSettingsTabChange={setSettingsTab}
                 />
             )}
 
@@ -1906,13 +1914,109 @@ Retorne APENAS o texto da carta em Markdown. Sem introduções. Sem bloco de có
                 )}
 
                 {activeMode === 'settings' && (
-                    <div className="flex flex-col items-center justify-center h-full text-center p-8 animate-in fade-in duration-500">
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-zinc-200 to-zinc-400 bg-clip-text text-transparent mb-4">
-                            Configurações
-                        </h1>
-                        <p className="text-zinc-400 max-w-md">
-                            Gerencie sua conta, assinatura e preferências.
-                        </p>
+                    <div className="flex flex-col h-full overflow-y-auto custom-scrollbar p-8 animate-in fade-in duration-500">
+
+                        {/* Settings Header */}
+                        <div className="mb-8">
+                            <h1 className="text-3xl font-bold bg-gradient-to-r from-zinc-200 to-zinc-400 bg-clip-text text-transparent mb-2">
+                                Configurações
+                            </h1>
+                            <p className="text-zinc-400">
+                                {settingsTab === 'profile' && 'Gerencie seus dados pessoais.'}
+                                {settingsTab === 'subscription' && 'Detalhes do seu plano e faturamento.'}
+                                {settingsTab === 'appearance' && 'Personalize a aparência do Dr. GPT.'}
+                            </p>
+                        </div>
+
+                        {/* SUBSCRIPTION VIEW */}
+                        {settingsTab === 'subscription' && (
+                            <div className="max-w-4xl mx-auto w-full space-y-8 animate-in slide-in-from-bottom-4 duration-300">
+
+                                {/* Current Plan Card */}
+                                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-8 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                                        <IconCreditCard className="w-64 h-64 text-emerald-500" />
+                                    </div>
+
+                                    <div className="relative z-10">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center text-emerald-400">
+                                                <IconCreditCard className="w-6 h-6" />
+                                            </div>
+                                            <span className="text-sm font-bold text-emerald-400 uppercase tracking-widest">Plano Atual</span>
+                                        </div>
+
+                                        <div className="flex items-baseline gap-3 mb-6">
+                                            <h2 className="text-5xl font-extrabold text-white">
+                                                {session?.user?.plan?.name || 'Plano Gratuito'}
+                                            </h2>
+                                            <span className="px-3 py-1 rounded-full bg-emerald-500 text-black text-xs font-bold uppercase tracking-wider">
+                                                Ativo
+                                            </span>
+                                        </div>
+
+                                        <p className="text-zinc-400 text-lg max-w-xl mb-8 leading-relaxed">
+                                            Você tem acesso a inteligência clínica avançada, transcrição de áudio ilimitada e todos os recursos premium do Dr. GPT.
+                                        </p>
+
+                                        <button
+                                            className="px-6 py-3 bg-white text-emerald-900 font-bold rounded-xl hover:bg-zinc-200 transition-all shadow-lg active:scale-95 flex items-center gap-2"
+                                            onClick={() => window.open('https://checkout.stripe.com/c/pay/...', '_blank')}
+                                        >
+                                            <Settings className="w-4 h-4" />
+                                            Gerenciar Assinatura na Stripe
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Billing Details Grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="bg-white/5 p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+                                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider block mb-2">Status</span>
+                                        <div className="flex items-center gap-2 text-emerald-400">
+                                            <Check className="w-5 h-5" />
+                                            <span className="font-semibold text-lg">Pagamento em dia</span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white/5 p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+                                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider block mb-2">Próxima Cobrança</span>
+                                        <div className="flex items-center gap-2 text-zinc-200">
+                                            <Activity className="w-5 h-5 text-zinc-500" />
+                                            <span className="font-semibold text-lg">
+                                                {session?.user?.billing_current_period_end
+                                                    ? new Date(session.user.billing_current_period_end).toLocaleDateString('pt-BR')
+                                                    : 'N/A'
+                                                }
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white/5 p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
+                                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider block mb-2">Método</span>
+                                        <div className="flex items-center gap-2 text-zinc-200">
+                                            <CreditCard className="w-5 h-5 text-zinc-500" />
+                                            <span className="font-semibold text-lg">Cartão •••• 4242</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* PROFILE PLACEHOLDER */}
+                        {settingsTab === 'profile' && (
+                            <div className="flex flex-col items-center justify-center h-64 text-zinc-500 animate-in fade-in">
+                                <User className="w-16 h-16 mb-4 opacity-20" />
+                                <p>Edição de perfil será habilitada em breve.</p>
+                            </div>
+                        )}
+
+                        {/* APPEARANCE PLACEHOLDER */}
+                        {settingsTab === 'appearance' && (
+                            <div className="flex flex-col items-center justify-center h-64 text-zinc-500 animate-in fade-in">
+                                <Palette className="w-16 h-16 mb-4 opacity-20" />
+                                <p>Configurações de aparência (Tema Escuro/Claro) já estão aplicadas.</p>
+                            </div>
+                        )}
+
                     </div>
                 )}
 

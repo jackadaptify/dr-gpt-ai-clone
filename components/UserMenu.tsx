@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { IconSettings, IconUser, IconBrain } from './Icons';
+import { IconSettings, IconUser, IconBrain, IconCreditCard } from './Icons';
 import SettingsModal from './SettingsModal';
 
 interface UserMenuProps {
@@ -12,6 +12,7 @@ export default function UserMenu({ isDarkMode, toggleTheme }: UserMenuProps) {
     const { user, signOut } = useAuth();
     const [isOpen, setIsOpen] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
+    const [initialSettingsTab, setInitialSettingsTab] = useState('personalization');
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -64,6 +65,19 @@ export default function UserMenu({ isDarkMode, toggleTheme }: UserMenuProps) {
                         <button
                             onClick={() => {
                                 setIsOpen(false);
+                                setInitialSettingsTab('subscription');
+                                setShowSettings(true);
+                            }}
+                            className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-white/5 flex items-center gap-2"
+                        >
+                            <IconCreditCard className="w-4 h-4" />
+                            Assinatura
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setIsOpen(false);
+                                setInitialSettingsTab('personalization');
                                 setShowSettings(true);
                             }}
                             className="w-full text-left px-4 py-2.5 text-sm text-zinc-300 hover:bg-white/5 flex items-center gap-2"
@@ -89,6 +103,7 @@ export default function UserMenu({ isDarkMode, toggleTheme }: UserMenuProps) {
                 onClose={() => setShowSettings(false)}
                 isDarkMode={isDarkMode}
                 toggleTheme={toggleTheme}
+                initialTab={initialSettingsTab}
             />
         </>
     );

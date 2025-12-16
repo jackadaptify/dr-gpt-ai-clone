@@ -24,6 +24,8 @@ interface SidebarProps {
   onRenameChat: (chatId: string, newTitle: string) => void;
   onDeleteChat: (chatId: string) => void;
   onModeChange: (mode: AppMode) => void;
+  settingsTab: 'profile' | 'subscription' | 'appearance';
+  onSettingsTabChange: (tab: 'profile' | 'subscription' | 'appearance') => void;
 }
 
 export default function Sidebar({
@@ -43,7 +45,9 @@ export default function Sidebar({
   onAssignChatToProject,
   onRenameChat,
   onDeleteChat,
-  onModeChange
+  onModeChange,
+  settingsTab,
+  onSettingsTabChange
 }: SidebarProps) {
   const { user, signOut } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -376,17 +380,37 @@ export default function Sidebar({
             <div>
               <h3 className={`text-xs font-bold uppercase tracking-wider mb-3 px-2 ${isDarkMode ? 'text-gray-500' : 'text-gray-400'}`}>Conta</h3>
               <div className="space-y-1">
-                <button className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${isDarkMode ? 'text-textMain hover:bg-white/5' : 'text-gray-800 hover:bg-black/5'}`}>
+                <button
+                  onClick={() => {
+                    onModeChange('settings');
+                    onSettingsTabChange('profile');
+                    if (window.innerWidth < 768) setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${activeMode === 'settings' && settingsTab === 'profile' ? (isDarkMode ? 'bg-white/10 text-white' : 'bg-black/5 text-black') : (isDarkMode ? 'text-textMain hover:bg-white/5' : 'text-gray-800 hover:bg-black/5')}`}
+                >
                   <User size={18} className="text-zinc-500" />
                   <span>Dados Pessoais</span>
                 </button>
-                <button className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${isDarkMode ? 'text-textMain hover:bg-white/5' : 'text-gray-800 hover:bg-black/5'}`}>
+
+                <button
+                  onClick={() => {
+                    onModeChange('settings');
+                    onSettingsTabChange('subscription');
+                    if (window.innerWidth < 768) setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${activeMode === 'settings' && settingsTab === 'subscription' ? (isDarkMode ? 'bg-white/10 text-white' : 'bg-black/5 text-black') : (isDarkMode ? 'text-textMain hover:bg-white/5' : 'text-gray-800 hover:bg-black/5')}`}
+                >
                   <CreditCard size={18} className="text-zinc-500" />
                   <span>Assinatura</span>
                 </button>
+
                 <button
-                  onClick={() => setShowSettingsModal(true)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${isDarkMode ? 'text-textMain hover:bg-white/5' : 'text-gray-800 hover:bg-black/5'}`}
+                  onClick={() => {
+                    onModeChange('settings');
+                    onSettingsTabChange('appearance');
+                    if (window.innerWidth < 768) setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${activeMode === 'settings' && settingsTab === 'appearance' ? (isDarkMode ? 'bg-white/10 text-white' : 'bg-black/5 text-black') : (isDarkMode ? 'text-textMain hover:bg-white/5' : 'text-gray-800 hover:bg-black/5')}`}
                 >
                   <Palette size={18} className="text-zinc-500" />
                   <span>Aparência e Cores</span>
