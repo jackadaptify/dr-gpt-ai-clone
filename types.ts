@@ -64,10 +64,10 @@ export interface User {
   full_name?: string;
   avatar_url?: string;
   role?: 'user' | 'admin';
+  plan?: SubscriptionPlan; // Populated via join or separate fetch
+  billing_current_period_end?: string;
   billing_plan_id?: string;
   billing_status?: string;
-  billing_current_period_end?: string;
-  plan?: SubscriptionPlan; // Populated via join or separate fetch
 }
 
 export interface Agent {

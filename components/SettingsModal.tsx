@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { IconSettings, IconGlobe, IconBrain, IconUser, IconCheck } from './Icons';
+import { IconSettings, IconGlobe, IconBrain, IconUser, IconCheck, IconCreditCard } from './Icons';
 import { useAuth } from '../contexts/AuthContext';
 import { settingsService, UserSettings } from '../services/settingsService';
 
@@ -10,10 +10,17 @@ interface SettingsModalProps {
     onClose: () => void;
     isDarkMode: boolean;
     toggleTheme: () => void;
+    initialTab?: string;
 }
 
-export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme }: SettingsModalProps) {
-    const [activeTab, setActiveTab] = useState('personalization');
+export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme, initialTab = 'personalization' }: SettingsModalProps) {
+    const [activeTab, setActiveTab] = useState(initialTab);
+
+    useEffect(() => {
+        if (isOpen && initialTab) {
+            setActiveTab(initialTab);
+        }
+    }, [isOpen, initialTab]);
     const { user } = useAuth();
 
     // Raw settings from DB
@@ -141,6 +148,7 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
 
     const tabs = [
         { id: 'personalization', label: 'Personalização', icon: IconUser },
+        { id: 'subscription', label: 'Assinatura', icon: IconCreditCard },
         { id: 'general', label: 'Geral', icon: IconSettings },
         { id: 'data', label: 'Controle de Dados', icon: IconBrain },
     ];
@@ -296,6 +304,61 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
                                     </div>
                                 )}
 
+
+
+                                {activeTab === 'subscription' && (
+                                    <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-300">
+                                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-6 relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 p-4 opacity-10">
+                                                <IconCreditCard className="w-32 h-32 text-emerald-500" />
+                                            </div>
+
+                                            <div className="relative z-10">
+                                                <h4 className="text-xl font-bold text-white mb-2">Plano Atual</h4>
+                                                <div className="flex items-baseline gap-2 mb-4">
+                                                    <span className="text-3xl font-extrabold text-emerald-400">
+                                                        {user?.plan?.name || 'Plano Gratuito'}
+                                                    </span>
+                                                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                                                        Ativo
+                                                    </span>
+                                                </div>
+
+                                                <p className="text-zinc-400 text-sm max-w-md mb-6">
+                                                    Você tem acesso a todos os recursos básicos do Dr. GPT.
+                                                    {/* ToDo: Add specific features check based on plan */}
+                                                </p>
+
+                                                <button
+                                                    className="px-4 py-2 bg-white text-emerald-900 text-sm font-bold rounded-lg hover:bg-zinc-200 transition-colors"
+                                                    onClick={() => window.open('https://checkout.stripe.com/c/pay/...', '_blank')}
+                                                >
+                                                    Gerenciar Assinatura
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <h5 className="font-semibold text-zinc-300">Detalhes do Plano</h5>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="bg-[#2A2B32] p-4 rounded-xl border border-white/5">
+                                                    <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Status do Pagamento</span>
+                                                    <p className="text-white font-medium mt-1">Em dia</p>
+                                                </div>
+                                                <div className="bg-[#2A2B32] p-4 rounded-xl border border-white/5">
+                                                    <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Próxima Cobrança</span>
+                                                    <p className="text-white font-medium mt-1">
+                                                        {user?.billing_current_period_end
+                                                            ? new Date(user.billing_current_period_end).toLocaleDateString('pt-BR')
+                                                            : 'N/A'
+                                                        }
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {activeTab === 'general' && (
                                     <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-300">
                                         <div className="flex items-center justify-between p-4 bg-[#2A2B32] rounded-xl border border-white/5">
@@ -387,7 +450,7 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 
     return createPortal(modalContent, document.body);
