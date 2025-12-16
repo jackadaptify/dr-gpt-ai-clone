@@ -1,16 +1,25 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Message, Role, AVAILABLE_MODELS } from '../types';
-import { IconBot, IconUser, getProviderIcon } from './Icons';
+import { Message, Role, AVAILABLE_MODELS, Agent } from '../types';
+import { IconBot, IconUser, getProviderIcon, IconStethoscope, IconActivity, IconBaby, IconSkin, IconBrain } from './Icons';
 
 interface MessageItemProps {
   message: Message;
   isDarkMode: boolean;
+  agent?: Agent; // Optional agent context
 }
 
+const AGENT_ICONS: Record<string, React.ElementType> = {
+  'IconStethoscope': IconStethoscope,
+  'IconActivity': IconActivity,
+  'IconBaby': IconBaby,
+  'IconSkin': IconSkin,
+  'IconBrain': IconBrain
+};
+
 // 🔧 FIX: Memoize to prevent re-renders of unchanged messages
-const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMode }) => {
+const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMode, agent }) => {
   const isUser = message.role === Role.USER;
 
   // Download image handler
@@ -59,8 +68,14 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
             ${isDarkMode ? 'bg-gradient-to-br from-surfaceHighlight to-surface shadow-convex' : 'bg-white border border-gray-200'}
           `}>
               <div className="animate-in fade-in zoom-in duration-300 scale-90">
-                {/* Dynamic Icon based on Model ID */}
-                {message.modelId ? (
+                {/* 1. Custom Agent Avatar URL */}
+                {agent?.avatarUrl ? (
+                  <img src={agent.avatarUrl} alt={agent.name} className="w-full h-full object-cover rounded-xl" />
+                ) : agent?.icon && AGENT_ICONS[agent.icon] ? (
+                  /* 2. Specific Agent Icon */
+                  React.createElement(AGENT_ICONS[agent.icon], { className: `w-6 h-6 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}` })
+                ) : message.modelId ? (
+                  /* 3. Provider/Model Icon (Fallback) */
                   getProviderIcon(
                     AVAILABLE_MODELS.find(m => m.id === message.modelId)?.provider ||
                     (message.modelId.includes('gpt') ? 'OpenAI' :
@@ -84,7 +99,9 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
           `}>
             {!isUser && (
               <div className="font-bold text-sm mb-3 flex items-center gap-2">
-                <span className={`bg-clip-text text-transparent drop-shadow-sm tracking-wide ${isDarkMode ? 'bg-gradient-to-r from-emerald-400 to-teal-300' : 'bg-gradient-to-r from-emerald-600 to-teal-600'}`}>Dr. GPT</span>
+                <span className={`bg-clip-text text-transparent drop-shadow-sm tracking-wide ${isDarkMode ? 'bg-gradient-to-r from-emerald-400 to-teal-300' : 'bg-gradient-to-r from-emerald-600 to-teal-600'}`}>
+                  {agent ? agent.name : 'Dr. GPT'}
+                </span>
                 <span className="text-[10px] text-textMuted font-normal ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>

@@ -8,7 +8,7 @@ import { agentService } from './services/agentService';
 import { extractTextFromPdf } from './services/pdfService';
 import { projectService } from './services/projectService'; // Implemented
 import { adminService } from './services/adminService';
-import { IconMenu, IconSend, IconAttachment, IconGlobe, IconImage, IconBrain, IconPlus, IconCreditCard } from './components/Icons';
+import { IconMenu, IconSend, IconAttachment, IconGlobe, IconImage, IconBrain, IconPlus, IconCreditCard, IconFile } from './components/Icons';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthPage from './components/Auth/AuthPage';
@@ -51,6 +51,7 @@ import {
     User,
     Palette,
     ChevronRight,
+    X,
 } from 'lucide-react';
 import { settingsService, UserSettings } from './services/settingsService';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
@@ -1269,9 +1270,11 @@ function AppContent() {
                                     // Message List
                                     <div className="w-full flex-1 pb-48 pt-20">
                                         <div className="max-w-3xl mx-auto">
-                                            {activeChat.messages.map(msg => (
-                                                <MessageItem key={msg.id} message={msg} isDarkMode={isDarkMode} />
-                                            ))}
+                                            {activeChat.messages.map(msg => {
+                                                // Find the agent if the chat is associated with one
+                                                const chatAgent = activeChat.agentId ? agents.find(a => a.id === activeChat.agentId) : undefined;
+                                                return <MessageItem key={msg.id} message={msg} isDarkMode={isDarkMode} agent={chatAgent} />;
+                                            })}
                                         </div>
                                         <div ref={messagesEndRef} />
                                     </div>
@@ -1286,21 +1289,33 @@ function AppContent() {
 
                                         {/* Pending Attachments Preview */}
                                         {pendingAttachments.length > 0 && (
-                                            <div className="flex gap-2 px-6 pt-4 pb-2 overflow-x-auto">
+                                            <div className="flex gap-3 px-6 pt-4 pb-2 overflow-x-auto">
                                                 {pendingAttachments.map(att => (
-                                                    <div key={att.id} className="relative group">
+                                                    <div key={att.id} className={`relative group flex items-center gap-3 p-3 rounded-2xl border transition-all duration-200 min-w-[200px] hover:shadow-md ${isDarkMode ? 'bg-[#27272a] border-zinc-700' : 'bg-white border-slate-200'}`}>
                                                         {att.type === 'image' ? (
-                                                            <img src={att.url} alt="Preview" className="h-16 w-16 object-cover rounded-lg border border-borderLight" />
+                                                            <div className="relative w-10 h-10 shrink-0">
+                                                                <img src={att.url} alt="Preview" className="h-full w-full object-cover rounded-lg" />
+                                                            </div>
                                                         ) : (
-                                                            <div className="h-16 w-16 flex items-center justify-center bg-surfaceHighlight rounded-lg border border-borderLight text-xs text-center p-1">
-                                                                {att.name}
+                                                            <div className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-lg ${isDarkMode ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                                <IconFile className="w-5 h-5" />
                                                             </div>
                                                         )}
+
+                                                        <div className="flex-1 min-w-0 pr-4">
+                                                            <p className={`text-xs font-semibold truncate ${isDarkMode ? 'text-zinc-200' : 'text-slate-700'}`}>
+                                                                {att.name}
+                                                            </p>
+                                                            <p className="text-[10px] text-textMuted uppercase font-medium">
+                                                                {att.mimeType.split('/').pop()} {att.mimeType === 'application/pdf' && att.extractedText ? '• Processado' : ''}
+                                                            </p>
+                                                        </div>
+
                                                         <button
                                                             onClick={() => removeAttachment(att.id)}
-                                                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:scale-110"
                                                         >
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                            <X size={12} />
                                                         </button>
                                                     </div>
                                                 ))}
