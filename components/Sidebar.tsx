@@ -24,7 +24,7 @@ interface SidebarProps {
   onRenameChat: (chatId: string, newTitle: string) => void;
   onDeleteChat: (chatId: string) => void;
   onModeChange: (mode: AppMode) => void;
-  onModeChange: (mode: AppMode) => void;
+
   settingsTab: 'profile' | 'subscription' | 'appearance' | 'security';
   onSettingsTabChange: (tab: 'profile' | 'subscription' | 'appearance' | 'security') => void;
 }
