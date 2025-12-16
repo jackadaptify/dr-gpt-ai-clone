@@ -5,6 +5,7 @@ import { ChatSession, Message, Role, AVAILABLE_MODELS, Folder, Agent, Attachment
 import { streamChatResponse, saveMessage, loadChatHistory, createChat, updateChat, loadMessagesForChat, deleteChat } from './services/chatService';
 import { fetchOpenRouterModels, OpenRouterModel } from './services/openRouterService';
 import { agentService } from './services/agentService';
+import { extractTextFromPdf } from './services/pdfService';
 import { projectService } from './services/projectService'; // Implemented
 import { adminService } from './services/adminService';
 import { IconMenu, IconSend, IconAttachment, IconGlobe, IconImage, IconBrain, IconPlus, IconCreditCard } from './components/Icons';
@@ -14,6 +15,7 @@ import AuthPage from './components/Auth/AuthPage';
 // import { chatStorage } from './services/chatStorage'; // Removed for Supabase
 import AdminPage from './components/Admin/AdminPage';
 import { modelHealthService, ModelHealth } from './services/modelHealthService';
+import { authService } from './services/authService';
 import { supabase } from './lib/supabase';
 import ModelSelector from './components/ModelSelector';
 import AttachmentMenu from './components/AttachmentMenu';
@@ -668,6 +670,18 @@ function AppContent() {
             const filePath = `${fileName}`;
 
             try {
+                // Extract text if PDF (Client-side)
+                let extractedText = '';
+                if (file.type === 'application/pdf') {
+                    try {
+                        extractedText = await extractTextFromPdf(file);
+                        console.log('📄 PDF Extracted:', extractedText.length, 'chars');
+                    } catch (e) {
+                        console.error('Failed to extract PDF text:', e);
+                        toast.error('Erro ao ler texto do PDF. O arquivo será enviado apenas como anexo.');
+                    }
+                }
+
                 // Upload to Supabase
                 const { error: uploadError } = await supabase.storage
                     .from('chat-attachments')
@@ -687,7 +701,8 @@ function AppContent() {
                     type: file.type.startsWith('image/') ? 'image' : 'file',
                     url: publicUrl,
                     mimeType: file.type,
-                    name: file.name
+                    name: file.name,
+                    extractedText: extractedText || undefined
                 };
 
                 setPendingAttachments(prev => [...prev, newAttachment]);
@@ -734,7 +749,27 @@ function AppContent() {
 
         // 2. Capture State BEFORE clearing inputs
         // 🔒 SECURITY: Hide the prompt if overrideDisplay is present
-        const messageContent = overrideDisplay ? `${overrideDisplay}:::HIDDEN:::${textToSend}` : textToSend;
+        // 📄 PDF: Inject extracted text if available
+        let finalContent = textToSend;
+        const pdfAttachments = pendingAttachments.filter(a => a.mimeType === 'application/pdf' && a.extractedText);
+
+        if (pdfAttachments.length > 0) {
+            // Truncate to avoid 500 Errors (Server Limit / Timeout)
+            const MAX_CHARS = 150000; // ~35k tokens safe zone
+
+            const pdfContext = pdfAttachments.map(p => {
+                let text = p.extractedText || '';
+                if (text.length > MAX_CHARS) {
+                    text = text.substring(0, MAX_CHARS) + '\n\n... [TEXTO TRUNCADO POR LIMITE DE TAMANHO] ...';
+                    console.warn(`⚠️ PDF Truncated: ${p.extractedText?.length} -> ${MAX_CHARS} chars`);
+                }
+                return `\n\n--- Contexto do Documento (${p.name}) ---\n${text}`;
+            }).join('');
+
+            finalContent = `${textToSend}${pdfContext}`;
+        }
+
+        const messageContent = overrideDisplay ? `${overrideDisplay}:::HIDDEN:::${finalContent}` : finalContent;
         const messageAttachments = [...pendingAttachments];
         const capturedTools = { ...activeTools };
 

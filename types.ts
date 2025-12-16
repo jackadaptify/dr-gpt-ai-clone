@@ -13,6 +13,7 @@ export interface Attachment {
   url: string;
   mimeType: string;
   name: string;
+  extractedText?: string;
 }
 
 export interface Message {
