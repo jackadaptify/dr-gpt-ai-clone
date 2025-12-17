@@ -91,8 +91,8 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, on
                 <button
                     onClick={() => setMobileTab('document')}
                     className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${mobileTab === 'document'
-                            ? (isDarkMode ? 'border-emerald-500 text-emerald-500' : 'border-emerald-600 text-emerald-600')
-                            : 'border-transparent text-gray-500'
+                        ? (isDarkMode ? 'border-emerald-500 text-emerald-500' : 'border-emerald-600 text-emerald-600')
+                        : 'border-transparent text-gray-500'
                         }`}
                 >
                     Documento
@@ -100,8 +100,8 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, on
                 <button
                     onClick={() => setMobileTab('chat')}
                     className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${mobileTab === 'chat'
-                            ? (isDarkMode ? 'border-emerald-500 text-emerald-500' : 'border-emerald-600 text-emerald-600')
-                            : 'border-transparent text-gray-500'
+                        ? (isDarkMode ? 'border-emerald-500 text-emerald-500' : 'border-emerald-600 text-emerald-600')
+                        : 'border-transparent text-gray-500'
                         }`}
                 >
                     Chat e Ajustes
