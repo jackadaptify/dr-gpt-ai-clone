@@ -27,6 +27,7 @@ interface SidebarProps {
 
   settingsTab: 'profile' | 'subscription' | 'appearance' | 'security';
   onSettingsTabChange: (tab: 'profile' | 'subscription' | 'appearance' | 'security') => void;
+  onDeleteProject: (projectId: string) => void;
 }
 
 export default function Sidebar({
@@ -48,7 +49,8 @@ export default function Sidebar({
   onDeleteChat,
   onModeChange,
   settingsTab,
-  onSettingsTabChange
+  onSettingsTabChange,
+  onDeleteProject
 }: SidebarProps) {
   const { user, signOut } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -315,14 +317,29 @@ export default function Sidebar({
                 </button>
 
                 {folders.map(folder => (
-                  <button
-                    key={folder.id}
-                    onClick={() => setSelectedFolderId(folder.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors group ${selectedFolderId === folder.id ? (isDarkMode ? 'text-emerald-400 bg-white/5' : 'text-emerald-600 bg-black/5') : (isDarkMode ? 'text-textMuted hover:text-textMain hover:bg-white/5' : 'text-slate-600 hover:text-slate-900 hover:bg-black/5')}`}
-                  >
-                    <span className={`${selectedFolderId === folder.id ? 'text-emerald-500' : 'text-emerald-500/80 group-hover:text-emerald-500'} transition-colors`}><LucideFolder size={16} /></span>
-                    {folder.name}
-                  </button>
+                  <div key={folder.id} className="relative group/folder">
+                    <button
+                      onClick={() => setSelectedFolderId(folder.id)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors group ${selectedFolderId === folder.id ? (isDarkMode ? 'text-emerald-400 bg-white/5' : 'text-emerald-600 bg-black/5') : (isDarkMode ? 'text-textMuted hover:text-textMain hover:bg-white/5' : 'text-slate-600 hover:text-slate-900 hover:bg-black/5')}`}
+                    >
+                      <span className={`${selectedFolderId === folder.id ? 'text-emerald-500' : 'text-emerald-500/80 group-hover:text-emerald-500'} transition-colors`}><LucideFolder size={16} /></span>
+                      <span className="truncate flex-1 text-left">{folder.name}</span>
+                    </button>
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm(`Tem certeza que deseja excluir o projeto "${folder.name}"?`)) {
+                          onDeleteProject(folder.id);
+                          if (selectedFolderId === folder.id) setSelectedFolderId(null);
+                        }
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg opacity-0 group-hover/folder:opacity-100 transition-all text-textMuted hover:bg-red-500/10 hover:text-red-500"
+                      title="Excluir Projeto"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>

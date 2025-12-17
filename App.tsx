@@ -606,6 +606,18 @@ function AppContent() {
         }
     };
 
+    const handleDeleteProject = async (projectId: string) => {
+        const success = await projectService.deleteProject(projectId);
+        if (success) {
+            setFolders(prev => prev.filter(f => f.id !== projectId));
+            // Update local state to reflect that chats are now unassigned (assuming backend handles this logic or we just rely on reload, but better to update optimistic UI)
+            setChats(prev => prev.map(c => c.folderId === projectId ? { ...c, folderId: undefined } : c));
+            toast.success('Projeto excluído com sucesso');
+        } else {
+            toast.error('Erro ao excluir projeto');
+        }
+    };
+
 
 
     useEffect(() => {
@@ -1191,6 +1203,7 @@ function AppContent() {
                     onModeChange={setActiveMode}
                     settingsTab={settingsTab}
                     onSettingsTabChange={setSettingsTab}
+                    onDeleteProject={handleDeleteProject}
                 />
             )}
 
