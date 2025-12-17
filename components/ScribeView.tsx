@@ -15,7 +15,7 @@ type Gender = 'M' | 'F';
 type Scenario = 'evolution' | 'anamnesis' | 'bedside' | 'clinical_meeting';
 
 export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOpenSettings }: ScribeViewProps) {
-    const { isListening: isMicListening, transcript, toggleListening: toggleMic, resetTranscript } = useSpeechRecognition();
+    const { isListening: isMicListening, transcript, transcriptSegments, toggleListening: toggleMic, resetTranscript } = useSpeechRecognition();
 
     // State for the two steps
     const [step, setStep] = useState<Step>('consultation');
@@ -335,12 +335,33 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                 </div>
             </div>
 
-            {/* Transcript Preview Area */}
+            {/* Transcript Preview Area with Timestamps */}
             {(consultationTranscript || consultationBlob) && (
-                <div className={`mt-6 rounded-2xl p-4 max-h-40 overflow-y-auto border ${isDarkMode ? 'bg-zinc-900/50 border-white/5' : 'bg-gray-50 border-gray-100'}`}>
-                    <p className={`text-sm leading-relaxed whitespace-pre-wrap ${isDarkMode ? 'text-zinc-400' : 'text-gray-600'}`}>
-                        {consultationTranscript || "(Áudio da Telemedicina capturado)"}
-                    </p>
+                <div className={`mt-6 rounded-2xl p-4 max-h-64 overflow-y-auto border ${isDarkMode ? 'bg-zinc-900/50 border-white/5' : 'bg-gray-50 border-gray-100'}`}>
+                    {mode === 'telemedicine' ? (
+                        <p className={`text-sm leading-relaxed whitespace-pre-wrap ${isDarkMode ? 'text-zinc-400' : 'text-gray-600'}`}>
+                            {"(Áudio da Telemedicina capturado)"}
+                        </p>
+                    ) : (
+                        <div className="space-y-3">
+                            {transcriptSegments.map((segment, index) => {
+                                const minutes = Math.floor(segment.timestamp / 60);
+                                const seconds = segment.timestamp % 60;
+                                const timeStr = `${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+
+                                return (
+                                    <div key={index} className="flex gap-3">
+                                        <span className={`text-xs font-mono shrink-0 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                                            {timeStr}
+                                        </span>
+                                        <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-zinc-300' : 'text-gray-700'}`}>
+                                            {segment.text}
+                                        </p>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             )}
 

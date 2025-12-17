@@ -1,10 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 declare global {
     interface Window {
         SpeechRecognition: any;
         webkitSpeechRecognition: any;
     }
+}
+
+export interface TranscriptSegment {
+    timestamp: number; // segundos desde o início
+    text: string;
 }
 
 export interface UseSpeechRecognitionProps {
@@ -15,8 +20,11 @@ export interface UseSpeechRecognitionProps {
 export const useSpeechRecognition = () => {
     const [isListening, setIsListening] = useState(false);
     const [transcript, setTranscript] = useState('');
+    const [transcriptSegments, setTranscriptSegments] = useState<TranscriptSegment[]>([]);
     const [recognition, setRecognition] = useState<any>(null);
     const [hasSupport, setHasSupport] = useState(false);
+
+    const startTimeRef = useRef<number>(0);
 
     useEffect(() => {
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -34,6 +42,15 @@ export const useSpeechRecognition = () => {
                     const transcriptChunk = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
                         currentTranscript += transcriptChunk + ' ';
+
+                        // Captura timestamp quando finalizado
+                        const currentTime = Date.now();
+                        const elapsedSeconds = Math.floor((currentTime - startTimeRef.current) / 1000);
+
+                        setTranscriptSegments(prev => [...prev, {
+                            timestamp: elapsedSeconds,
+                            text: transcriptChunk.trim()
+                        }]);
                     } else {
                         currentTranscript += transcriptChunk;
                     }
@@ -70,6 +87,8 @@ export const useSpeechRecognition = () => {
         if (recognition && !isListening) {
             try {
                 setTranscript(''); // Reset transcript on new session
+                setTranscriptSegments([]); // Reset segments
+                startTimeRef.current = Date.now(); // Marca o tempo de início
                 recognition.start();
                 setIsListening(true);
             } catch (error) {
@@ -95,11 +114,13 @@ export const useSpeechRecognition = () => {
 
     const resetTranscript = useCallback(() => {
         setTranscript('');
+        setTranscriptSegments([]);
     }, []);
 
     return {
         isListening,
         transcript,
+        transcriptSegments,
         startListening,
         stopListening,
         toggleListening,
