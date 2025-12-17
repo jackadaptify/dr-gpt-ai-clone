@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, Square, FileText, ArrowRight, MonitorPlay, Lock, Menu, Users, Edit2, ChevronDown } from 'lucide-react';
-import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
+import { useSpeechRecognition, TranscriptSegment } from '../hooks/useSpeechRecognition';
 
 interface ScribeViewProps {
     isDarkMode: boolean;
-    onGenerate: (consultation: string, thoughts: string, patientName: string, patientGender: string, audioBlob?: Blob, scenario?: string) => void;
+    onGenerate: (consultation: string, thoughts: string, patientName: string, patientGender: string, audioBlob?: Blob, scenario?: string, transcriptSegments?: TranscriptSegment[]) => void;
     toggleSidebar: () => void;
     onOpenSettings: () => void;
 }
@@ -162,9 +162,9 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
         const finalName = patientName.trim() || "Paciente";
 
         if (mode === 'telemedicine' && consultationBlob) {
-            onGenerate("Arquivo de Áudio Telemedicina", "", finalName, patientGender, consultationBlob, selectedScenario);
+            onGenerate("Arquivo de Áudio Telemedicina", "", finalName, patientGender, consultationBlob, selectedScenario, undefined);
         } else {
-            onGenerate(consultationTranscript, "", finalName, patientGender, undefined, selectedScenario);
+            onGenerate(consultationTranscript, "", finalName, patientGender, undefined, selectedScenario, transcriptSegments);
         }
     };
 

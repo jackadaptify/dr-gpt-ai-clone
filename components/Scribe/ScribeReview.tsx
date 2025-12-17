@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { Copy, Check, FileText, Save, ArrowLeft } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Copy, Check, FileText, Save, ArrowLeft, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { TranscriptSegment } from '../../hooks/useSpeechRecognition';
 
 interface ScribeReviewProps {
     isDarkMode: boolean;
@@ -11,13 +12,15 @@ interface ScribeReviewProps {
     typewriterTrigger?: { content: string; timestamp: number } | null;
     children: React.ReactNode; // The Chat Component
     title?: string; // Customizable Title
+    transcriptSegments?: TranscriptSegment[]; // Transcript with timestamps
 }
 
-export default function ScribeReview({ isDarkMode, content, onChange, onSave, onClose, typewriterTrigger, children, title = "Revisão de Prontuário" }: ScribeReviewProps) {
+export default function ScribeReview({ isDarkMode, content, onChange, onSave, onClose, typewriterTrigger, children, title = "Revisão de Prontuário", transcriptSegments }: ScribeReviewProps) {
     const [copied, setCopied] = React.useState(false);
     const [saving, setSaving] = React.useState(false);
     const [isUpdating, setIsUpdating] = React.useState(false);
-    const [mobileTab, setMobileTab] = React.useState<'document' | 'chat'>('document'); // Mobile Tab State
+    const [mobileTab, setMobileTab] = React.useState<'document' | 'chat' | 'transcript'>('document'); // Mobile Tab State
+    const [isTranscriptExpanded, setIsTranscriptExpanded] = useState(false); // Desktop collapse state
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const handleCopy = () => {
@@ -91,8 +94,8 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, on
                 <button
                     onClick={() => setMobileTab('document')}
                     className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${mobileTab === 'document'
-                            ? (isDarkMode ? 'border-emerald-500 text-emerald-500' : 'border-emerald-600 text-emerald-600')
-                            : 'border-transparent text-gray-500'
+                        ? (isDarkMode ? 'border-emerald-500 text-emerald-500' : 'border-emerald-600 text-emerald-600')
+                        : 'border-transparent text-gray-500'
                         }`}
                 >
                     Documento
@@ -100,12 +103,23 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, on
                 <button
                     onClick={() => setMobileTab('chat')}
                     className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${mobileTab === 'chat'
-                            ? (isDarkMode ? 'border-emerald-500 text-emerald-500' : 'border-emerald-600 text-emerald-600')
-                            : 'border-transparent text-gray-500'
+                        ? (isDarkMode ? 'border-emerald-500 text-emerald-500' : 'border-emerald-600 text-emerald-600')
+                        : 'border-transparent text-gray-500'
                         }`}
                 >
                     Chat e Ajustes
                 </button>
+                {transcriptSegments && transcriptSegments.length > 0 && (
+                    <button
+                        onClick={() => setMobileTab('transcript')}
+                        className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${mobileTab === 'transcript'
+                            ? (isDarkMode ? 'border-emerald-500 text-emerald-500' : 'border-emerald-600 text-emerald-600')
+                            : 'border-transparent text-gray-500'
+                            }`}
+                    >
+                        Transcrição
+                    </button>
+                )}
             </div>
 
             {/* Left Column: SOAP Editor (60%) or Mobile 'document' tab */}
@@ -179,14 +193,14 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, on
                 </div>
 
                 {/* Editor Area */}
-                <div className="flex-1 p-4 md:p-6 overflow-hidden">
+                <div className="flex-1 p-4 md:p-6 overflow-hidden flex flex-col">
                     <textarea
                         ref={textareaRef}
                         value={content}
                         onChange={(e) => onChange(e.target.value)}
                         readOnly={isUpdating}
                         className={`
-                            w-full h-full p-4 md:p-6 text-sm md:text-base leading-relaxed resize-none text-left outline-none rounded-xl border
+                            w-full flex-1 p-4 md:p-6 text-sm md:text-base leading-relaxed resize-none text-left outline-none rounded-xl border
                             font-mono
                             ${isDarkMode
                                 ? 'bg-[#121215] border-white/5 text-zinc-300 placeholder-zinc-700 focus:border-emerald-500/50'
@@ -198,16 +212,95 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, on
                         placeholder="O prontuário gerado aparecerá aqui..."
                         spellCheck={false}
                     />
+
+                    {/* Transcript Section (Desktop Only - Collapsible) */}
+                    {transcriptSegments && transcriptSegments.length > 0 && (
+                        <div className="hidden md:block mt-4">
+                            <button
+                                onClick={() => setIsTranscriptExpanded(!isTranscriptExpanded)}
+                                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all ${isDarkMode
+                                    ? 'bg-zinc-900/50 border-white/10 hover:bg-zinc-900'
+                                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                                    }`}
+                            >
+                                <span className={`text-sm font-semibold ${isDarkMode ? 'text-zinc-300' : 'text-gray-700'}`}>
+                                    📝 Transcrição Original ({transcriptSegments.length} segmentos)
+                                </span>
+                                <ChevronDown
+                                    size={18}
+                                    className={`transition-transform ${isTranscriptExpanded ? 'rotate-180' : ''} ${isDarkMode ? 'text-zinc-500' : 'text-gray-400'
+                                        }`}
+                                />
+                            </button>
+
+                            {isTranscriptExpanded && (
+                                <div className={`mt-2 rounded-xl p-4 max-h-64 overflow-y-auto border ${isDarkMode ? 'bg-zinc-900/30 border-white/5' : 'bg-gray-50 border-gray-100'
+                                    }`}>
+                                    <div className="space-y-3">
+                                        {transcriptSegments.map((segment, index) => {
+                                            const minutes = Math.floor(segment.timestamp / 60);
+                                            const seconds = segment.timestamp % 60;
+                                            const timeStr = `${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+
+                                            return (
+                                                <div key={index} className="flex gap-3">
+                                                    <span className={`text-xs font-mono shrink-0 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'
+                                                        }`}>
+                                                        {timeStr}
+                                                    </span>
+                                                    <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-zinc-300' : 'text-gray-700'
+                                                        }`}>
+                                                        {segment.text}
+                                                    </p>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
-            {/* Right Column: Chat (40%) or Mobile 'chat' tab */}
-            <div className={`
-                ${mobileTab === 'chat' ? 'flex' : 'hidden'} 
-                md:flex w-full md:w-[40%] h-full relative flex-col
-            `}>
-                {children}
-            </div>
+            {/* Right Column or Mobile Tabs: Chat & Transcript */}
+            {mobileTab === 'transcript' && transcriptSegments && transcriptSegments.length > 0 ? (
+                <div className="md:hidden w-full h-full flex flex-col p-4">
+                    <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        📝 Transcrição Original
+                    </h3>
+                    <div className={`flex-1 rounded-xl p-4 overflow-y-auto border ${isDarkMode ? 'bg-zinc-900/50 border-white/5' : 'bg-gray-50 border-gray-100'
+                        }`}>
+                        <div className="space-y-3">
+                            {transcriptSegments.map((segment, index) => {
+                                const minutes = Math.floor(segment.timestamp / 60);
+                                const seconds = segment.timestamp % 60;
+                                const timeStr = `${minutes.toString().padStart(2, '0')}m ${seconds.toString().padStart(2, '0')}s`;
+
+                                return (
+                                    <div key={index} className="flex gap-3">
+                                        <span className={`text-xs font-mono shrink-0 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'
+                                            }`}>
+                                            {timeStr}
+                                        </span>
+                                        <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-zinc-300' : 'text-gray-700'
+                                            }`}>
+                                            {segment.text}
+                                        </p>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            ) : (
+                <div className={`
+                    ${mobileTab === 'chat' ? 'flex' : 'hidden'} 
+                    md:flex w-full md:w-[40%] h-full relative flex-col
+                `}>
+                    {children}
+                </div>
+            )}
         </div>
     );
 }

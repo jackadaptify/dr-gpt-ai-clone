@@ -54,7 +54,7 @@ import {
     X,
 } from 'lucide-react';
 import { settingsService, UserSettings } from './services/settingsService';
-import { useSpeechRecognition } from './hooks/useSpeechRecognition';
+import { useSpeechRecognition, TranscriptSegment } from './hooks/useSpeechRecognition';
 import RailNav from './components/RailNav';
 import ScribeView from './components/ScribeView';
 import AntiGlosaView from './components/AntiGlosaView';
@@ -129,6 +129,7 @@ function AppContent() {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [activeMode, setActiveMode] = useState<AppMode>('chat');
     const [scribeContent, setScribeContent] = useState('');
+    const [scribeTranscriptSegments, setScribeTranscriptSegments] = useState<TranscriptSegment[]>([]);
     const [chats, setChats] = useState<ChatSession[]>([]);
     const [folders, setFolders] = useState<Folder[]>([]); // Real folders state
     const [currentChatId, setCurrentChatId] = useState<string | null>(null);
@@ -1470,6 +1471,7 @@ function AppContent() {
                                 isDarkMode={isDarkMode}
                                 typewriterTrigger={typewriterTrigger}
                                 title={reviewTitle}
+                                transcriptSegments={scribeTranscriptSegments}
                                 onSave={async () => {
                                     if (!currentChatId) return;
 
@@ -1515,7 +1517,7 @@ function AppContent() {
                 {activeMode === 'scribe' && !currentChatId && (
                     <ScribeView
                         isDarkMode={isDarkMode}
-                        onGenerate={async (consultation, thoughts, patientName, patientGender, audioBlob, scenario = 'evolution') => {
+                        onGenerate={async (consultation, thoughts, patientName, patientGender, audioBlob, scenario = 'evolution', transcriptSegments) => {
                             // 1. Create a new Chat Session specifically for this Scribe Review
                             const newChatId = uuidv4();
                             // Force GPT-4o Mini for Scribe Mode
@@ -1555,6 +1557,7 @@ function AppContent() {
                             setActiveMode('scribe-review');
                             setReviewTitle('Revisão de Prontuário'); // Reset title
                             setScribeContent('Processando dados da consulta...\n\nGerando Documentação...');
+                            setScribeTranscriptSegments(transcriptSegments || []); // Store transcript segments
 
                             let audioUrl = "";
                             let finalPrompt = "";
