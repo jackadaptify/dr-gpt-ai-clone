@@ -128,7 +128,7 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
               </div>
             )}
 
-            <div className={`prose ${isDarkMode ? 'prose-invert text-gray-300' : 'prose-slate text-textMain'} ${isUser ? 'prose-p:my-0' : 'prose-base ai-response'} leading-relaxed prose-p:leading-relaxed prose-li:leading-relaxed prose-pre:bg-surface prose-pre:shadow-inner-depth prose-pre:border prose-pre:border-borderLight prose-pre:rounded-xl max-w-none font-normal tracking-wide`}>
+            <div className={`prose ${isDarkMode ? 'prose-invert text-gray-300' : 'prose-slate text-textMain'} ${isUser ? 'prose-p:my-0' : 'prose-base ai-response'} leading-relaxed prose-p:leading-relaxed prose-li:leading-relaxed prose-pre:bg-surface prose-pre:shadow-inner-depth prose-pre:border prose-pre:border-borderLight prose-pre:rounded-xl max-w-none font-normal tracking-wide select-text`}>
               {/* Thinking State */}
               {message.isStreaming && !message.content && (
                 <div className="flex items-center gap-2 text-textMuted animate-pulse">

@@ -278,6 +278,7 @@ function AppContent() {
     const [isAIScribeModalOpen, setIsAIScribeModalOpen] = useState(false);
     const [isAntiGlosaModalOpen, setIsAntiGlosaModalOpen] = useState(false);
     const scrollThrottleRef = useRef<number | null>(null); // 🔧 FIX: Throttle scroll updates
+    const [isDragging, setIsDragging] = useState(false); // Drag & Drop State
 
     const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
     const [activeTools, setActiveTools] = useState({
@@ -665,59 +666,85 @@ function AppContent() {
         if (window.innerWidth < 768) setSidebarOpen(false);
     };
 
+    const processFile = async (file: File) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${uuidv4()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        try {
+            // Extract text if PDF (Client-side)
+            let extractedText = '';
+            if (file.type === 'application/pdf') {
+                try {
+                    extractedText = await extractTextFromPdf(file);
+                    console.log('📄 PDF Extracted:', extractedText.length, 'chars');
+                } catch (e) {
+                    console.error('Failed to extract PDF text:', e);
+                    toast.error('Erro ao ler texto do PDF. O arquivo será enviado apenas como anexo.');
+                }
+            }
+
+            // Upload to Supabase
+            const { error: uploadError } = await supabase.storage
+                .from('chat-attachments')
+                .upload(filePath, file);
+
+            if (uploadError) {
+                throw uploadError;
+            }
+
+            // Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('chat-attachments')
+                .getPublicUrl(filePath);
+
+            const newAttachment: Attachment = {
+                id: uuidv4(),
+                type: file.type.startsWith('image/') ? 'image' : 'file',
+                url: publicUrl,
+                mimeType: file.type,
+                name: file.name,
+                extractedText: extractedText || undefined
+            };
+
+            setPendingAttachments(prev => [...prev, newAttachment]);
+
+        } catch (error) {
+            console.error('Error uploading file:', error);
+            alert('Falha ao enviar arquivo. Verifique o console.');
+        }
+    };
+
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            const file = e.target.files[0];
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${uuidv4()}.${fileExt}`;
-            const filePath = `${fileName}`;
+            await processFile(e.target.files[0]);
+            // Reset input
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
 
-            try {
-                // Extract text if PDF (Client-side)
-                let extractedText = '';
-                if (file.type === 'application/pdf') {
-                    try {
-                        extractedText = await extractTextFromPdf(file);
-                        console.log('📄 PDF Extracted:', extractedText.length, 'chars');
-                    } catch (e) {
-                        console.error('Failed to extract PDF text:', e);
-                        toast.error('Erro ao ler texto do PDF. O arquivo será enviado apenas como anexo.');
-                    }
-                }
+    // Drag & Drop Handlers
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
 
-                // Upload to Supabase
-                const { error: uploadError } = await supabase.storage
-                    .from('chat-attachments')
-                    .upload(filePath, file);
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+    };
 
-                if (uploadError) {
-                    throw uploadError;
-                }
+    const handleDrop = async (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
 
-                // Get Public URL
-                const { data: { publicUrl } } = supabase.storage
-                    .from('chat-attachments')
-                    .getPublicUrl(filePath);
-
-                const newAttachment: Attachment = {
-                    id: uuidv4(),
-                    type: file.type.startsWith('image/') ? 'image' : 'file',
-                    url: publicUrl,
-                    mimeType: file.type,
-                    name: file.name,
-                    extractedText: extractedText || undefined
-                };
-
-                setPendingAttachments(prev => [...prev, newAttachment]);
-
-            } catch (error) {
-                console.error('Error uploading file:', error);
-                alert('Falha ao enviar arquivo. Verifique o console.');
-            } finally {
-                // Reset input
-                if (fileInputRef.current) {
-                    fileInputRef.current.value = '';
-                }
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const files = Array.from(e.dataTransfer.files);
+            // Process all dropped files
+            for (const file of files) {
+                await processFile(file);
             }
         }
     };
@@ -1287,7 +1314,12 @@ function AppContent() {
                             <div className="absolute bottom-0 left-0 w-full p-4 md:p-8 z-20 pointer-events-none">
                                 <div className="max-w-3xl mx-auto pointer-events-auto">
                                     {/* Input Container */}
-                                    <div className={`rounded-[32px] p-1.5 relative transition-all duration-300 ${isDarkMode ? 'shadow-2xl glass-panel' : 'bg-white border border-slate-300 shadow-sm'}`}>
+                                    <div
+                                        className={`rounded-[32px] p-1.5 relative transition-all duration-300 ${isDarkMode ? 'shadow-2xl glass-panel' : 'bg-white border border-slate-300 shadow-sm'} ${isDragging ? 'ring-2 ring-emerald-500 bg-emerald-500/10' : ''}`}
+                                        onDragOver={handleDragOver}
+                                        onDragLeave={handleDragLeave}
+                                        onDrop={handleDrop}
+                                    >
 
                                         {/* Pending Attachments Preview */}
                                         {pendingAttachments.length > 0 && (
@@ -1321,6 +1353,16 @@ function AppContent() {
                                                         </button>
                                                     </div>
                                                 ))}
+                                            </div>
+                                        )}
+
+                                        {/* Drop Overlay Message */}
+                                        {isDragging && (
+                                            <div className="absolute inset-0 z-50 flex items-center justify-center rounded-[32px] bg-emerald-500/20 backdrop-blur-sm pointer-events-none border-2 border-emerald-500 border-dashed">
+                                                <div className="flex flex-col items-center p-4 bg-black/50 rounded-2xl text-white animate-bounce">
+                                                    <IconAttachment className="w-8 h-8 mb-2" />
+                                                    <span className="font-bold">Solte para anexar</span>
+                                                </div>
                                             </div>
                                         )}
 
