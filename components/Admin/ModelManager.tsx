@@ -17,6 +17,10 @@ export default function ModelManager() {
     const [dynamicModels, setDynamicModels] = useState<AIModel[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
 
+    // Filter State
+    const [filterStatus, setFilterStatus] = useState<'all' | 'enabled' | 'disabled'>('all');
+    const [filterType, setFilterType] = useState<'all' | 'text' | 'image'>('all');
+
     // AI Agent State
     const [aiPrompt, setAiPrompt] = useState('');
     const [isProcessingAI, setIsProcessingAI] = useState(false);
@@ -28,37 +32,56 @@ export default function ModelManager() {
 
     // Edit State
     const [editingModel, setEditingModel] = useState<AIModel | null>(null);
-    const [editForm, setEditForm] = useState({ description: '', category: '', badge: '' });
+    const [editForm, setEditForm] = useState({ name: '', description: '', category: '', badge: '', logo: '' });
 
     const handleEditClick = (model: AIModel) => {
         setEditingModel(model);
         setEditForm({
+            name: model.name || '',
             description: model.description || '',
             category: model.category || 'Outros',
-            badge: model.badge || ''
+            badge: model.badge || '',
+            logo: model.logo || ''
         });
     };
 
     const handleSaveEdit = async () => {
         if (!editingModel) return;
 
+        console.log('[DEBUG] Saving edit for model:', editingModel.id, editForm);
+
         try {
             const overrides = await adminService.getModelOverrides();
+            console.log('[DEBUG] Current overrides before update:', overrides);
+
             overrides[editingModel.id] = {
+                name: editForm.name,
                 description: editForm.description,
                 category: editForm.category,
-                badge: editForm.badge
+                badge: editForm.badge,
+                logo: editForm.logo
             };
+
             await adminService.updateModelOverrides(overrides);
+            console.log('[DEBUG] Overrides updated successfully in DB');
+
+            // Verify persistence immediately
+            const verification = await adminService.getModelOverrides();
+            console.log('[DEBUG] Verification fetch:', verification[editingModel.id]);
 
             // Update local state immediately
-            setDynamicModels(prev => prev.map(m =>
-                m.id === editingModel.id
-                    ? { ...m, description: editForm.description, category: editForm.category, badge: editForm.badge }
-                    : m
-            ));
+            setDynamicModels(prev => {
+                const updated = prev.map(m =>
+                    m.id === editingModel.id
+                        ? { ...m, name: editForm.name, description: editForm.description, category: editForm.category, badge: editForm.badge, logo: editForm.logo }
+                        : m
+                );
+                console.log('[DEBUG] Updated local dynamicModels:', updated.find(m => m.id === editingModel.id));
+                return updated;
+            });
 
             setEditingModel(null);
+            alert('Alterações salvas! Verifique o console se o erro persistir.');
         } catch (error) {
             console.error('Failed to save model override', error);
             alert('Erro ao salvar alterações.');
@@ -218,18 +241,20 @@ INSTRUCTIONS:
                 if (staticDef) {
                     return {
                         ...staticDef,
-                        name: cleanModelName(fm.name, fm.id),
+                        name: override.name || cleanModelName(fm.name, fm.id),
                         description: override.description || staticDef.description,
                         category: override.category || staticDef.category,
-                        badge: override.badge !== undefined ? override.badge : staticDef.badge
+                        badge: override.badge !== undefined ? override.badge : staticDef.badge,
+                        logo: override.logo
                     };
                 }
                 return {
                     id: fm.id,
-                    name: cleanModelName(fm.name, fm.id),
+                    name: override.name || cleanModelName(fm.name, fm.id),
                     description: override.description || 'Modelo OpenRouter',
                     category: override.category || 'Novos 🆕',
                     badge: override.badge,
+                    logo: override.logo,
                     provider: fm.id.split('/')[0] as any,
                     modelId: fm.id,
                     capabilities: {
@@ -261,9 +286,11 @@ INSTRUCTIONS:
                     const override = overrides[m.id] || {};
                     return {
                         ...m,
+                        name: override.name || m.name,
                         description: override.description || m.description,
                         category: override.category || m.category,
-                        badge: override.badge !== undefined ? override.badge : m.badge
+                        badge: override.badge !== undefined ? override.badge : m.badge,
+                        logo: override.logo
                     };
                 });
             }
@@ -348,19 +375,30 @@ INSTRUCTIONS:
     };
 
     // Helper to filter and sort models
-    const getFilteredModels = (type: 'text' | 'image') => {
-        // Only show checked models if we wanted to filter by enabled? 
-        // Admin usually shows ALL available so you can enable them.
+    const getFilteredModels = (sectionType: 'text' | 'image') => {
+        // 1. Check Type Filter
+        if (filterType !== 'all' && filterType !== sectionType) {
+            return [];
+        }
+
         const list = dynamicModels.length > 0 ? dynamicModels : AVAILABLE_MODELS;
+
         return list.filter(m => {
+            // 2. Search Filter
             const matchesSearch = m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 m.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 m.provider.toLowerCase().includes(searchQuery.toLowerCase());
 
             if (!matchesSearch) return false;
 
-            if (type === 'image') return m.capabilities.imageGeneration;
-            return !m.capabilities.imageGeneration; // Default to text/expert if not image
+            // 3. Status Filter
+            const isEnabled = enabledModels.includes(m.id);
+            if (filterStatus === 'enabled' && !isEnabled) return false;
+            if (filterStatus === 'disabled' && isEnabled) return false;
+
+            // 4. Section Match (Text vs Image)
+            if (sectionType === 'image') return m.capabilities.imageGeneration;
+            return !m.capabilities.imageGeneration;
         });
     };
 
@@ -520,78 +558,125 @@ INSTRUCTIONS:
                 </div>
             </div>
 
-            {/* Model Management Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <h2 className="text-2xl font-bold">Gerenciamento de Modelos</h2>
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={handleAutoSelectPopular}
-                        className="px-4 py-2 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 text-sm font-bold transition-colors"
-                    >
-                        Auto-Select Popular
-                    </button>
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Buscar modelo..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-10 pr-4 py-2 rounded-xl bg-[#0a0a0a] border border-white/10 text-sm focus:outline-none focus:border-emerald-500/50 w-64"
-                        />
-                        <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            {/* Model Management Header & Filters */}
+            <div className="flex flex-col gap-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <h2 className="text-2xl font-bold">Gerenciamento de Modelos</h2>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleAutoSelectPopular}
+                            className="px-4 py-2 rounded-xl bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20 text-sm font-bold transition-colors"
+                        >
+                            Auto-Select Popular
+                        </button>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Buscar modelo..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-10 pr-4 py-2 rounded-xl bg-[#0a0a0a] border border-white/10 text-sm focus:outline-none focus:border-emerald-500/50 w-64"
+                            />
+                            <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Filters */}
+                <div className="flex flex-wrap gap-2 items-center">
+                    <div className="flex items-center gap-2 p-1 bg-[#0a0a0a] border border-white/5 rounded-xl">
+                        {(['all', 'text', 'image'] as const).map(type => (
+                            <button
+                                key={type}
+                                onClick={() => setFilterType(type)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filterType === type
+                                    ? 'bg-white/10 text-white shadow-sm'
+                                    : 'text-zinc-500 hover:text-zinc-300'}`}
+                            >
+                                {type === 'all' ? 'Todos' : type === 'text' ? 'Texto' : 'Imagem'}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="w-px h-6 bg-white/10 mx-2" />
+                    <div className="flex items-center gap-2 p-1 bg-[#0a0a0a] border border-white/5 rounded-xl">
+                        {(['all', 'enabled', 'disabled'] as const).map(status => (
+                            <button
+                                key={status}
+                                onClick={() => setFilterStatus(status)}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${filterStatus === status
+                                    ? (status === 'enabled' ? 'bg-emerald-500/20 text-emerald-400' : status === 'disabled' ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white')
+                                    : 'text-zinc-500 hover:text-zinc-300'}`}
+                            >
+                                {status === 'all' ? 'Todos os Status' : status === 'enabled' ? 'Ativos' : 'Desativados'}
+                            </button>
+                        ))}
                     </div>
                 </div>
             </div>
 
             {/* Text Models Section */}
-            <section>
-                <div className="flex items-center gap-2 mb-4 px-2">
-                    <div className="w-1 h-6 bg-blue-500 rounded-full" />
-                    <h3 className="text-lg font-bold text-zinc-200">Modelos de Texto & Raciocínio</h3>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-500">
-                        {getFilteredModels('text').length}
-                    </span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {getFilteredModels('text').map(model => (
-                        <ModelCard
-                            key={model.id}
-                            model={model}
-                            isEnabled={enabledModels.includes(model.id)}
-                            onToggle={toggleModel}
-                            onEdit={() => handleEditClick(model)}
-                            health={modelHealth.find(h => h.id === model.id)}
-                            categories={modelCategories}
-                            onCategoryToggle={toggleCategory}
-                        />
-                    ))}
-                </div>
-            </section>
+            {(filterType === 'all' || filterType === 'text') && (
+                <section>
+                    <div className="flex items-center gap-2 mb-4 px-2">
+                        <div className="w-1 h-6 bg-blue-500 rounded-full" />
+                        <h3 className="text-lg font-bold text-zinc-200">Modelos de Texto & Raciocínio</h3>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-500">
+                            {getFilteredModels('text').length}
+                        </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {getFilteredModels('text').map(model => (
+                            <ModelCard
+                                key={model.id}
+                                model={model}
+                                isEnabled={enabledModels.includes(model.id)}
+                                onToggle={toggleModel}
+                                onEdit={() => handleEditClick(model)}
+                                health={modelHealth.find(h => h.id === model.id)}
+                                categories={modelCategories}
+                                onCategoryToggle={toggleCategory}
+                            />
+                        ))}
+                        {getFilteredModels('text').length === 0 && (
+                            <div className="col-span-2 py-8 text-center text-zinc-500 text-sm bg-[#0a0a0a] rounded-2xl border border-white/5 border-dashed">
+                                Nenhhum modelo de texto encontrado com os filtros atuais.
+                            </div>
+                        )}
+                    </div>
+                </section>
+            )}
 
             {/* Image Models Section */}
-            <section>
-                <div className="flex items-center gap-2 mb-4 px-2 pt-8 border-t border-white/5">
-                    <div className="w-1 h-6 bg-purple-500 rounded-full" />
-                    <h3 className="text-lg font-bold text-zinc-200">Modelos de Imagem</h3>
-                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-500">
-                        {getFilteredModels('image').length}
-                    </span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {getFilteredModels('image').map(model => (
-                        <ModelCard
-                            key={model.id}
-                            model={model}
-                            isEnabled={enabledModels.includes(model.id)}
-                            onToggle={toggleModel}
-                            onEdit={() => handleEditClick(model)}
-                            health={modelHealth.find(h => h.id === model.id)}
-                            categories={modelCategories}
-                            onCategoryToggle={toggleCategory}
-                        />
-                    ))}
-                </div>
-            </section>
+            {(filterType === 'all' || filterType === 'image') && (
+                <section>
+                    <div className={`flex items-center gap-2 mb-4 px-2 ${filterType === 'all' ? 'pt-8 border-t border-white/5' : ''}`}>
+                        <div className="w-1 h-6 bg-purple-500 rounded-full" />
+                        <h3 className="text-lg font-bold text-zinc-200">Modelos de Imagem</h3>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-500">
+                            {getFilteredModels('image').length}
+                        </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {getFilteredModels('image').map(model => (
+                            <ModelCard
+                                key={model.id}
+                                model={model}
+                                isEnabled={enabledModels.includes(model.id)}
+                                onToggle={toggleModel}
+                                onEdit={() => handleEditClick(model)}
+                                health={modelHealth.find(h => h.id === model.id)}
+                                categories={modelCategories}
+                                onCategoryToggle={toggleCategory}
+                            />
+                        ))}
+                        {getFilteredModels('image').length === 0 && (
+                            <div className="col-span-2 py-8 text-center text-zinc-500 text-sm bg-[#0a0a0a] rounded-2xl border border-white/5 border-dashed">
+                                Nenhhum modelo de imagem encontrado com os filtros atuais.
+                            </div>
+                        )}
+                    </div>
+                </section>
+            )}
 
             {/* Edit Modal */}
             {editingModel && (
@@ -606,10 +691,39 @@ INSTRUCTIONS:
 
                         <div className="p-6 space-y-4">
                             <div>
-                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Nome do Modelo (ID)</label>
-                                <div className="p-3 rounded-lg bg-black/20 border border-white/5 text-zinc-400 text-sm font-mono">
-                                    {editingModel.name} <span className="opacity-50">({editingModel.id})</span>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">ID (Fixo)</label>
+                                <div className="p-3 rounded-lg bg-black/20 border border-white/5 text-zinc-400 text-sm font-mono break-all">
+                                    {editingModel.id}
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Logo URL (Opcional)</label>
+                                <div className="flex gap-3">
+                                    <input
+                                        type="text"
+                                        value={editForm.logo}
+                                        onChange={e => setEditForm(prev => ({ ...prev, logo: e.target.value }))}
+                                        placeholder="https://exemplo.com/logo.png"
+                                        className="flex-1 bg-[#1a1a1a] border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                                    />
+                                    {editForm.logo && (
+                                        <div className="w-10 h-10 rounded-lg bg-black/40 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+                                            <img src={editForm.logo} alt="Preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                                        </div>
+                                    )}
+                                </div>
+                                <p className="text-[10px] text-zinc-500 mt-1">Recomendado: Imagem quadrada (PNG/JPG), ~250x250px</p>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Nome (Editável)</label>
+                                <input
+                                    type="text"
+                                    value={editForm.name}
+                                    onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                                    className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+                                />
                             </div>
 
                             <div>

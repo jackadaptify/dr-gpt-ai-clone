@@ -130,7 +130,7 @@ export const adminService = {
         return data?.value || {};
     },
 
-    async updateModelOverrides(overrides: Record<string, { description?: string; category?: string; badge?: string }>) {
+    async updateModelOverrides(overrides: Record<string, { name?: string; description?: string; category?: string; badge?: string; logo?: string }>) {
         const { error } = await supabase
             .from('app_settings')
             .upsert({ key: 'model_overrides', value: overrides }, { onConflict: 'key' });

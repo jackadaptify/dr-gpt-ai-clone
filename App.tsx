@@ -329,9 +329,10 @@ function AppContent() {
         return clean;
     };
 
-    // Load Dynamic Models
-    useEffect(() => {
-        const loadModels = async () => {
+
+    // Load Dynamic Models & Overrides
+    const loadModelsAndOverrides = async () => {
+        try {
             const fetched = await fetchOpenRouterModels();
             // Fetch overrides from admin settings
             const overrides = await adminService.getModelOverrides();
@@ -345,11 +346,12 @@ function AppContent() {
                 if (staticDef) {
                     return {
                         ...staticDef,
-                        name: cleanModelName(fm.name, fm.id), // Use cleaned name
+                        name: override.name || cleanModelName(fm.name, fm.id), // Use cleaned name or override
                         // Apply overrides if present
                         description: override.description || staticDef.description,
                         category: override.category || staticDef.category,
-                        badge: override.badge !== undefined ? override.badge : staticDef.badge
+                        badge: override.badge !== undefined ? override.badge : staticDef.badge,
+                        logo: override.logo // Propagate logo
                     };
                 }
 
@@ -359,10 +361,11 @@ function AppContent() {
 
                 return {
                     id: fm.id, // Use OpenRouter ID as internal ID for dynamic ones
-                    name: cleanModelName(fm.name, fm.id),
+                    name: override.name || cleanModelName(fm.name, fm.id),
                     description: override.description || 'Modelo disponível via OpenRouter',
                     category: override.category || 'Novos 🆕',
                     badge: override.badge,
+                    logo: override.logo,
                     provider: fm.id.split('/')[0] as any, // Rough inference
                     modelId: fm.id,
                     capabilities: {
@@ -384,37 +387,32 @@ function AppContent() {
                 };
             });
 
-            // Also check if any purely static models (AVAILABLE_MODELS that aren't in OpenRouter yet or are custom) need overriding
-            // and aren't covered by the merged list if the fetched list is missing them.
-            // Actually, we generally construct the list heavily based on AVAILABLE_MODELS if fetch fails or is partial.
-            // But let's assume mergedModels handles the bulk. 
-
-            // However, we must ensure that ALL AVAILABLE_MODELS are present even if not in fetched, 
-            // incase OpenRouter list is partial.
-            // Ideally we iterate over a superset of IDs.
-            // For now, let's just stick to the existing logic which prefers mergedModels but falls back if empty.
-            // Better logic: Map over AVAILABLE_MODELS too to apply overrides if they are NOT in fetched?
-            // The current logic only overrides things founded in `fetched`. 
-            // If `fetched` is empty, we setDynamicModels(AVAILABLE_MODELS). We need to override that too.
-
             if (mergedModels.length > 0) {
                 setDynamicModels(mergedModels);
             } else {
-                // Apply overrides to static list
+                // Apply overrides to static list if fetch fails or yields nothing
                 const overriddenStatic = AVAILABLE_MODELS.map(m => {
                     const override = overrides[m.id] || {};
                     return {
                         ...m,
+                        name: override.name || m.name,
                         description: override.description || m.description,
                         category: override.category || m.category,
-                        badge: override.badge !== undefined ? override.badge : m.badge
+                        badge: override.badge !== undefined ? override.badge : m.badge,
+                        logo: override.logo
                     };
                 });
                 setDynamicModels(overriddenStatic);
             }
-        };
+        } catch (error) {
+            console.error('Failed to load models:', error);
+            // Fallback to static with local overrides?
+            // For now just fail gracefully, keeping existing state or static default
+        }
+    };
 
-        loadModels();
+    useEffect(() => {
+        loadModelsAndOverrides();
     }, []);
 
     // Circuit Breaker: Filter out offline models
@@ -445,20 +443,22 @@ function AppContent() {
     });
 
     // Load enabled models
+    const loadEnabledModels = async () => {
+        try {
+            const { data } = await supabase.from('app_settings').select('value').eq('key', 'enabled_models').single();
+            if (data?.value) {
+                console.log('🔄 Reloading enabled models:', data.value);
+                setEnabledModels(data.value);
+                // If currently selected model is now disabled, switch to first available that is enabled (and healthy if possible)
+                // We do this check in the effect below usually, but good to be aware.
+            }
+        } catch (error) {
+            console.error('Failed to load enabled models:', error);
+        }
+    };
+
     useEffect(() => {
-        // Load settings
-        import('./lib/supabase').then(({ supabase }) => {
-            supabase.from('app_settings').select('value').eq('key', 'enabled_models').single()
-                .then(({ data }) => {
-                    if (data?.value) {
-                        setEnabledModels(data.value);
-                        // If current selected model is disabled, switch to first available
-                        if (!data.value.includes(selectedModelId)) {
-                            setSelectedModelId(data.value[0] || AVAILABLE_MODELS[0].id);
-                        }
-                    }
-                });
-        });
+        loadEnabledModels();
 
         // Load Health Status (Circuit Breaker)
         const checkHealth = async () => {
@@ -491,11 +491,13 @@ function AppContent() {
             // Load active agents initially
             agentService.getActiveAgents().then(setAgents).catch(console.error);
 
-            // Reload agents when tab becomes visible (e.g. returning from Admin)
+            // Reload agents AND settings AND models/overrides when tab becomes visible (e.g. returning from Admin)
             const handleVisibilityChange = () => {
                 if (document.visibilityState === 'visible') {
-                    console.log('👀 Tab visible: Reloading agents...');
+                    console.log('👀 Tab visible: Reloading agents, settings, and models...');
                     agentService.getActiveAgents().then(setAgents).catch(console.error);
+                    loadEnabledModels(); // Fix for stale enabled list
+                    loadModelsAndOverrides(); // Fix for stale categories/descriptions
                 }
             };
 

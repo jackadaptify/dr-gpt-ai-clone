@@ -1,12 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { AIModel, Agent } from '../types';
 import {
-    IconGoogle, IconOpenAI, IconAnthropic, IconDeepSeek, IconMeta,
-    IconSearch, IconCheck, IconArrowDown, IconBrain, IconImage, IconGlobe,
+    IconArrowDown, IconCheck, IconSearch,
     getProviderIcon
 } from './Icons';
-import { adminService } from '../services/adminService';
-import { Info } from 'lucide-react';
 
 interface ModelSelectorProps {
     models: AIModel[];
@@ -15,7 +12,7 @@ interface ModelSelectorProps {
     isDarkMode: boolean;
     agents?: Agent[];
     onSelectAgent?: (agent: Agent) => void;
-    selectedAgentId?: string | null; // Add new prop
+    selectedAgentId?: string | null;
 }
 
 type Tab = 'text' | 'image' | 'expert';
@@ -24,14 +21,8 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<Tab>('text');
     const [searchQuery, setSearchQuery] = useState('');
-    const [categories, setCategories] = useState<{ text: string[], image: string[], expert: string[] }>({ text: [], image: [], expert: [] });
     const dropdownRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
-
-    // Load categories
-    useEffect(() => {
-        adminService.getModelCategories().then(setCategories);
-    }, []);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -54,14 +45,8 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
 
     const selectedModel = models.find(m => m.id === selectedModelId) || models[0];
     const selectedAgent = agents?.find(a => a.id === selectedAgentId);
-
-    // Determine display info (Agent > Model)
     const displayName = selectedAgent ? selectedAgent.name : selectedModel?.name;
-    // We can also override icon if we want, but for now let's keep provider icon or show agent icon?
-    // User asked "claude 3.5 haiku deve ficar por trás", implied UI change.
-    // Let's stick to the Text change first. If we want to show Agent Icon, we can too.
 
-    // Helper to get icon content
     const getDisplayIcon = () => {
         if (selectedAgent) {
             if (selectedAgent.avatarUrl) {
@@ -80,7 +65,13 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
                 </div>
             );
         }
-        return getProviderIcon(selectedModel?.provider || '');
+        return selectedModel?.logo ? (
+            <img
+                src={selectedModel.logo}
+                alt={selectedModel.name}
+                className="w-5 h-5 rounded object-cover bg-black/10"
+            />
+        ) : getProviderIcon(selectedModel?.provider || '');
     };
 
     // Filter models based on tab and search
@@ -88,7 +79,6 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
         // Experts Tab = Agents
         if (activeTab === 'expert') {
             if (!agents) return [];
-
             if (searchQuery) {
                 return agents.filter(a =>
                     a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -98,22 +88,13 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
             return agents;
         }
 
-        // Other Tabs = Models
+        // Models Tab
         let tabModels: AIModel[] = [];
 
-        // If categories are defined, use them
-        if (categories.text.length > 0 || categories.image.length > 0) {
-            const categoryIds = categories[activeTab === 'image' ? 'image' : 'text'];
-
-            // activeTab is guaranteed to be 'text' or 'image' here because we returned early for 'expert'
-            tabModels = models.filter(m => categoryIds.includes(m.id));
-        } else {
-            // Fallback logic
-            if (activeTab === 'text') {
-                tabModels = models.filter(m => !m.capabilities.imageGeneration);
-            } else if (activeTab === 'image') {
-                tabModels = models.filter(m => m.capabilities.imageGeneration);
-            }
+        if (activeTab === 'text') {
+            tabModels = models.filter(m => !m.capabilities.imageGeneration);
+        } else if (activeTab === 'image') {
+            tabModels = models.filter(m => m.capabilities.imageGeneration);
         }
 
         // Apply search
@@ -128,6 +109,32 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
     };
 
     const filteredItems = getTabContent();
+
+    // Grouping Logic for Models
+    const getGroupedModels = (items: AIModel[]) => {
+        const groups: Record<string, AIModel[]> = {};
+        // Define explicit order for known categories if desired
+        const order = ['Elite 🏆', 'Raciocínio Clínico 🧠', 'Ferramentas 🛠️', 'Velocidade ⚡', 'Open Source 🔓', 'Geração de Imagens 🎨', 'Novos 🆕'];
+
+        items.forEach(model => {
+            const cat = model.category || 'Outros';
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(model);
+        });
+
+        // Sort keys based on predefined order, then alphabetical for others
+        return Object.keys(groups).sort((a, b) => {
+            const indexA = order.indexOf(a);
+            const indexB = order.indexOf(b);
+            if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+            if (indexA !== -1) return -1;
+            if (indexB !== -1) return 1;
+            return a.localeCompare(b);
+        }).map(category => ({
+            category,
+            models: groups[category]
+        }));
+    };
 
     return (
         <div className="relative" ref={dropdownRef}>
@@ -197,78 +204,17 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
 
                     {/* List */}
                     <div className="overflow-y-auto custom-scrollbar flex-1 p-2 space-y-1">
-                        {/* Text Tab - Categorized */}
-                        {activeTab === 'text' && ['Elite 🏆', 'Raciocínio Clínico 🧠', 'Ferramentas 🛠️', 'Velocidade ⚡', 'Open Source 🔓'].map(category => {
-                            const categoryModels = filteredItems.filter(m => 'category' in m && m.category === category);
-                            if (categoryModels.length === 0) return null;
-
-                            return (
-                                <div key={category} className="mb-4">
-                                    <div className="px-3 py-1 mb-1">
-                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${isDarkMode ? 'text-zinc-500' : 'text-gray-400'}`}>
-                                            {category}
-                                        </span>
-                                    </div>
-                                    <div className="space-y-1">
-                                        {categoryModels.map(item => {
-                                            const model = item as AIModel;
-                                            const isSelected = model.id === selectedModelId;
-
-                                            return (
-                                                <button
-                                                    key={model.id}
-                                                    onClick={() => {
-                                                        onSelect(model.id);
-                                                        setIsOpen(false);
-                                                    }}
-                                                    className={`
-                                                        w-full text-left px-3 py-3 rounded-xl flex items-center justify-between group transition-all
-                                                        ${isSelected
-                                                            ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
-                                                            : (isDarkMode ? 'hover:bg-white/5 text-gray-300 hover:text-white' : 'hover:bg-gray-50 text-gray-700 hover:text-black')}
-                                                    `}
-                                                >
-                                                    <div className="flex items-start gap-3 overflow-hidden">
-                                                        <div className={`p-1.5 rounded-lg flex-shrink-0 mt-0.5 ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
-                                                            {getProviderIcon(model.provider)}
-                                                        </div>
-                                                        <div className="flex flex-col gap-0.5 min-w-0">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-sm font-bold truncate">{model.name}</span>
-                                                                {model.badge && (
-                                                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 whitespace-nowrap">
-                                                                        {model.badge}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <span className="text-xs opacity-60 truncate">{model.description}</span>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                                                        {isSelected && <IconCheck className="w-4 h-4 text-emerald-500" />}
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            );
-                        })}
-
-                        {/* Image Tab - List */}
-                        {activeTab === 'image' && (
-                            <div className="mb-4">
+                        {/* Models (Text & Image) - Grouped */}
+                        {activeTab !== 'expert' && getGroupedModels(filteredItems as AIModel[]).map(({ category, models: groupModels }) => (
+                            <div key={category} className="mb-4">
                                 <div className="px-3 py-1 mb-1">
                                     <span className={`text-[10px] font-bold uppercase tracking-wider ${isDarkMode ? 'text-zinc-500' : 'text-gray-400'}`}>
-                                        Geração de Imagens 🎨
+                                        {category}
                                     </span>
                                 </div>
                                 <div className="space-y-1">
-                                    {filteredItems.map(item => {
-                                        const model = item as AIModel;
+                                    {groupModels.map(model => {
                                         const isSelected = model.id === selectedModelId;
-
                                         return (
                                             <button
                                                 key={model.id}
@@ -283,19 +229,28 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
                                                         : (isDarkMode ? 'hover:bg-white/5 text-gray-300 hover:text-white' : 'hover:bg-gray-50 text-gray-700 hover:text-black')}
                                                 `}
                                             >
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`p-1.5 rounded-lg ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
-                                                        {getProviderIcon(model.provider)}
+                                                <div className="flex items-start gap-3 overflow-hidden">
+                                                    <div className={`p-1.5 rounded-lg flex-shrink-0 mt-0.5 ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
+                                                        {model.logo ? (
+                                                            <div className="w-5 h-5 rounded-sm overflow-hidden">
+                                                                <img src={model.logo} alt={model.name} className="w-full h-full object-cover" />
+                                                            </div>
+                                                        ) : getProviderIcon(model.provider)}
                                                     </div>
-                                                    <div className="flex flex-col gap-0.5">
+                                                    <div className="flex flex-col gap-0.5 min-w-0">
                                                         <div className="flex items-center gap-2">
-                                                            <span className="text-sm font-bold">{model.name}</span>
+                                                            <span className="text-sm font-bold truncate">{model.name}</span>
+                                                            {model.badge && (
+                                                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 whitespace-nowrap">
+                                                                    {model.badge}
+                                                                </span>
+                                                            )}
                                                         </div>
-                                                        <span className="text-xs opacity-60 truncate">{model.description || 'Modelo de geração de imagem'}</span>
+                                                        <span className="text-xs opacity-60 truncate">{model.description}</span>
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                                                     {isSelected && <IconCheck className="w-4 h-4 text-emerald-500" />}
                                                 </div>
                                             </button>
@@ -303,7 +258,7 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
                                     })}
                                 </div>
                             </div>
-                        )}
+                        ))}
 
                         {/* Agents List (Experts Tab) */}
                         {activeTab === 'expert' && filteredItems.map(item => {

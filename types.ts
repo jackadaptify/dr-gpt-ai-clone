@@ -107,6 +107,7 @@ export interface AIModel {
   modelId: string;
   category?: string; // New field for grouping
   badge?: string; // New field for badges
+  logo?: string; // New field for custom logo URL
   capabilities: ModelCapabilities;
   details?: {
     function: string;
