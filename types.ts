@@ -130,7 +130,7 @@ export const AVAILABLE_AGENTS: Agent[] = [
     id: 'general',
     name: 'Dr. GPT (Generalista)',
     role: 'Clínico Geral',
-    description: 'Assistente médico versátil para diagnóstico, conduta e prescrição geral.',
+    description: 'Assistente médico versátil para hipóteses clínicas, conduta e suporte à decisão.',
     icon: 'IconStethoscope',
     color: 'from-emerald-500 to-teal-700',
     modelId: 'anthropic/claude-3.5-haiku',
@@ -175,7 +175,7 @@ export const AVAILABLE_AGENTS: Agent[] = [
     icon: 'IconBrain',
     color: 'from-violet-500 to-indigo-700',
     modelId: 'anthropic/claude-3.5-haiku',
-    systemPrompt: 'Você é um Psiquiatra. Foque em diagnósticos do DSM-5 e psicofármacos...'
+    systemPrompt: 'Você é um Psiquiatra. Foque em critérios do DSM-5 e psicofármacos...'
   }
 ];
 
@@ -252,7 +252,7 @@ export const AVAILABLE_MODELS: AIModel[] = [
   {
     id: "deepseek/deepseek-v3.2-speciale",
     name: "DeepSeek Speciale",
-    description: "Supera GPT-5 em lógica pura e diagnóstico.",
+    description: "Supera GPT-5 em lógica pura e análise clínica.",
     category: "Raciocínio Clínico 🧠",
     provider: 'DeepSeek',
     modelId: 'deepseek/deepseek-v3.2-speciale',
