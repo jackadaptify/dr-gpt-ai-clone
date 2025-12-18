@@ -141,6 +141,19 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
+                    // 🔗 FIX: Open links in new tab
+                    a({ node, children, ...props }) {
+                      return (
+                        <a
+                          {...props}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:text-blue-400 hover:underline transition-colors"
+                        >
+                          {children}
+                        </a>
+                      );
+                    },
                     img({ node, ...props }) {
                       const imgProps = props as any; // 🔧 FIX: Cast to any to avoid TS errors with react-markdown types
                       return (

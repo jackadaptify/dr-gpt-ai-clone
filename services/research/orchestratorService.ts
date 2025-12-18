@@ -1,6 +1,6 @@
 import { classifyQuery, ResearchIntent } from './classifierService';
 import { pubmedProvider } from './providers/pubmedProvider';
-import { semanticScholarProvider } from './providers/semanticScholarProvider';
+import { openAlexProvider } from './providers/openAlexProvider';
 import { chatCompletion } from '../openRouterService';
 import { Message, Role } from '../../types';
 
@@ -17,7 +17,7 @@ export interface ResearchSource {
     authors: string[];
     date: string;
     url: string;
-    source: 'PubMed' | 'SemanticScholar' | 'NICE' | 'Other';
+    source: 'PubMed' | 'SemanticScholar' | 'NICE' | 'OpenAlex' | 'Other'; // Added OpenAlex
 }
 
 // User specified Claude 3.5 Sonnet for synthesis
@@ -34,11 +34,12 @@ export const orchestrateResearch = async (query: string, onProgress?: (status: s
         const searchTerms = intent.keywords.join(' ');
         onProgress?.(`🔍 Buscando evidências para: "${searchTerms}"...`);
 
-        // Select providers based on intent (Simplified logic for now: ALWAYS PubMed + Semantic Scholar as per tier 1)
+        // Select providers based on intent (Simplified logic for now: ALWAYS PubMed + OpenAlex as per tier 1)
         // In future we can conditionally add NICE based on 'intent.type === guideline'
 
         // We can use the intent to refine the query or filter providers
-        const providers = [pubmedProvider, semanticScholarProvider];
+        // 🚀 SWAP: Replacing semanticScholarProvider with openAlexProvider
+        const providers = [pubmedProvider, openAlexProvider];
 
         // Execute searches
         const results = await Promise.all(
