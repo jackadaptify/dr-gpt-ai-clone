@@ -1,4 +1,4 @@
-import { MessageCircle, Mic, FileText, Settings, Shield, ClipboardCheck, User, LogOut } from 'lucide-react';
+import { MessageCircle, Mic, Search, Settings, Shield, ClipboardCheck, User, LogOut, Edit2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { AppMode } from '../types';
 
@@ -11,10 +11,9 @@ interface RailNavProps {
 const RailNav: React.FC<RailNavProps> = ({ activeMode, onModeChange, isDarkMode }) => {
 
     const navItems = [
-        { mode: 'chat', icon: MessageCircle, label: 'Chat IA' },
-        { mode: 'scribe', icon: Mic, label: 'Scribe' },
-        { mode: 'antiglosa', icon: Shield, label: 'Anti-Glosa' },
-        { mode: 'justificativa', icon: ClipboardCheck, label: 'Justificativa Prévia' },
+        { mode: 'chat', icon: MessageCircle, label: 'Discussão Clínica' },
+        { mode: 'chat-research', icon: Search, label: 'Pesquisa' }, // Maps to chat but different label
+        { mode: 'scribe', icon: Edit2, label: 'Transcribe' }
     ];
 
     const { user } = useAuth();
@@ -35,8 +34,9 @@ const RailNav: React.FC<RailNavProps> = ({ activeMode, onModeChange, isDarkMode 
             {/* Nav Items */}
             <div className="flex-1 flex flex-col gap-4 w-full px-2">
                 {navItems.map((item) => {
-                    const isActive = activeMode === item.mode;
                     const Icon = item.icon;
+                    // Highlight if activeMode strictly matches the item's mode
+                    const isActive = activeMode === item.mode;
 
                     return (
                         <button
@@ -68,7 +68,8 @@ const RailNav: React.FC<RailNavProps> = ({ activeMode, onModeChange, isDarkMode 
                             </div>
                         </button>
                     );
-                })}
+                })
+                }
             </div>
 
             {/* Bottom User Avatar - Acts as Settings Button */}

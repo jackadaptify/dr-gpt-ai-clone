@@ -74,15 +74,9 @@ export default function Sidebar({
     if (activeMode === 'scribe') {
       return matchesSearch && matchesFolder && chat.agentId === 'scribe-mode';
     }
-    if (activeMode === 'antiglosa') {
-      return matchesSearch && matchesFolder && chat.agentId === 'antiglosa-mode';
-    }
-    if (activeMode === 'justificativa') {
-      return matchesSearch && matchesFolder && chat.agentId === 'justificativa-mode';
-    }
     // Chat Mode: Exclude special modes
-    // Note: We might want to include 'normal' chats AND agent chats here, but exclude scribe/antiglosa
-    return matchesSearch && matchesFolder && chat.agentId !== 'scribe-mode' && chat.agentId !== 'antiglosa-mode' && chat.agentId !== 'justificativa-mode';
+    // Note: We might want to include 'normal' chats AND agent chats here, but exclude scribe
+    return matchesSearch && matchesFolder && chat.agentId !== 'scribe-mode';
   });
 
   const handleCreateFolder = (e: React.FormEvent) => {
@@ -362,19 +356,7 @@ export default function Sidebar({
           </>
         );
 
-      case 'antiglosa':
-        return (
-          <>
-            <div className="px-4 text-center mt-6 mb-4">
-              <div className="w-12 h-12 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-2 text-amber-500">
-                <Shield size={24} />
-              </div>
-              <p className="text-sm font-medium text-amber-500">Anti-Glosa</p>
-              <p className="text-xs text-textMuted">Suas defesas geradas.</p>
-            </div>
-            {renderChatList('Defesas Recentes', 'Nenhuma defesa gerada ainda.', <ShieldAlert size={16} />)}
-          </>
-        );
+
 
       case 'settings':
         return (
@@ -473,19 +455,7 @@ export default function Sidebar({
           </div>
         );
 
-      case 'justificativa':
-        return (
-          <>
-            <div className="px-4 text-center mt-6 mb-4">
-              <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto mb-2 text-blue-500">
-                <ClipboardCheck size={24} />
-              </div>
-              <p className="text-sm font-medium text-blue-500">Justificativa Prévia</p>
-              <p className="text-xs text-textMuted">Suas autorizações geradas.</p>
-            </div>
-            {renderChatList('Histórico de Justificativas', 'Nenhuma justificativa gerada ainda.', <ClipboardCheck size={16} />)}
-          </>
-        );
+
 
       default:
         return <div>Selecione um modo</div>;
@@ -524,34 +494,47 @@ export default function Sidebar({
               <span className="font-bold text-lg">Dr. GPT</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-3">
+              {/* Button 1: Discussão Clínica */}
               <button
                 onClick={() => { onModeChange('chat'); if (window.innerWidth < 768) setIsOpen(false); }}
-                className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${activeMode === 'chat' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500' : 'bg-transparent border-transparent hover:bg-white/5 text-textMuted'}`}
+                className={`relative w-full p-4 rounded-2xl border transition-all text-left flex items-center gap-4 group ${activeMode === 'chat' ? 'bg-emerald-500/10 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.1)]' : 'bg-transparent border-white/10 hover:bg-white/5 hover:border-white/20'}`}
               >
-                <IconMessage />
-                <span className="text-sm font-medium">Chat</span>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${activeMode === 'chat' ? 'bg-emerald-500 text-black' : 'bg-white/10 text-emerald-400'}`}>
+                  <IconMessage />
+                </div>
+                <div>
+                  <h3 className={`font-bold text-base ${activeMode === 'chat' ? 'text-emerald-400' : 'text-white'}`}>Discussão Clínica</h3>
+                  <p className="text-xs text-zinc-400">Raciocínio e conduta médica</p>
+                </div>
               </button>
+
+              {/* Button 2: Pesquisa */}
+              <button
+                onClick={() => { onModeChange('chat-research'); if (window.innerWidth < 768) setIsOpen(false); }}
+                className={`relative w-full p-4 rounded-2xl border transition-all text-left flex items-center gap-4 group ${activeMode === 'chat-research' ? 'bg-emerald-500/10 border-emerald-500/50' : 'bg-transparent border-white/10 hover:bg-white/5 hover:border-white/20'}`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${activeMode === 'chat-research' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/10 text-emerald-400'}`}>
+                  <IconSearch />
+                </div>
+                <div>
+                  <h3 className={`font-bold text-base ${activeMode === 'chat-research' ? 'text-emerald-400' : 'text-white'}`}>Pesquisa</h3>
+                  <p className="text-xs text-zinc-400">Guidelines e artigos científicos</p>
+                </div>
+              </button>
+
+              {/* Button 3: Transcribe */}
               <button
                 onClick={() => { onModeChange('scribe'); if (window.innerWidth < 768) setIsOpen(false); }}
-                className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${activeMode === 'scribe' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500' : 'bg-transparent border-transparent hover:bg-white/5 text-textMuted'}`}
+                className={`relative w-full p-4 rounded-2xl border transition-all text-left flex items-center gap-4 group ${activeMode === 'scribe' ? 'bg-emerald-500/10 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.1)]' : 'bg-transparent border-white/10 hover:bg-white/5 hover:border-white/20'}`}
               >
-                <Edit2 size={18} />
-                <span className="text-sm font-medium">Scribe</span>
-              </button>
-              <button
-                onClick={() => { onModeChange('antiglosa'); if (window.innerWidth < 768) setIsOpen(false); }}
-                className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${activeMode === 'antiglosa' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500' : 'bg-transparent border-transparent hover:bg-white/5 text-textMuted'}`}
-              >
-                <ShieldAlert size={18} />
-                <span className="text-sm font-medium">Glosa</span>
-              </button>
-              <button
-                onClick={() => { onModeChange('justificativa'); if (window.innerWidth < 768) setIsOpen(false); }}
-                className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${activeMode === 'justificativa' ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-500' : 'bg-transparent border-transparent hover:bg-white/5 text-textMuted'}`}
-              >
-                <ClipboardCheck size={18} />
-                <span className="text-sm font-medium">Justif.</span>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${activeMode === 'scribe' ? 'bg-emerald-500 text-black' : 'bg-white/10 text-emerald-400'}`}>
+                  <Edit2 size={20} />
+                </div>
+                <div>
+                  <h3 className={`font-bold text-base ${activeMode === 'scribe' ? 'text-emerald-400' : 'text-white'}`}>Transcribe</h3>
+                  <p className="text-xs text-zinc-400">Documentação automática</p>
+                </div>
               </button>
             </div>
             <div className={`h-px w-full my-2 ${isDarkMode ? 'bg-white/10' : 'bg-gray-200'}`} />

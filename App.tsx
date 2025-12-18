@@ -21,7 +21,7 @@ import ModelSelector from './components/ModelSelector';
 import AttachmentMenu from './components/AttachmentMenu';
 import PromptsModal from './components/PromptsModal';
 import AIScribeModal from './components/AIScribeModal';
-import AntiGlosaModal from './components/AntiGlosaModal';
+
 import {
     Folder as FolderIcon,
     Settings,
@@ -57,8 +57,7 @@ import { settingsService, UserSettings } from './services/settingsService';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import RailNav from './components/RailNav';
 import ScribeView from './components/ScribeView';
-import AntiGlosaView from './components/AntiGlosaView';
-import JustificativaView from './components/JustificativaView';
+
 import ScribeReview from './components/Scribe/ScribeReview';
 import { Toaster, toast } from 'react-hot-toast';
 
@@ -276,7 +275,7 @@ function AppContent() {
     const [isAttachmentMenuOpen, setIsAttachmentMenuOpen] = useState(false);
     const [isPromptsModalOpen, setIsPromptsModalOpen] = useState(false);
     const [isAIScribeModalOpen, setIsAIScribeModalOpen] = useState(false);
-    const [isAntiGlosaModalOpen, setIsAntiGlosaModalOpen] = useState(false);
+
     const scrollThrottleRef = useRef<number | null>(null); // 🔧 FIX: Throttle scroll updates
     const [isDragging, setIsDragging] = useState(false); // Drag & Drop State
 
@@ -1564,7 +1563,7 @@ function AppContent() {
                                 {renderChatUI()}
                             </ScribeReview>
                         ) : (
-                            (activeMode === 'chat' || (currentChatId && (activeMode === 'scribe' || activeMode === 'antiglosa'))) && renderChatUI()
+                            (activeMode === 'chat' || activeMode === 'chat-research' || (currentChatId && activeMode === 'scribe')) && renderChatUI()
                         )
                     )
                 })()}
@@ -1903,216 +1902,7 @@ Seja conciso, técnico e direto.'`;
                     />
                 )}
 
-                {activeMode === 'antiglosa' && !currentChatId && (
-                    <AntiGlosaView
-                        isDarkMode={isDarkMode}
-                        isLoading={isGenerating}
-                        toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-                        onGenerate={async (text, estimatedValue) => {
-                            // 1. Create specialized Chat Session
-                            const newChatId = uuidv4();
-                            // Force GPT-4o-mini for speed/cost efficiency
-                            const defenseModelId = 'openai/gpt-4o-mini';
 
-                            const newChat: ChatSession = {
-                                id: newChatId,
-                                title: `Defesa - ${text.slice(0, 20)}...`,
-                                modelId: defenseModelId,
-                                agentId: 'antiglosa-mode', // Tag for filtering
-                                messages: [],
-                                updatedAt: Date.now(),
-                                metadata: {
-                                    estimated_value: estimatedValue
-                                }
-                            };
-
-                            setChats(prev => [newChat, ...prev]);
-                            setCurrentChatId(newChatId);
-                            setSelectedModelId(defenseModelId);
-                            createChat(newChat);
-
-                            // 2. Add AI Welcome Message
-                            const welcomeMsg: Message = {
-                                id: uuidv4(),
-                                role: Role.MODEL,
-                                content: "Defesa gerada com sucesso. Verifique o texto abaixo e faça ajustes se necessário.",
-                                timestamp: Date.now(),
-                                modelId: defenseModelId
-                            };
-                            saveMessage(newChatId, welcomeMsg);
-                            setChats(prev => prev.map(c => c.id === newChatId ? { ...c, messages: [welcomeMsg] } : c));
-
-                            // 3. Set UI State
-                            setActiveMode('scribe-review');
-                            setReviewTitle('Defesa Gerada'); // Customize Header
-                            setScribeContent('Aguarde... Consultando Jurisprudência e Rol da ANS...');
-                            setIsGenerating(true);
-
-                            // 4. Construct System Prompt
-                            const prompt = `ROLE: Você é um Auditor Médico Sênior e Advogado Especialista em Direito à Saúde.
-TASK: Escreva um RECURSO DE GLOSA (Carta de Apelação) formal.
-INPUT DO USUÁRIO: "${text}"
-
-DIRETRIZES TÉCNICAS (CRÍTICO):
-1. Citação de Leis: 
-   - Cite o "Código de Defesa do Consumidor" (Súmula 469 STJ se aplicável).
-   - Cite a "Lei 9.656/98" (Lei dos Planos de Saúde).
-   - Cite o "Rol de Procedimentos e Eventos em Saúde da ANS".
-2. Estrutura da Carta:
-   - Cabeçalho: "À [Nome da Operadora]" (se não houver, use "À Auditoria Médica").
-   - Assunto: "RECURSO ADMINISTRATIVO - REVISÃO DE GLOSA".
-   - Identificação do Paciente (Use os dados do input).
-   - Justificativa Clínica: Explique a necessidade médica baseada no input.
-   - Argumentação Jurídica: Por que a negativa é abusiva.
-   - Conclusão: Exija autorização imediata.
-   
-FORMATO:
-Retorne APENAS o texto da carta em Markdown. Sem introduções. Sem bloco de código.`;
-
-                            // 5. Stream Response
-                            try {
-                                const response = await streamChatResponse(
-                                    defenseModelId,
-                                    [{ role: Role.USER, content: prompt, id: 'prompt', timestamp: Date.now() }],
-                                    prompt,
-                                    (chunk) => {
-                                        setScribeContent(prev => {
-                                            if (prev.startsWith('Aguarde...')) return chunk;
-                                            return prev + chunk;
-                                        });
-                                    },
-                                    undefined,
-                                    { webSearch: false, imageGeneration: false },
-                                    newChatId,
-                                    undefined
-                                );
-                                setScribeContent(response);
-                                setIsGenerating(false);
-
-                                // Save generated document to history
-                                const docMessage: Message = {
-                                    id: uuidv4(),
-                                    role: Role.MODEL,
-                                    content: response,
-                                    displayContent: '📄 Defesa Gerada',
-                                    timestamp: Date.now(),
-                                    modelId: defenseModelId
-                                };
-                                saveMessage(newChatId, docMessage);
-                                setChats(prev => prev.map(c => c.id === newChatId ? {
-                                    ...c,
-                                    messages: [...c.messages, docMessage]
-                                } : c));
-
-                            } catch (error) {
-                                console.error(error);
-                                setScribeContent('Erro ao gerar defesa. Tente novamente.');
-                                setIsGenerating(false);
-                            }
-                        }}
-                    />
-                )}
-
-                {activeMode === 'justificativa' && !currentChatId && (
-                    <JustificativaView
-                        isDarkMode={isDarkMode}
-                        isLoading={isGenerating}
-                        toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-                        onGenerate={async (text) => {
-                            const newChatId = uuidv4();
-                            const justifModelId = 'openai/gpt-4o-mini';
-
-                            const newChat: ChatSession = {
-                                id: newChatId,
-                                title: `Justificativa - ${text.slice(0, 20)}...`,
-                                modelId: justifModelId,
-                                agentId: 'justificativa-mode',
-                                messages: [],
-                                updatedAt: Date.now()
-                            };
-
-                            setChats(prev => [newChat, ...prev]);
-                            setCurrentChatId(newChatId);
-                            setSelectedModelId(justifModelId);
-                            createChat(newChat);
-
-                            const welcomeMsg: Message = {
-                                id: uuidv4(),
-                                role: Role.MODEL,
-                                content: "Justificativa gerada com sucesso. Verifique o texto abaixo e faça ajustes se necessário.",
-                                timestamp: Date.now(),
-                                modelId: justifModelId
-                            };
-                            saveMessage(newChatId, welcomeMsg);
-                            setChats(prev => prev.map(c => c.id === newChatId ? { ...c, messages: [welcomeMsg] } : c));
-
-                            setActiveMode('scribe-review');
-                            setReviewTitle('Justificativa Prévia');
-                            setScribeContent('Aguarde... Consultando Jurisprudência e Rol da ANS...');
-                            setIsGenerating(true);
-
-                            const prompt = `ROLE: Você é um Auditor Médico Sênior e Especialista em Regulação de Saúde (ANS).
-TASK: Escreva uma CARTA TÉCNICA solicitando AUTORIZAÇÃO PRÉVIA para cirurgia ou exame.
-INPUT DO USUÁRIO: "${text}"
-
-DIRETRIZES TÉCNICAS (CRÍTICO):
-1. Objetivo: Demonstrar a necessidade técnica do procedimento para evitar glosa futura.
-2. Citação de Leis e Resoluções:
-   - Cite o "Rol de Procedimentos e Eventos em Saúde da ANS" (Resolução Normativa vigente).
-   - Cite Diretrizes de Utilização (DUT) se aplicável ao procedimento.
-   - Cite Medicina Baseada em Evidências para justificar a indicação clínica.
-3. Estrutura da Carta:
-   - Destinatário: "À Auditoria Médica da [Operadora]".
-   - Assunto: "SOLICITAÇÃO DE AUTORIZAÇÃO PRÉVIA - CARÁTER ELETIVO".
-   - Identificação do Paciente (Use os dados do input, ou [NOME DO PACIENTE] se não houver).
-   - Indicação Clínica Detalhada: Resuma a história clínica, exames anteriores e falha terapêutica.
-   - Embasamento Técnico: Por que este procedimento é o indicado?
-   - Conclusão: Solicito emissão de senha de autorização.
-   
-FORMATO:
-Retorne APENAS o texto da carta em Markdown. Sem introduções. Sem bloco de código.`;
-
-                            try {
-                                const response = await streamChatResponse(
-                                    justifModelId,
-                                    [{ role: Role.USER, content: prompt, id: 'prompt', timestamp: Date.now() }],
-                                    prompt,
-                                    (chunk) => {
-                                        setScribeContent(prev => {
-                                            if (prev.startsWith('Aguarde...')) return chunk;
-                                            return prev + chunk;
-                                        });
-                                    },
-                                    undefined,
-                                    { webSearch: false, imageGeneration: false },
-                                    newChatId,
-                                    undefined
-                                );
-                                setScribeContent(response);
-                                setIsGenerating(false);
-
-                                const docMessage: Message = {
-                                    id: uuidv4(),
-                                    role: Role.MODEL,
-                                    content: response,
-                                    displayContent: '📄 Justificativa Gerada',
-                                    timestamp: Date.now(),
-                                    modelId: justifModelId
-                                };
-                                saveMessage(newChatId, docMessage);
-                                setChats(prev => prev.map(c => c.id === newChatId ? {
-                                    ...c,
-                                    messages: [...c.messages, docMessage]
-                                } : c));
-
-                            } catch (error) {
-                                console.error(error);
-                                setScribeContent('Erro ao gerar justificativa. Tente novamente.');
-                                setIsGenerating(false);
-                            }
-                        }}
-                    />
-                )}
 
                 {activeMode === 'settings' && (
                     <div className="flex flex-col h-full overflow-y-auto custom-scrollbar p-8 animate-in fade-in duration-500">
