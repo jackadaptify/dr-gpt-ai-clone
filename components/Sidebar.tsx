@@ -267,6 +267,7 @@ export default function Sidebar({
   const renderContent = () => {
     switch (activeMode) {
       case 'chat':
+      case 'chat-research': // 🔍 FIX: Ensure research mode renders the chat list too!
         return (
           <>
 

@@ -59,14 +59,16 @@ import RailNav from './components/RailNav';
 import ScribeView from './components/ScribeView';
 
 import ScribeReview from './components/Scribe/ScribeReview';
+// import { ResearchLayout } from './components/Research/ResearchLayout'; // Removed to unify UI
+import { orchestrateResearch } from './services/research/orchestratorService';
 import { Toaster, toast } from 'react-hot-toast';
 
 // POOL MESTRE DE SUGESTÕES
 const ALL_SUGGESTIONS = [
     // CLÍNICO (A dor da incerteza e tempo)
     {
-        title: "Hipóteses Diagnósticas",
-        text: "Atue como médico sênior. Baseado nos sintomas e histórico que vou colar, liste diagnósticos diferenciais ordenados por probabilidade e exames confirmatórios.",
+        title: "Hipóteses Clínicas",
+        text: "Atue como médico sênior. Baseado nos sintomas e histórico que vou colar, liste hipóteses clínicas diferenciais ordenadas por probabilidade e exames sugeridos.",
         icon: "Activity"
     },
     {
@@ -775,9 +777,11 @@ function AppContent() {
         if (!activeChatId) {
             const newChat: ChatSession = {
                 id: uuidv4(),
+                // If in Research Mode, use a distinct title logic if needed, but here we keep it generic or override
                 title: (overrideDisplay || textToSend).slice(0, 30) + ((overrideDisplay || textToSend).length > 30 ? '...' : ''),
                 modelId: selectedModelId,
-                agentId: overrideAgentId || selectedAgentId || undefined, // Tag session
+                // Assign 'research-mode' agentId if in that mode
+                agentId: overrideAgentId || selectedAgentId || (activeMode === 'chat-research' ? 'research-mode' : undefined),
                 messages: [],
                 updatedAt: Date.now()
             };
@@ -904,36 +908,76 @@ function AppContent() {
 
             // Detect if we're in scribe-review mode for SOAP refinement
             const isReviewMode = activeMode === 'scribe-review';
+            const isResearchMode = activeMode === 'chat-research';
             let fullStreamedResponse = '';
 
-            // 7. REAL API CALL (UNCOMMENTED AND FIXED)
-            const fullResponse = await streamChatResponse(
-                apiModelId,
-                updatedHistory,
-                messageContent,
-                (chunk) => {
-                    fullStreamedResponse += chunk;
+            let fullResponse = '';
 
-                    // Check if this is a refinement response with UPDATE_ACTION tag
-                    if (isReviewMode && fullStreamedResponse.includes('<UPDATE_ACTION>')) {
-                        // Don't update the chat UI during streaming of UPDATE_ACTION content
-                        // We'll process it after completion
-                        return;
-                    } else {
-                        // Update UI on every chunk received for normal responses
+            if (isResearchMode) {
+                // 🕵️ RESEARCH MODE ORCHESTRATION
+                console.log('🕵️ Iniciando modo de pesquisa...');
+
+                // Show initial status
+                setChats(prev => prev.map(c => c.id === activeChatId ? {
+                    ...c,
+                    messages: c.messages.map(m => m.id === tempAiMessageId ? { ...m, content: '🔍 Analisando sua pergunta...' } : m)
+                } : c));
+
+                try {
+                    const result = await orchestrateResearch(messageContent, (status) => {
                         setChats(prev => prev.map(c => c.id === activeChatId ? {
                             ...c,
-                            messages: c.messages.map(m => m.id === tempAiMessageId ? { ...m, content: m.content + chunk } : m)
+                            messages: c.messages.map(m => m.id === tempAiMessageId ? { ...m, content: `🔄 ${status}` } : m)
                         } : c));
+                    });
+
+                    // Format result as Markdown
+                    let finalMarkdown = result.answer;
+
+                    if (result.sources && result.sources.length > 0) {
+                        finalMarkdown += '\n\n---\n### 📚 Fontes Consultadas\n\n';
+                        result.sources.forEach((source, index) => {
+                            finalMarkdown += `${index + 1}. **[${source.title}](${source.url})**\n   *${source.authors.join(', ')} (${source.date})* - ${source.source}\n\n`;
+                        });
                     }
-                },
-                selectedAgentId ? agents.find(a => a.id === selectedAgentId)?.systemPrompt : undefined,
-                { webSearch: capturedTools.web, imageGeneration: capturedTools.image },
-                activeChatId,
-                userProfile,
-                isReviewMode,
-                isReviewMode ? scribeContent : undefined
-            );
+
+                    fullResponse = finalMarkdown;
+
+                } catch (err: any) {
+                    console.error('Research error:', err);
+                    fullResponse = `❌ Ocorreu um erro durante a pesquisa: ${err.message || 'Erro desconhecido'}. Tente novamente.`;
+                }
+
+            } else {
+                // 7. REAL API CALL (STANDARD CHAT)
+                fullResponse = await streamChatResponse(
+                    apiModelId,
+                    updatedHistory,
+                    messageContent,
+                    (chunk) => {
+                        fullStreamedResponse += chunk;
+
+                        // Check if this is a refinement response with UPDATE_ACTION tag
+                        if (isReviewMode && fullStreamedResponse.includes('<UPDATE_ACTION>')) {
+                            // Don't update the chat UI during streaming of UPDATE_ACTION content
+                            // We'll process it after completion
+                            return;
+                        } else {
+                            // Update UI on every chunk received for normal responses
+                            setChats(prev => prev.map(c => c.id === activeChatId ? {
+                                ...c,
+                                messages: c.messages.map(m => m.id === tempAiMessageId ? { ...m, content: m.content + chunk } : m)
+                            } : c));
+                        }
+                    },
+                    selectedAgentId ? agents.find(a => a.id === selectedAgentId)?.systemPrompt : undefined,
+                    { webSearch: capturedTools.web, imageGeneration: capturedTools.image },
+                    activeChatId,
+                    userProfile,
+                    isReviewMode,
+                    isReviewMode ? scribeContent : undefined
+                );
+            }
 
             console.log('✅ RESPOSTA: Recebida completa');
 
@@ -1068,7 +1112,8 @@ function AppContent() {
 
         // If switching to a dashboard mode (Scribe, Anti-Glosa, Justificativa),
         // we MUST clear the current chat so the dashboard view renders instead of the chat view.
-        if (newMode === 'scribe' || newMode === 'antiglosa' || newMode === 'justificativa') {
+        // Also clear when entering 'chat' to avoid showing history from other modes (like Research)
+        if (newMode === 'scribe' || newMode === 'antiglosa' || newMode === 'justificativa' || newMode === 'chat-research' || newMode === 'chat') {
             setCurrentChatId(null);
             setSelectedAgentId(null); // Optional: also clear agent context
         }
@@ -1089,7 +1134,32 @@ function AppContent() {
             {/* Sidebar */}
             {activeMode !== 'scribe-review' && (
                 <Sidebar
-                    chats={chats}
+                    chats={chats.filter(c => {
+                        // 🔍 Research Mode Filtering
+                        if (activeMode === 'chat-research') {
+                            return c.agentId === 'research-mode';
+                        }
+                        // 💬 Standard Chat Mode Filtering
+                        // Exclude dashboard-specific chats (scribe-mode, antiglosa-mode, etc) AND research-mode
+                        if (activeMode === 'chat') {
+                            return c.agentId !== 'scribe-mode' &&
+                                c.agentId !== 'antiglosa-mode' &&
+                                c.agentId !== 'justificativa-mode' &&
+                                c.agentId !== 'research-mode';
+                        }
+                        // For other dashboard modes (scribe, antiglosa), the sidebar might not be visible 
+                        // or we might want specific history.
+                        // Currently, Scribe/Antiglosa view handles history internally or doesn't show sidebar 
+                        // (based on user flow), but 'scribe' mode renders sidebar.
+
+                        // Default fallback (e.g. Scribe Mode showing history?)
+                        // If we are in 'scribe', maybe we show 'scribe-mode' chats?
+                        if (activeMode === 'scribe') return c.agentId === 'scribe-mode';
+                        if (activeMode === 'antiglosa') return c.agentId === 'antiglosa-mode';
+                        if (activeMode === 'justificativa') return c.agentId === 'justificativa-mode';
+
+                        return true;
+                    })}
                     folders={folders}
                     currentChatId={currentChatId}
                     onSelectChat={(chatId) => {
@@ -1239,6 +1309,16 @@ function AppContent() {
                                                 </span>
                                                 <span className={`font-semibold text-xs md:text-sm tracking-wide ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
                                                     ⚡ AI Model: Clinical-Pro v1.0
+                                                </span>
+                                            </div>
+                                        ) : activeMode === 'chat-research' ? (
+                                            <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-md shadow-sm ${isDarkMode ? 'bg-blue-500/10 border-blue-500/20' : 'bg-white border-blue-100'}`}>
+                                                <span className="relative flex h-2 w-2">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                                                </span>
+                                                <span className={`font-semibold text-xs md:text-sm tracking-wide ${isDarkMode ? 'text-blue-400' : 'text-blue-600'}`}>
+                                                    🧬 Research Agent (MedPilot)
                                                 </span>
                                             </div>
                                         ) : (
@@ -1563,7 +1643,8 @@ function AppContent() {
                                 {renderChatUI()}
                             </ScribeReview>
                         ) : (
-                            (activeMode === 'chat' || activeMode === 'chat-research' || (currentChatId && activeMode === 'scribe')) && renderChatUI()
+                            (activeMode === 'chat' || activeMode === 'chat-research' || (currentChatId && activeMode === 'scribe')) ? renderChatUI() :
+                                null
                         )
                     )
                 })()}

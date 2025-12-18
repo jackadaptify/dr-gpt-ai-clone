@@ -66,7 +66,7 @@ const PROMPTS_DATA: Prompt[] = [
     {
         id: '6',
         title: 'Análise de Interação Medicamentosa',
-        description: 'Verifique rapidamente potenciais interações entre a prescrição atual e o uso contínuo do paciente.',
+        description: 'Verifique rapidamente potenciais interações entre a lista de medicamentos atual e o uso contínuo do paciente.',
         category: 'Segurança',
         icon: ShieldAlert,
         content: 'Analise potenciais interações medicamentosas entre os seguintes medicamentos prescritos e de uso contínuo:\n\n[MEDICAMENTOS]'
