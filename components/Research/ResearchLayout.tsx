@@ -126,7 +126,7 @@ export const ResearchLayout: React.FC = () => {
                                                 {index + 1}
                                             </span>
                                             <span className="text-xs font-medium px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 lowercase">
-                                                {source.source}
+                                                {source.source === 'Other' ? 'OpenAlex' : source.source}
                                             </span>
                                         </div>
                                         <a href={source.url} target="_blank" rel="noopener noreferrer" className="block group">

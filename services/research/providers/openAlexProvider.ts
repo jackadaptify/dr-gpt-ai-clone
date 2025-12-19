@@ -23,7 +23,7 @@ interface OpenAlexWork {
 
 export const openAlexProvider: ResearchProvider = {
     name: 'OpenAlex',
-    sourceType: 'Other', // Or we can add 'OpenAlex' to the type definition later
+    sourceType: 'OpenAlex', // Or we can add 'OpenAlex' to the type definition later
 
     search: async (query: string, limit: number = 5): Promise<ResearchSource[]> => {
         try {
@@ -57,7 +57,7 @@ export const openAlexProvider: ResearchProvider = {
                 authors: work.authorships.map(a => a.author.display_name).slice(0, 5), // Top 5 authors
                 date: work.publication_date || work.publication_year?.toString() || 'Data desconhecida',
                 url: work.doi || work.primary_location?.landing_page_url || work.open_access?.oa_url || work.id,
-                source: 'Other' // Will map to 'OpenAlex' in orchestrator
+                source: 'OpenAlex' // Will map to 'OpenAlex' in orchestrator
             }));
 
         } catch (error) {

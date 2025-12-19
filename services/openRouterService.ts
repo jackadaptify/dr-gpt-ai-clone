@@ -184,8 +184,8 @@ export const generateOpenRouterImage = async (
             const controller = new AbortController();
             const timeoutId = setTimeout(() => {
                 controller.abort();
-                console.warn('Image generation request timed out after 60 seconds');
-            }, 60000); // 60 second timeout
+                console.warn('Image generation request timed out after 120 seconds');
+            }, 120000); // 120 second timeout
 
             try {
                 const response = await fetch(functionUrl, {
