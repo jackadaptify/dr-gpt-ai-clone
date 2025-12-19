@@ -113,7 +113,7 @@ Sua resposta: "Entendido, Dr. Atualizando a medicação agora.
         }
 
         const body: any = {
-            model: 'openai/gpt-4o-mini', // 🔒 HARDCODED: Clinical-Pro v1.0 Engine
+            model: model, // ✅ Dynamic Model (User Selected)
             messages: apiMessages,
             stream: stream,
         };

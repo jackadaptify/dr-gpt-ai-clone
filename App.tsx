@@ -2077,38 +2077,38 @@ Seja conciso, técnico e direto.'`;
                         {/* PROFILE VIEW */}
                         {settingsTab === 'profile' && (
                             <div className="max-w-4xl mx-auto w-full space-y-8 animate-in slide-in-from-bottom-4 duration-300">
-                                <div className="bg-[#2A2B32] border border-white/5 rounded-2xl p-8 space-y-8">
+                                <div className="bg-surface border border-borderLight rounded-2xl p-8 space-y-8 shadow-card-3d">
                                     <div className="flex items-center gap-4 mb-2">
                                         <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400">
                                             <User className="w-6 h-6" />
                                         </div>
                                         <div>
-                                            <h2 className="text-xl font-bold text-white">Dados Pessoais</h2>
-                                            <p className="text-zinc-400 text-sm">Personalize como a IA interage com você.</p>
+                                            <h2 className="text-xl font-bold text-textMain">Dados Pessoais</h2>
+                                            <p className="text-textMuted text-sm">Personalize como a IA interage com você.</p>
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         {/* Field 1: Nickname */}
                                         <div className="space-y-3">
-                                            <label className="text-sm font-semibold text-zinc-200">Como o Dr. GPT deve te chamar?</label>
+                                            <label className="text-sm font-semibold text-textMain">Como o Dr. GPT deve te chamar?</label>
                                             <input
                                                 type="text"
                                                 value={nickname}
                                                 onChange={(e) => setNickname(e.target.value)}
-                                                className="w-full bg-[#343541] border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-600"
+                                                className="w-full bg-surfaceHighlight border border-borderLight rounded-xl px-4 py-3 text-sm text-textMain focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-textMuted"
                                                 placeholder="Ex: Dr. Jack"
                                             />
                                         </div>
 
                                         {/* Field 2: Specialty */}
                                         <div className="space-y-3">
-                                            <label className="text-sm font-semibold text-zinc-200">Especialidade Médica</label>
+                                            <label className="text-sm font-semibold text-textMain">Especialidade Médica</label>
                                             <div className="relative">
                                                 <select
                                                     value={specialty}
                                                     onChange={(e) => setSpecialty(e.target.value)}
-                                                    className="w-full bg-[#343541] border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none cursor-pointer"
+                                                    className="w-full bg-surfaceHighlight border border-borderLight rounded-xl px-4 py-3 text-sm text-textMain focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none cursor-pointer"
                                                 >
                                                     <option value="" disabled>Selecione sua área...</option>
                                                     <option value="Cardiologia">Cardiologia</option>
@@ -2129,12 +2129,12 @@ Seja conciso, técnico e direto.'`;
                                     {/* Conditional Input for 'Outra' */}
                                     {specialty === 'Outra' && (
                                         <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                                            <label className="text-sm font-semibold text-zinc-200">Qual sua especialidade?</label>
+                                            <label className="text-sm font-semibold text-textMain">Qual sua especialidade?</label>
                                             <input
                                                 type="text"
                                                 value={otherSpecialty}
                                                 onChange={(e) => setOtherSpecialty(e.target.value)}
-                                                className="w-full bg-[#343541] border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-600"
+                                                className="w-full bg-surfaceHighlight border border-borderLight rounded-xl px-4 py-3 text-sm text-textMain focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-textMuted"
                                                 placeholder="Digite sua especialidade..."
                                             />
                                         </div>
@@ -2142,12 +2142,12 @@ Seja conciso, técnico e direto.'`;
 
                                     {/* Field 3: Professional Focus */}
                                     <div className="space-y-3">
-                                        <label className="text-sm font-semibold text-zinc-200">Qual seu objetivo principal?</label>
+                                        <label className="text-sm font-semibold text-textMain">Qual seu objetivo principal?</label>
                                         <div className="relative">
                                             <select
                                                 value={professionalFocus}
                                                 onChange={(e) => setProfessionalFocus(e.target.value)}
-                                                className="w-full bg-[#343541] border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none cursor-pointer"
+                                                className="w-full bg-surfaceHighlight border border-borderLight rounded-xl px-4 py-3 text-sm text-textMain focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none cursor-pointer"
                                             >
                                                 <option value="" disabled>Selecione o foco...</option>
                                                 <option value="Auxílio Clínico & Segunda Opinião">Auxílio Clínico & Segunda Opinião</option>
@@ -2163,8 +2163,8 @@ Seja conciso, técnico e direto.'`;
                                     {/* Field 4: Specific Preference */}
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-baseline">
-                                            <label className="text-sm font-semibold text-zinc-200">Alguma preferência específica?</label>
-                                            <span className={`text-xs ${specificPreference.length > 180 ? 'text-red-400' : 'text-zinc-500'}`}>
+                                            <label className="text-sm font-semibold text-textMain">Alguma preferência específica?</label>
+                                            <span className={`text-xs ${specificPreference.length > 180 ? 'text-red-400' : 'text-textMuted'}`}>
                                                 {specificPreference.length}/200
                                             </span>
                                         </div>
@@ -2175,12 +2175,12 @@ Seja conciso, técnico e direto.'`;
                                                     setSpecificPreference(e.target.value);
                                                 }
                                             }}
-                                            className="w-full h-24 bg-[#343541] border border-white/10 rounded-xl p-4 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all resize-none placeholder-zinc-600 custom-scrollbar"
+                                            className="w-full h-24 bg-surfaceHighlight border border-borderLight rounded-xl p-4 text-sm text-textMain focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all resize-none placeholder-textMuted custom-scrollbar"
                                             placeholder="Ex: Cite sempre fontes da SBC; Prefiro respostas em tópicos..."
                                         />
                                     </div>
 
-                                    <div className="flex justify-end pt-4 border-t border-white/5">
+                                    <div className="flex justify-end pt-4 border-t border-borderLight">
                                         <button
                                             onClick={handleSaveProfile}
                                             disabled={isSettingsSaving}
@@ -2206,26 +2206,26 @@ Seja conciso, técnico e direto.'`;
                         {/* APPEARANCE VIEW */}
                         {settingsTab === 'appearance' && (
                             <div className="max-w-4xl mx-auto w-full space-y-8 animate-in slide-in-from-bottom-4 duration-300">
-                                <div className="bg-[#2A2B32] border border-white/5 rounded-2xl p-8 space-y-6">
-                                    <h2 className="text-xl font-bold text-white mb-6">Aparência e Cores</h2>
+                                <div className="bg-surface border border-borderLight rounded-2xl p-8 space-y-6 shadow-card-3d">
+                                    <h2 className="text-xl font-bold text-textMain mb-6">Aparência e Cores</h2>
 
-                                    <div className="flex items-center justify-between p-4 bg-[#343541] rounded-xl border border-white/5">
+                                    <div className="flex items-center justify-between p-4 bg-surfaceHighlight rounded-xl border border-borderLight">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 bg-zinc-700/50 rounded-lg flex items-center justify-center">
-                                                <Palette className="w-5 h-5 text-zinc-400" />
+                                            <div className="w-10 h-10 bg-zinc-700/10 dark:bg-zinc-700/50 rounded-lg flex items-center justify-center">
+                                                <Palette className="w-5 h-5 text-textMuted" />
                                             </div>
                                             <div>
-                                                <label className="block font-bold text-zinc-200">Tema da Interface</label>
-                                                <p className="text-sm text-zinc-500">Escolha entre modo claro ou escuro.</p>
+                                                <label className="block font-bold text-textMain">Tema da Interface</label>
+                                                <p className="text-sm text-textMuted">Escolha entre modo claro ou escuro.</p>
                                             </div>
                                         </div>
-                                        <div className="flex bg-black/20 p-1 rounded-lg border border-white/5">
+                                        <div className="flex bg-surface p-1 rounded-lg border border-borderLight">
                                             <button
                                                 onClick={() => {
                                                     setIsDarkMode(false);
                                                     setSettingsState({ ...settingsState, theme: 'light' });
                                                 }}
-                                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${!isDarkMode ? 'bg-white text-black shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${!isDarkMode ? 'bg-surfaceHighlight text-textMain shadow-sm border border-borderLight' : 'text-textMuted hover:text-textMain'
                                                     }`}
                                             >
                                                 Claro
@@ -2235,7 +2235,7 @@ Seja conciso, técnico e direto.'`;
                                                     setIsDarkMode(true);
                                                     setSettingsState({ ...settingsState, theme: 'dark' });
                                                 }}
-                                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${isDarkMode ? 'bg-zinc-700 text-white shadow-sm' : 'text-zinc-500 hover:text-zinc-300'
+                                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${isDarkMode ? 'bg-surfaceHighlight text-textMain shadow-sm border border-borderLight' : 'text-textMuted hover:text-textMain'
                                                     }`}
                                             >
                                                 Escuro
@@ -2243,20 +2243,20 @@ Seja conciso, técnico e direto.'`;
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between p-4 bg-[#343541] rounded-xl border border-white/5">
+                                    <div className="flex items-center justify-between p-4 bg-surfaceHighlight rounded-xl border border-borderLight">
                                         <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 bg-zinc-700/50 rounded-lg flex items-center justify-center">
-                                                <Globe className="w-5 h-5 text-zinc-400" />
+                                            <div className="w-10 h-10 bg-zinc-700/10 dark:bg-zinc-700/50 rounded-lg flex items-center justify-center">
+                                                <Globe className="w-5 h-5 text-textMuted" />
                                             </div>
                                             <div>
-                                                <label className="block font-bold text-zinc-200">Idioma</label>
-                                                <p className="text-sm text-zinc-500">Idioma principal do sistema.</p>
+                                                <label className="block font-bold text-textMain">Idioma</label>
+                                                <p className="text-sm text-textMuted">Idioma principal do sistema.</p>
                                             </div>
                                         </div>
                                         <select
                                             value={settingsState.language}
                                             onChange={(e) => setSettingsState({ ...settingsState, language: e.target.value })}
-                                            className="bg-[#2A2B32] border border-white/10 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                                            className="bg-surface border border-borderLight rounded-lg px-4 py-2 text-sm text-textMain focus:outline-none focus:border-emerald-500"
                                         >
                                             <option value="pt-BR">Português (Brasil)</option>
                                             <option value="en-US">English (US)</option>
@@ -2269,7 +2269,7 @@ Seja conciso, técnico e direto.'`;
                                         </div>
                                         <div>
                                             <h4 className="text-sm font-bold text-emerald-400">Preferência de Tema Salva</h4>
-                                            <p className="text-xs text-zinc-500 mt-1">Sua preferência de tema é salva localmente e sincronizada com seu perfil.</p>
+                                            <p className="text-xs text-textMuted mt-1">Sua preferência de tema é salva localmente e sincronizada com seu perfil.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -2279,16 +2279,16 @@ Seja conciso, técnico e direto.'`;
                         {/* SECURITY VIEW */}
                         {settingsTab === 'security' && (
                             <div className="max-w-4xl mx-auto w-full space-y-8 animate-in slide-in-from-bottom-4 duration-300">
-                                <div className="bg-[#2A2B32] border border-white/5 rounded-2xl p-8 space-y-6">
-                                    <h2 className="text-xl font-bold text-white mb-6">Segurança da Conta</h2>
+                                <div className="bg-surface border border-borderLight rounded-2xl p-8 space-y-6 shadow-card-3d">
+                                    <h2 className="text-xl font-bold text-textMain mb-6">Segurança da Conta</h2>
 
-                                    <div className="p-4 bg-[#343541] rounded-xl border border-white/5 flex flex-col md:flex-row items-start md:items-center gap-6">
+                                    <div className="p-4 bg-surfaceHighlight rounded-xl border border-borderLight flex flex-col md:flex-row items-start md:items-center gap-6">
                                         <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center shrink-0">
                                             <Shield className="w-6 h-6 text-red-400" />
                                         </div>
                                         <div className="flex-1">
-                                            <h3 className="font-bold text-white text-lg">Redefinir Senha</h3>
-                                            <p className="text-sm text-zinc-400 mt-1">
+                                            <h3 className="font-bold text-textMain text-lg">Redefinir Senha</h3>
+                                            <p className="text-sm text-textMuted mt-1">
                                                 Para garantir a segurança máxima da sua conta, enviaremos um link seguro para o seu email registrado ({user?.email}) para você criar uma nova senha.
                                             </p>
                                         </div>
@@ -2320,7 +2320,7 @@ Seja conciso, técnico e direto.'`;
                                         </div>
                                         <div>
                                             <h4 className="text-sm font-bold text-blue-400">Método 100% Seguro</h4>
-                                            <p className="text-xs text-zinc-500 mt-1">
+                                            <p className="text-xs text-textMuted mt-1">
                                                 Não solicitamos sua senha antiga. A confirmação via email garante que apenas o proprietário da conta possa realizar alterações críticas.
                                             </p>
                                         </div>

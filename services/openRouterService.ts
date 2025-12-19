@@ -18,20 +18,46 @@ export const createOpenRouterChatStream = async (
 ): Promise<string> => {
     try {
         // Mandatory System Message for Dr. GPT
-        const systemMessage = {
-            role: 'system',
-            content: `Você é o Dr. GPT, um assistente de IA focado em medicina e saúde.
+        let systemContent = systemPrompt || `Você é o Dr. GPT, um assistente de IA focado em medicina e saúde.
   
   DIRETRIZES FUNDAMENTAIS:
   1. IDIOMA: Responda ESTRITAMENTE em Português do Brasil (pt-BR). Mesmo que o usuário pergunte em inglês ou outro idioma, responda em Português.
   2. TOM: Profissional, direto, técnico (quando necessário) e empático.
   3. IDENTIDADE: Nunca diga "I am an AI developed by OpenAI". Diga que você é o Dr. GPT.
   
-  Se o usuário enviar termos médicos em inglês, explique-os em português.`
-        };
+  Se o usuário enviar termos médicos em inglês, explique-os em português.`;
 
-        // Prepare messages with System Message first
-        const messages = [systemMessage];
+        // Handle Review Mode (Refinement) Logic - Ported from Edge Function
+        if (reviewMode && currentContent) {
+            const refinementPrompt = `
+VOCÊ ESTÁ EM MODO DE REFINAMENTO DE PRONTUÁRIO CLÍNICO.
+
+PRONTUÁRIO ATUAL:
+${currentContent}
+
+INSTRUÇÕES ESPECIAIS:
+1. Se o usuário pedir para MODIFICAR, ALTERAR, MUDAR, ADICIONAR ou REMOVER algo do prontuário:
+   - PRIMEIRO: Responda de forma conversacional e amigável (ex: "Entendido, Dr. Atualizando agora." ou "Feito! Alterei conforme solicitado.")
+   - DEPOIS: Retorne o prontuário COMPLETO atualizado dentro de uma tag especial
+   - FORMATO OBRIGATÓRIO:
+     [Sua resposta conversacional aqui]
+     <UPDATE_ACTION>
+     {"new_content": "CONTEÚDO COMPLETO DO PRONTUÁRIO ATUALIZADO AQUI"}
+     </UPDATE_ACTION>
+   - O JSON deve conter o prontuário inteiro atualizado, não apenas a parte modificada
+   - NÃO adicione comentários ou explicações dentro do new_content, apenas o documento
+
+2. Se o usuário fizer uma PERGUNTA ou CONSULTA (não pedindo mudanças):
+   - Responda normalmente sem a tag <UPDATE_ACTION>
+   - Seja direto, técnico e útil`;
+
+            systemContent = `${refinementPrompt}\n\n${systemContent}`;
+        }
+
+        // Prepare messages
+        const messages = [
+            { role: 'system', content: systemContent }
+        ];
 
         // Add history
         messages.push(...history.map(msg => ({
@@ -42,54 +68,64 @@ export const createOpenRouterChatStream = async (
         // Add new message
         messages.push({ role: 'user', content: newMessage });
 
-        // Invoke Supabase Edge Function - REMOVED REDUNDANT CALL
-        // The previous call to supabase.functions.invoke was causing a double execution.
-        // It was also failing to handle the stream correctly, leading to 500 errors or timeouts.
-        // We now rely solely on the direct fetch below which is properly configured for streaming.
-
-        // Using raw fetch to Supabase Function URL for reliable streaming
-        const { data: { session } } = await supabase.auth.getSession();
-        const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/openrouter-chat`;
-
-        // Fetch custom API Key if available
-        // We import adminService dynamically or assume it's available global/imported
-        // But better to use the import at top if possible. 
-        // Since we can't easily add import at top in this chunk, we'll assume we can fetch it via same method or pass it.
-        // Actually best is to import adminService at top.
-        // Let's rely on adminService being imported (I'll add the import in a separate call if needed or just use database check here if safer).
-        // Actually, I can just use adminService if I import it.
-
-        // Wait, for now let's use the supabase client to fetch it directly to avoid circular dependency if adminService uses openRouterService.
-        // adminService uses supabase.
-        // openRouterService uses supabase.
-        // Circular dependency is unlikely but possible if adminService imports openRouterService.
-        // Let's just do the DB query manually here, it's safer.
-
+        // Fetch custom API Key
         const { data: setting } = await supabase
             .from('app_settings')
             .select('value')
             .eq('key', 'openrouter_api_key')
             .single();
 
-        const customApiKey = setting?.value;
+        // 🛡️ Priority: Env Var (Local Override) > DB Setting (Admin Panel)
+        // Since we have a known bad key in DB that we can't remove (RLS), we force the Env Var to take precedence.
+        const customApiKey = import.meta.env.VITE_OPENROUTER_API_KEY || setting?.value;
 
-        const response = await fetch(functionUrl, {
+        if (!customApiKey) {
+            throw new Error("API Key configuration missing. Please check App Settings.");
+        }
+
+        // Direct OpenRouter Call (Bypassing Edge Function limitation)
+        // Using local proxy to avoid CORS if necessary, or direct if allowed. 
+        // OpenRouter allows direct calls.
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                'Authorization': `Bearer ${customApiKey}`,
                 'Content-Type': 'application/json',
+                'HTTP-Referer': siteUrl,
+                'X-Title': siteName,
             },
             body: JSON.stringify({
                 model: modelName,
                 messages: messages,
-                systemPrompt: systemPrompt,
-                reviewMode: reviewMode,
-                currentContent: currentContent,
-                apiKey: customApiKey // 🔑 Inject the API key!
+                stream: true,
+                // Perplexity/Sonar specific:
+                temperature: 0.2,
+                max_tokens: 1200, // Safe limit for reasoning models
+                include_citations: true // Explicitly request citations
             }),
         });
 
-        if (!response.ok) throw new Error(`Function error: ${response.statusText}`);
+        if (!response.ok) {
+            let errorMessage = `Erro OpenRouter: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                if (errorData.error) {
+                    const specificMsg = errorData.error.message || JSON.stringify(errorData.error);
+                    if (response.status === 401) {
+                        errorMessage = `🔑 Chave API Inválida (401). Verifique se é uma chave OpenRouter ('sk-or-v1...') e não Anthropic/OpenAI direta. Detalhe: ${specificMsg}`;
+                    } else if (response.status === 402) {
+                        errorMessage = `💰 Saldo Insuficiente (402). Verifique seus créditos no OpenRouter. Detalhe: ${specificMsg}`;
+                    } else {
+                        errorMessage = `Erro OpenRouter (${response.status}): ${specificMsg}`;
+                    }
+                }
+            } catch (e) {
+                // Fallback to text if JSON parse fails
+                errorMessage = await response.text();
+            }
+            console.error('OpenRouter API Error:', errorMessage);
+            throw new Error(errorMessage);
+        }
         if (!response.body) throw new Error('No response body');
 
         const reader = response.body.getReader();
@@ -108,15 +144,49 @@ export const createOpenRouterChatStream = async (
                     try {
                         const json = JSON.parse(line.slice(6));
                         const content = json.choices?.[0]?.delta?.content || '';
+
+                        // Perplexity/OpenRouter Citations Handling
+                        if (json.citations && Array.isArray(json.citations)) {
+                            // Store citations to append later or stream them?
+                            // Since we return fullText at the end, let's append them there or handle them via regex in UI.
+                            // For now, let's just log them or append to a global Set to avoid duplicates if streamed?
+                            // Actually, citations usually come in a specific packet or are consistent.
+                            // Let's assume they might appear in any chunk.
+                            // We'll append them at the very end of the stream loop.
+                            // Hack: Store in a temporary property on the function scope?
+                            // Better: parse at the end. 
+                            // Wait, scoping issues. 
+                            // Let's just allow the 'citations' field to be accessible.
+                            // But this function returns string.
+                            // I will convert the citations to a Markdown list at the end of the fullText.
+
+                            // (No-op in chunk loop, processed after loop)
+                            (reader as any).citations = json.citations;
+                        }
+
                         if (content) {
-                            fullText += content;
-                            onChunk(content);
+                            // Typerwriter effect: split chunk into characters
+                            const chars = content.split('');
+                            for (const char of chars) {
+                                fullText += char;
+                                onChunk(char); // Send char by char
+                                // Small delay for cadence (approx 15ms per char ~ 4000 chars/min)
+                                await new Promise(r => setTimeout(r, 15));
+                            }
                         }
                     } catch (e) {
                         // Ignore parse errors for partial chunks
                     }
                 }
             }
+        }
+
+        // Append Citations if found (Perplexity)
+        const citations = (reader as any).citations;
+        if (citations && Array.isArray(citations) && citations.length > 0) {
+            const references = citations.map((url: string, index: number) => `[${index + 1}] ${url}`).join('\n');
+            fullText += `\n\n### Referências\n${references}`;
+            onChunk(`\n\n### Referências\n${references}`);
         }
 
         return fullText;
@@ -184,8 +254,8 @@ export const generateOpenRouterImage = async (
             const controller = new AbortController();
             const timeoutId = setTimeout(() => {
                 controller.abort();
-                console.warn('Image generation request timed out after 60 seconds');
-            }, 60000); // 60 second timeout
+                console.warn('Image generation request timed out after 120 seconds');
+            }, 120000); // 120 second timeout
 
             try {
                 const response = await fetch(functionUrl, {

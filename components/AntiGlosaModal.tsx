@@ -47,23 +47,20 @@ export default function AntiGlosaModal({ isOpen, onClose, onGenerate, isDarkMode
             />
 
             {/* Modal */}
-            <div className={`
-                relative w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden transform transition-all
-                ${isDarkMode ? 'bg-[#18181b] border border-white/10' : 'bg-white border border-gray-200'}
-            `}>
+            <div className="relative w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden transform transition-all bg-surface border border-borderLight">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-borderLight">
                     <div className="flex items-center gap-2">
                         <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600'}`}>
                             <Shield size={20} />
                         </div>
-                        <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        <h2 className="text-lg font-bold text-textMain">
                             Defesa de Procedimento
                         </h2>
                     </div>
                     <button
                         onClick={onClose}
-                        className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-white/10 text-zinc-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500'}`}
+                        className="p-2 rounded-full transition-colors hover:bg-surfaceHighlight text-textMuted hover:text-textMain"
                     >
                         <X size={20} />
                     </button>
@@ -73,17 +70,17 @@ export default function AntiGlosaModal({ isOpen, onClose, onGenerate, isDarkMode
                 <div className="p-8 flex flex-col items-center justify-center text-center space-y-6">
 
                     <div className="space-y-2">
-                        <h3 className={`text-xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        <h3 className="text-xl font-bold text-textMain">
                             Descreva o caso e a negativa
                         </h3>
-                        <p className={`text-sm ${isDarkMode ? 'text-zinc-400' : 'text-gray-500'}`}>
+                        <p className="text-sm text-textMuted">
                             Eu crio a carta técnica baseada na ANS.
                         </p>
                     </div>
 
                     {/* Text Input Area (Primary) */}
                     <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className={`flex items-center justify-between mb-2 px-1 ${isDarkMode ? 'text-zinc-500' : 'text-gray-400'}`}>
+                        <div className="flex items-center justify-between mb-2 px-1 text-textMuted">
                             <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider">
                                 <Pencil size={12} />
                                 <span>Detalhes do Caso</span>
@@ -93,18 +90,13 @@ export default function AntiGlosaModal({ isOpen, onClose, onGenerate, isDarkMode
                             value={localText}
                             onChange={(e) => setLocalText(e.target.value)}
                             placeholder="Ex: Paciente João Silva, 45 anos. Convênio negou Cirurgia Bariátrica alegando falta de tratamento clínico prévio. Paciente tem IMC 40, hipertensão e tentou dieta por 2 anos sem sucesso. Preciso de uma justificativa técnica citando a resolução da ANS."
-                            className={`
-                                w-full p-4 rounded-xl text-left h-48 text-sm resize-none outline-none border transition-all
-                                ${isDarkMode
-                                    ? 'bg-zinc-900/50 text-zinc-300 border-white/5 focus:border-emerald-500/50 focus:bg-zinc-900'
-                                    : 'bg-gray-50 text-gray-700 border-gray-200 focus:border-emerald-500/50 focus:bg-white'}
-                            `}
+                            className="w-full p-4 rounded-xl text-left h-48 text-sm resize-none outline-none border transition-all bg-surfaceHighlight text-textMain border-borderLight focus:border-emerald-500/50 focus:bg-surface"
                         />
                     </div>
 
                     {/* Audio Input (Secondary) */}
                     <div className="flex items-center gap-4 w-full justify-center pt-2">
-                        <div className={`text-xs font-medium uppercase tracking-wider ${isDarkMode ? 'text-zinc-600' : 'text-zinc-400'}`}>
+                        <div className="text-xs font-medium uppercase tracking-wider text-textMuted">
                             Ou dite o caso:
                         </div>
                         <button
@@ -113,7 +105,7 @@ export default function AntiGlosaModal({ isOpen, onClose, onGenerate, isDarkMode
                                 relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg group
                                 ${isListening
                                     ? 'bg-red-500 hover:bg-red-600 shadow-red-500/30'
-                                    : 'bg-zinc-800 hover:bg-zinc-700 border border-white/10'}
+                                    : 'bg-surfaceHighlight hover:bg-surface border border-borderLight'}
                             `}
                             title="Gravar áudio"
                         >
@@ -124,7 +116,7 @@ export default function AntiGlosaModal({ isOpen, onClose, onGenerate, isDarkMode
                             {isListening ? (
                                 <Square size={16} className="text-white fill-current" />
                             ) : (
-                                <Mic size={20} className={isDarkMode ? "text-zinc-400 group-hover:text-white" : "text-gray-400 group-hover:text-gray-600"} />
+                                <Mic size={20} className="text-textMuted group-hover:text-textMain" />
                             )}
                         </button>
 
@@ -147,7 +139,7 @@ export default function AntiGlosaModal({ isOpen, onClose, onGenerate, isDarkMode
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-white/5 bg-black/20">
+                <div className="p-6 border-t border-borderLight bg-surface/50">
                     <button
                         onClick={handleGenerate}
                         disabled={!localText.trim()}
@@ -155,7 +147,7 @@ export default function AntiGlosaModal({ isOpen, onClose, onGenerate, isDarkMode
                             w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all
                             ${localText.trim()
                                 ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5'
-                                : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}
+                                : 'bg-surfaceHighlight text-textMuted cursor-not-allowed'}
                         `}
                     >
                         <Shield size={20} />

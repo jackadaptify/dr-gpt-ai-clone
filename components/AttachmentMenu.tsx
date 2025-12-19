@@ -70,9 +70,7 @@ export default function AttachmentMenu({
             className={`
                 absolute bottom-full left-0 mb-4 w-64 rounded-2xl shadow-2xl border overflow-hidden z-50
                 animate-in fade-in zoom-in-95 duration-200 origin-bottom-left
-                ${isDarkMode
-                    ? 'bg-[#18181b] border-white/10 text-zinc-200'
-                    : 'bg-white border-gray-200 text-gray-700'}
+                bg-surface border-borderLight text-textMain
             `}
         >
             <div className="p-2 space-y-1">
@@ -85,9 +83,7 @@ export default function AttachmentMenu({
                         }}
                         className={`
                             w-full flex items-center justify-start gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors
-                            ${isDarkMode
-                                ? 'hover:bg-white/5 hover:text-white'
-                                : 'hover:bg-gray-50 hover:text-black'}
+                            hover:bg-surfaceHighlight hover:text-textMain
                         `}
                     >
                         <item.icon className="w-4 h-4 opacity-70" />
@@ -99,9 +95,7 @@ export default function AttachmentMenu({
                 {!isImageMode && onToggleWeb && (
                     <div className={`
                         w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer
-                        ${isDarkMode
-                            ? 'hover:bg-white/5 hover:text-white'
-                            : 'hover:bg-gray-50 hover:text-black'}
+                        hover:bg-surfaceHighlight hover:text-textMain
                     `}
                         onClick={(e) => {
                             e.stopPropagation();
@@ -116,7 +110,7 @@ export default function AttachmentMenu({
                         {/* Toggle Switch */}
                         <div className={`
                             relative w-9 h-5 rounded-full transition-colors duration-200
-                            ${isWebActive ? 'bg-emerald-500' : (isDarkMode ? 'bg-zinc-700' : 'bg-gray-300')}
+                            ${isWebActive ? 'bg-emerald-500' : 'bg-surfaceHighlight border border-borderLight'}
                         `}>
                             <div className={`
                                 absolute top-1 left-1 w-3 h-3 rounded-full bg-white shadow transition-transform duration-200

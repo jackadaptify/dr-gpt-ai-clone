@@ -38,23 +38,20 @@ export default function AIScribeModal({ isOpen, onClose, onGenerate, isDarkMode 
             />
 
             {/* Modal */}
-            <div className={`
-                relative w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden transform transition-all
-                ${isDarkMode ? 'bg-[#18181b] border border-white/10' : 'bg-white border border-gray-200'}
-            `}>
+            <div className="relative w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden transform transition-all bg-surface border border-borderLight">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-borderLight">
                     <div className="flex items-center gap-2">
                         <div className={`p-2 rounded-lg ${isDarkMode ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-100 text-emerald-600'}`}>
                             <Mic size={20} />
                         </div>
-                        <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        <h2 className="text-lg font-bold text-textMain">
                             AI Scribe
                         </h2>
                     </div>
                     <button
                         onClick={onClose}
-                        className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-white/10 text-zinc-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500'}`}
+                        className="p-2 rounded-full transition-colors hover:bg-surfaceHighlight text-textMuted hover:text-textMain"
                     >
                         <X size={20} />
                     </button>
@@ -64,10 +61,10 @@ export default function AIScribeModal({ isOpen, onClose, onGenerate, isDarkMode 
                 <div className="p-8 flex flex-col items-center justify-center text-center space-y-8">
 
                     <div className="space-y-2">
-                        <h3 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        <h3 className="text-2xl font-bold text-textMain">
                             Resumo da Consulta
                         </h3>
-                        <p className={`text-sm ${isDarkMode ? 'text-zinc-400' : 'text-gray-500'}`}>
+                        <p className="text-sm text-textMuted">
                             Dite o que aconteceu. Eu gero o SOAP, Receita e Atestado.
                         </p>
                     </div>
@@ -88,7 +85,7 @@ export default function AIScribeModal({ isOpen, onClose, onGenerate, isDarkMode 
                             ))
                         ) : (
                             // Idle State
-                            <div className={`text-sm font-medium ${isDarkMode ? 'text-zinc-500' : 'text-gray-400'}`}>
+                            <div className="text-sm font-medium text-textMuted">
                                 {localTranscript ? "Pronto para gerar." : "Toque para começar"}
                             </div>
                         )}
@@ -118,7 +115,7 @@ export default function AIScribeModal({ isOpen, onClose, onGenerate, isDarkMode 
                     {/* Transcript Preview (Editable) */}
                     {(localTranscript || isListening) && (
                         <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className={`flex items-center justify-between mb-2 px-1 ${isDarkMode ? 'text-zinc-500' : 'text-gray-400'}`}>
+                            <div className="flex items-center justify-between mb-2 px-1 text-textMuted">
                                 <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider">
                                     <Pencil size={12} />
                                     <span>Transcrição (Toque para corrigir)</span>
@@ -129,19 +126,14 @@ export default function AIScribeModal({ isOpen, onClose, onGenerate, isDarkMode 
                                 value={localTranscript}
                                 onChange={(e) => setLocalTranscript(e.target.value)}
                                 placeholder="A transcrição aparecerá aqui..."
-                                className={`
-                                    w-full p-4 rounded-xl text-left h-32 text-sm resize-none outline-none border transition-all
-                                    ${isDarkMode
-                                        ? 'bg-zinc-900/50 text-zinc-300 border-white/5 focus:border-emerald-500/50 focus:bg-zinc-900'
-                                        : 'bg-gray-50 text-gray-700 border-gray-200 focus:border-emerald-500/50 focus:bg-white'}
-                                `}
+                                className="w-full p-4 rounded-xl text-left h-32 text-sm resize-none outline-none border transition-all bg-surfaceHighlight text-textMain border-borderLight focus:border-emerald-500/50 focus:bg-surface"
                             />
                         </div>
                     )}
                 </div>
 
                 {/* Footer */}
-                <div className="p-6 border-t border-white/5 bg-black/20">
+                <div className="p-6 border-t border-borderLight bg-surface/50">
                     <button
                         onClick={handleGenerate}
                         disabled={!localTranscript}
@@ -149,7 +141,7 @@ export default function AIScribeModal({ isOpen, onClose, onGenerate, isDarkMode 
                             w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all
                             ${localTranscript
                                 ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 transform hover:-translate-y-0.5'
-                                : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'}
+                                : 'bg-surfaceHighlight text-textMuted cursor-not-allowed'}
                         `}
                     >
                         <FileText size={20} />

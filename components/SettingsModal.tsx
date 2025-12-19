@@ -155,22 +155,22 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
 
     const modalContent = (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
-            <div className="w-[900px] h-[650px] bg-[#202123] rounded-xl shadow-2xl flex overflow-hidden border border-white/10 ring-1 ring-white/5" onClick={e => e.stopPropagation()}>
+            <div className="w-[900px] h-[650px] bg-surface rounded-xl shadow-2xl flex overflow-hidden border border-borderLight ring-1 ring-borderLight" onClick={e => e.stopPropagation()}>
 
                 {/* Sidebar Navigation */}
-                <div className="w-[220px] bg-[#171717] p-4 border-r border-white/5 flex flex-col flex-shrink-0">
-                    <h2 className="text-lg font-bold mb-6 px-3 text-white tracking-tight">Configurações</h2>
+                <div className="w-[220px] bg-surfaceHighlight p-4 border-r border-borderLight flex flex-col flex-shrink-0">
+                    <h2 className="text-lg font-bold mb-6 px-3 text-textMain tracking-tight">Configurações</h2>
                     <div className="space-y-1 flex-1">
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${activeTab === tab.id
-                                    ? 'bg-[#2A2B32] text-white'
-                                    : 'text-zinc-400 hover:bg-[#2A2B32]/50 hover:text-white'
+                                    ? 'bg-surface text-textMain shadow-sm border border-borderLight'
+                                    : 'text-textMuted hover:bg-surface/50 hover:text-textMain'
                                     }`}
                             >
-                                <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-white' : 'text-zinc-400'}`} />
+                                <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-textMain' : 'text-textMuted'}`} />
                                 {tab.label}
                             </button>
                         ))}
@@ -178,13 +178,13 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
                 </div>
 
                 {/* Main Content Area */}
-                <div className="flex-1 flex flex-col bg-[#202123] min-w-0">
+                <div className="flex-1 flex flex-col bg-surface min-w-0">
                     {/* Header */}
-                    <div className="h-16 border-b border-white/5 flex items-center justify-between px-8 flex-shrink-0">
-                        <h3 className="text-lg font-semibold text-white">{tabs.find(t => t.id === activeTab)?.label}</h3>
+                    <div className="h-16 border-b border-borderLight flex items-center justify-between px-8 flex-shrink-0">
+                        <h3 className="text-lg font-semibold text-textMain">{tabs.find(t => t.id === activeTab)?.label}</h3>
                         <button
                             onClick={onClose}
-                            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-zinc-400 hover:text-white"
+                            className="p-2 hover:bg-surfaceHighlight rounded-lg transition-colors text-textMuted hover:text-textMain"
                         >
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -208,24 +208,24 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
 
                                         {/* Field 1: Nickname */}
                                         <div className="space-y-3">
-                                            <label className="text-sm font-semibold text-zinc-200">Como o Dr. GPT deve te chamar?</label>
+                                            <label className="text-sm font-semibold text-textMain">Como o Dr. GPT deve te chamar?</label>
                                             <input
                                                 type="text"
                                                 value={nickname}
                                                 onChange={(e) => setNickname(e.target.value)}
-                                                className="w-full bg-[#2A2B32] border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-600"
+                                                className="w-full bg-surfaceHighlight border border-borderLight rounded-xl px-4 py-3 text-sm text-textMain focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-textMuted"
                                                 placeholder="Ex: Dr. Jack"
                                             />
                                         </div>
 
                                         {/* Field 2: Specialty */}
                                         <div className="space-y-3">
-                                            <label className="text-sm font-semibold text-zinc-200">Especialidade Médica</label>
+                                            <label className="text-sm font-semibold text-textMain">Especialidade Médica</label>
                                             <div className="relative">
                                                 <select
                                                     value={specialty}
                                                     onChange={(e) => setSpecialty(e.target.value)}
-                                                    className="w-full bg-[#2A2B32] border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none cursor-pointer"
+                                                    className="w-full bg-surfaceHighlight border border-borderLight rounded-xl px-4 py-3 text-sm text-textMain focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none cursor-pointer"
                                                 >
                                                     <option value="" disabled>Selecione sua área...</option>
                                                     <option value="Cardiologia">Cardiologia</option>
@@ -238,7 +238,7 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
                                                     <option value="Psiquiatria">Psiquiatria</option>
                                                     <option value="Outra">Outra Especialidade</option>
                                                 </select>
-                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-textMuted">
                                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                                     </svg>
@@ -251,7 +251,7 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
                                                     type="text"
                                                     value={otherSpecialty}
                                                     onChange={(e) => setOtherSpecialty(e.target.value)}
-                                                    className="w-full bg-[#2A2B32] border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-zinc-600"
+                                                    className="w-full bg-surfaceHighlight border border-borderLight rounded-xl px-4 py-3 text-sm text-textMain focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-textMuted"
                                                     placeholder="Digite sua especialidade..."
                                                 />
                                             </div>
@@ -259,12 +259,12 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
 
                                         {/* Field 3: Professional Focus */}
                                         <div className="space-y-3">
-                                            <label className="text-sm font-semibold text-zinc-200">Qual seu objetivo principal?</label>
+                                            <label className="text-sm font-semibold text-textMain">Qual seu objetivo principal?</label>
                                             <div className="relative">
                                                 <select
                                                     value={professionalFocus}
                                                     onChange={(e) => setProfessionalFocus(e.target.value)}
-                                                    className="w-full bg-[#2A2B32] border border-white/10 rounded-xl px-4 py-3 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none cursor-pointer"
+                                                    className="w-full bg-surfaceHighlight border border-borderLight rounded-xl px-4 py-3 text-sm text-textMain focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none cursor-pointer"
                                                 >
                                                     <option value="" disabled>Selecione o foco...</option>
                                                     <option value="Auxílio Clínico & Segunda Opinião">Auxílio Clínico & Segunda Opinião</option>
@@ -273,7 +273,7 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
                                                     <option value="Marketing Médico & Redes Sociais">Marketing Médico & Redes Sociais</option>
                                                     <option value="Gestão de Clínica">Gestão de Clínica</option>
                                                 </select>
-                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-textMuted">
                                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                                     </svg>
@@ -284,8 +284,8 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
                                         {/* Field 4: Specific Preference (Controlled) */}
                                         <div className="space-y-3">
                                             <div className="flex justify-between items-baseline">
-                                                <label className="text-sm font-semibold text-zinc-200">Alguma preferência específica?</label>
-                                                <span className={`text-xs ${specificPreference.length > 180 ? 'text-red-400' : 'text-zinc-500'}`}>
+                                                <label className="text-sm font-semibold text-textMain">Alguma preferência específica?</label>
+                                                <span className={`text-xs ${specificPreference.length > 180 ? 'text-red-400' : 'text-textMuted'}`}>
                                                     {specificPreference.length}/200
                                                 </span>
                                             </div>
@@ -296,7 +296,7 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
                                                         setSpecificPreference(e.target.value);
                                                     }
                                                 }}
-                                                className="w-full h-24 bg-[#2A2B32] border border-white/10 rounded-xl p-4 text-sm text-zinc-200 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all resize-none placeholder-zinc-600"
+                                                className="w-full h-24 bg-surfaceHighlight border border-borderLight rounded-xl p-4 text-sm text-textMain focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all resize-none placeholder-textMuted"
                                                 placeholder="Ex: Cite sempre fontes da SBC; Prefiro respostas em tópicos..."
                                             />
                                         </div>
@@ -314,7 +314,7 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
                                             </div>
 
                                             <div className="relative z-10">
-                                                <h4 className="text-xl font-bold text-white mb-2">Plano Atual</h4>
+                                                <h4 className="text-xl font-bold text-textMain mb-2">Plano Atual</h4>
                                                 <div className="flex items-baseline gap-2 mb-4">
                                                     <span className="text-3xl font-extrabold text-emerald-400">
                                                         {user?.plan?.name || 'Plano Gratuito'}
@@ -324,13 +324,13 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
                                                     </span>
                                                 </div>
 
-                                                <p className="text-zinc-400 text-sm max-w-md mb-6">
+                                                <p className="text-textMuted text-sm max-w-md mb-6">
                                                     Você tem acesso a todos os recursos básicos do Dr. GPT.
                                                     {/* ToDo: Add specific features check based on plan */}
                                                 </p>
 
                                                 <button
-                                                    className="px-4 py-2 bg-white text-emerald-900 text-sm font-bold rounded-lg hover:bg-zinc-200 transition-colors"
+                                                    className="px-4 py-2 bg-surface text-emerald-900 text-sm font-bold rounded-lg hover:bg-surfaceHighlight transition-colors"
                                                     onClick={() => window.open('https://checkout.stripe.com/c/pay/...', '_blank')}
                                                 >
                                                     Gerenciar Assinatura
@@ -339,15 +339,15 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
                                         </div>
 
                                         <div className="space-y-4">
-                                            <h5 className="font-semibold text-zinc-300">Detalhes do Plano</h5>
+                                            <h5 className="font-semibold text-textMain">Detalhes do Plano</h5>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div className="bg-[#2A2B32] p-4 rounded-xl border border-white/5">
-                                                    <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Status do Pagamento</span>
-                                                    <p className="text-white font-medium mt-1">Em dia</p>
+                                                <div className="bg-surfaceHighlight p-4 rounded-xl border border-borderLight shadow-sm">
+                                                    <span className="text-xs font-medium text-textMuted uppercase tracking-wider">Status do Pagamento</span>
+                                                    <p className="text-textMain font-medium mt-1">Em dia</p>
                                                 </div>
-                                                <div className="bg-[#2A2B32] p-4 rounded-xl border border-white/5">
-                                                    <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Próxima Cobrança</span>
-                                                    <p className="text-white font-medium mt-1">
+                                                <div className="bg-surfaceHighlight p-4 rounded-xl border border-borderLight shadow-sm">
+                                                    <span className="text-xs font-medium text-textMuted uppercase tracking-wider">Próxima Cobrança</span>
+                                                    <p className="text-textMain font-medium mt-1">
                                                         {user?.billing_current_period_end
                                                             ? new Date(user.billing_current_period_end).toLocaleDateString('pt-BR')
                                                             : 'N/A'
@@ -361,10 +361,10 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
 
                                 {activeTab === 'general' && (
                                     <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-300">
-                                        <div className="flex items-center justify-between p-4 bg-[#2A2B32] rounded-xl border border-white/5">
+                                        <div className="flex items-center justify-between p-4 bg-surfaceHighlight rounded-xl border border-borderLight shadow-sm">
                                             <div>
-                                                <label className="block font-medium text-zinc-200 mb-1">Tema</label>
-                                                <p className="text-sm text-zinc-500">Escolha a aparência da interface</p>
+                                                <label className="block font-medium text-textMain mb-1">Tema</label>
+                                                <p className="text-sm text-textMuted">Escolha a aparência da interface</p>
                                             </div>
                                             <select
                                                 value={isDarkMode ? 'dark' : 'light'}
@@ -372,22 +372,22 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
                                                     toggleTheme();
                                                     setSettings({ ...settings, theme: e.target.value as any });
                                                 }}
-                                                className="bg-[#343541] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                                                className="bg-surface border border-borderLight rounded-lg px-3 py-2 text-sm text-textMain focus:outline-none focus:border-emerald-500"
                                             >
                                                 <option value="dark">Escuro</option>
                                                 <option value="light">Claro</option>
                                             </select>
                                         </div>
 
-                                        <div className="flex items-center justify-between p-4 bg-[#2A2B32] rounded-xl border border-white/5">
+                                        <div className="flex items-center justify-between p-4 bg-surfaceHighlight rounded-xl border border-borderLight shadow-sm">
                                             <div>
-                                                <label className="block font-medium text-zinc-200 mb-1">Idioma</label>
-                                                <p className="text-sm text-zinc-500">Idioma da interface</p>
+                                                <label className="block font-medium text-textMain mb-1">Idioma</label>
+                                                <p className="text-sm text-textMuted">Idioma da interface</p>
                                             </div>
                                             <select
                                                 value={settings.language}
                                                 onChange={(e) => setSettings({ ...settings, language: e.target.value })}
-                                                className="bg-[#343541] border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                                                className="bg-surface border border-borderLight rounded-lg px-3 py-2 text-sm text-textMain focus:outline-none focus:border-emerald-500"
                                             >
                                                 <option value="pt-BR">Português (Brasil)</option>
                                                 <option value="en-US">English (US)</option>
@@ -400,13 +400,13 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
                                     <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-300">
                                         <div className="p-4 bg-red-500/5 border border-red-500/10 rounded-xl">
                                             <h4 className="font-bold text-red-400 mb-2">Zona de Perigo</h4>
-                                            <p className="text-sm text-zinc-400 mb-4">
+                                            <p className="text-sm text-textMuted mb-4">
                                                 Ações irreversíveis que afetam seus dados.
                                             </p>
                                             <div className="flex items-center justify-between">
                                                 <div>
-                                                    <label className="block font-medium text-zinc-200 mb-1">Limpar todas as conversas</label>
-                                                    <p className="text-sm text-zinc-500">Isso apagará todo o histórico permanentemente.</p>
+                                                    <label className="block font-medium text-textMain mb-1">Limpar todas as conversas</label>
+                                                    <p className="text-sm text-textMuted">Isso apagará todo o histórico permanentemente.</p>
                                                 </div>
                                                 <button className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg text-sm hover:bg-red-500/20 transition-colors font-medium">
                                                     Limpar tudo
@@ -420,10 +420,10 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, toggleTheme
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="p-6 border-t border-white/5 flex justify-end gap-3 bg-[#202123] flex-shrink-0">
+                    <div className="p-6 border-t border-borderLight flex justify-end gap-3 bg-surface flex-shrink-0">
                         <button
                             onClick={onClose}
-                            className="px-5 py-2.5 rounded-lg text-sm font-medium text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+                            className="px-5 py-2.5 rounded-lg text-sm font-medium text-textMuted hover:text-textMain hover:bg-surfaceHighlight transition-colors"
                         >
                             Cancelar
                         </button>

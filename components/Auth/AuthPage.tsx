@@ -43,28 +43,28 @@ export default function AuthPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-[#050505] text-[#ececec] font-sans selection:bg-emerald-500/30 relative overflow-hidden">
+        <div className="min-h-screen flex items-center justify-center bg-background text-textMain font-sans selection:bg-emerald-500/30 relative overflow-hidden">
             {/* Background Effects */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900/40 via-[#050505] to-[#050505] pointer-events-none z-0" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900/40 via-background to-background pointer-events-none z-0" />
             <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
             <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
 
             <div className="w-full max-w-md p-8 relative z-10 animate-in fade-in zoom-in-95 duration-500">
                 <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#121214] border border-white/5 shadow-card-3d mb-6 group">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-surface border border-borderLight shadow-card-3d mb-6 group">
                         <IconBrain className="w-8 h-8 text-emerald-400 group-hover:scale-110 transition-transform duration-300" />
                     </div>
                     <h1 className="text-3xl font-bold mb-2 tracking-tight">
                         Dr. <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">GPT</span>
                     </h1>
-                    <p className="text-zinc-500 text-sm">
+                    <p className="text-textMuted text-sm">
                         {isReset
                             ? 'Recupere sua senha.'
                             : (isLogin ? 'Bem-vindo de volta, doutor.' : 'Crie sua conta para começar.')}
                     </p>
                 </div>
 
-                <div className="bg-[#121214]/80 backdrop-blur-xl border border-white/5 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+                <div className="bg-surface/80 backdrop-blur-xl border border-borderLight rounded-3xl p-8 shadow-2xl relative overflow-hidden">
                     {/* Glass Shine */}
                     <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
 
@@ -75,13 +75,13 @@ export default function AuthPage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                 </svg>
                             </div>
-                            <h3 className="text-xl font-bold text-white mb-2">Verifique seu email</h3>
-                            <p className="text-zinc-400 text-sm mb-6">
+                            <h3 className="text-xl font-bold text-textMain mb-2">Verifique seu email</h3>
+                            <p className="text-textMuted text-sm mb-6">
                                 {resetSent
                                     ? 'Enviamos as instruções de recuperação para '
                                     : 'Enviamos um link de confirmação para '
                                 }
-                                <span className="text-white font-medium">{email}</span>.
+                                <span className="text-textMain font-medium">{email}</span>.
                                 <br />Verifique sua caixa de entrada (e spam).
                             </p>
                             <button
@@ -91,7 +91,7 @@ export default function AuthPage() {
                                     setIsReset(false);
                                     setIsLogin(true);
                                 }}
-                                className="w-full bg-[#18181b] border border-white/10 hover:bg-[#27272a] text-white font-medium py-3 rounded-xl transition-all"
+                                className="w-full bg-surfaceHighlight border border-borderLight hover:bg-surface text-textMain font-medium py-3 rounded-xl transition-all"
                             >
                                 Voltar para o Login
                             </button>
@@ -106,39 +106,39 @@ export default function AuthPage() {
 
                             {!isLogin && !isReset && (
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-medium text-zinc-400 ml-1">Nome Completo</label>
+                                    <label className="text-xs font-medium text-textMuted ml-1">Nome Completo</label>
                                     <input
                                         type="text"
                                         value={fullName}
                                         onChange={(e) => setFullName(e.target.value)}
                                         required
-                                        className="w-full bg-[#0a0a0a] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                                        className="w-full bg-surfaceHighlight border border-borderLight rounded-xl px-4 py-3 text-sm text-textMain placeholder-textMuted focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                                         placeholder="Dr. João Silva"
                                     />
                                 </div>
                             )}
 
                             <div className="space-y-1.5">
-                                <label className="text-xs font-medium text-zinc-400 ml-1">Email</label>
+                                <label className="text-xs font-medium text-textMuted ml-1">Email</label>
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
-                                    className="w-full bg-[#0a0a0a] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                                    className="w-full bg-surfaceHighlight border border-borderLight rounded-xl px-4 py-3 text-sm text-textMain placeholder-textMuted focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                                     placeholder="seu@email.com"
                                 />
                             </div>
 
                             {!isReset && (
                                 <div className="space-y-1.5">
-                                    <label className="text-xs font-medium text-zinc-400 ml-1">Senha</label>
+                                    <label className="text-xs font-medium text-textMuted ml-1">Senha</label>
                                     <input
                                         type="password"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
-                                        className="w-full bg-[#0a0a0a] border border-white/5 rounded-xl px-4 py-3 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                                        className="w-full bg-surfaceHighlight border border-borderLight rounded-xl px-4 py-3 text-sm text-textMain placeholder-textMuted focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                                         placeholder="••••••••"
                                     />
                                     {isLogin && (
@@ -185,17 +185,16 @@ export default function AuthPage() {
                         {isReset ? (
                             <button
                                 onClick={() => {
-                                    setIsReset(false);
                                     setIsLogin(true);
                                 }}
-                                className="text-sm text-zinc-500 hover:text-white transition-colors"
+                                className="text-sm text-textMuted hover:text-textMain transition-colors"
                             >
                                 Voltar para o Login
                             </button>
                         ) : (
                             <button
                                 onClick={() => setIsLogin(!isLogin)}
-                                className="text-sm text-zinc-500 hover:text-emerald-400 transition-colors"
+                                className="text-sm text-textMuted hover:text-emerald-400 transition-colors"
                             >
                                 {isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Entre'}
                             </button>

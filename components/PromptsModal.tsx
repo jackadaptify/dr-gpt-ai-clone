@@ -103,13 +103,10 @@ export default function PromptsModal({ isOpen, onClose, onSelectPrompt, isDarkMo
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div
-                className={`
-                    w-full max-w-5xl h-[85vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden transition-colors duration-300
-                    ${isDarkMode ? 'bg-[#09090b] text-zinc-100 border border-zinc-800' : 'bg-white text-gray-800 border border-gray-200'}
-                `}
+                className="w-full max-w-5xl h-[85vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden transition-colors duration-300 bg-surface border border-borderLight text-textMain"
             >
                 {/* Header */}
-                <div className={`p-6 border-b ${isDarkMode ? 'border-zinc-800' : 'border-gray-100'} flex items-center justify-between`}>
+                <div className="p-6 border-b border-borderLight flex items-center justify-between">
                     <h2 className="text-2xl font-bold flex items-center gap-3">
                         <div className={`p-2 rounded-xl ${isDarkMode ? 'bg-emerald-500/10' : 'bg-emerald-50'}`}>
                             <Brackets className="w-6 h-6 text-emerald-500" />
@@ -118,7 +115,7 @@ export default function PromptsModal({ isOpen, onClose, onSelectPrompt, isDarkMo
                     </h2>
                     <button
                         onClick={onClose}
-                        className={`p-2 rounded-full transition-colors ${isDarkMode ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'}`}
+                        className="p-2 rounded-full transition-colors hover:bg-surfaceHighlight text-textMuted hover:text-textMain"
                     >
                         <X className="w-6 h-6" />
                     </button>
@@ -127,19 +124,14 @@ export default function PromptsModal({ isOpen, onClose, onSelectPrompt, isDarkMo
                 {/* Search & Categories */}
                 <div className="p-6 pb-2 space-y-6">
                     {/* Search Bar */}
-                    <div className={`
-                        flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all duration-300
-                        ${isDarkMode
-                            ? 'bg-zinc-900/50 border-zinc-800 focus-within:border-emerald-500/50 focus-within:bg-zinc-900'
-                            : 'bg-gray-50 border-gray-200 focus-within:border-emerald-500/50 focus-within:bg-white'}
-                    `}>
-                        <Search className={`w-5 h-5 ${isDarkMode ? 'text-zinc-500' : 'text-gray-400'}`} />
+                    <div className="flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all duration-300 bg-surfaceHighlight border-borderLight focus-within:border-emerald-500/50 focus-within:bg-surface">
+                        <Search className="w-5 h-5 text-textMuted" />
                         <input
                             type="text"
                             placeholder="Buscar prompts..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-transparent border-none outline-none w-full text-lg placeholder-zinc-500"
+                            className="bg-transparent border-none outline-none w-full text-lg placeholder-textMuted text-textMain"
                             autoFocus
                         />
                     </div>
@@ -154,9 +146,7 @@ export default function PromptsModal({ isOpen, onClose, onSelectPrompt, isDarkMo
                                     px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-300
                                     ${selectedCategory === cat
                                         ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/25 ring-2 ring-emerald-500/20'
-                                        : isDarkMode
-                                            ? 'bg-zinc-800/50 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-transparent hover:border-zinc-700'
-                                            : 'bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-black'}
+                                        : 'bg-surfaceHighlight hover:bg-surface text-textMuted hover:text-textMain border border-transparent hover:border-borderLight'}
                                 `}
                             >
                                 {cat}
@@ -173,25 +163,23 @@ export default function PromptsModal({ isOpen, onClose, onSelectPrompt, isDarkMo
                                 key={prompt.id}
                                 className={`
                                     p-5 rounded-2xl border transition-all duration-300 flex flex-col gap-4 group relative overflow-hidden
-                                    ${isDarkMode
-                                        ? 'bg-zinc-900/30 border-zinc-800 hover:border-emerald-500/50 hover:bg-zinc-900/80'
-                                        : 'bg-white border-gray-200 hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-500/5'}
+                                    bg-surfaceHighlight/30 border-borderLight hover:border-emerald-500/50 hover:bg-surfaceHighlight hover:shadow-lg
                                 `}
                             >
                                 <div className="flex items-start justify-between relative z-10">
                                     <div className={`p-3 rounded-xl transition-colors duration-300 ${isDarkMode ? 'bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20' : 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100'}`}>
                                         <prompt.icon className="w-6 h-6" />
                                     </div>
-                                    <div className={`px-2.5 py-1 rounded-lg text-xs font-medium ${isDarkMode ? 'bg-zinc-800 text-zinc-400' : 'bg-gray-100 text-gray-500'}`}>
+                                    <div className="px-2.5 py-1 rounded-lg text-xs font-medium bg-surfaceHighlight text-textMuted border border-borderLight">
                                         {prompt.category}
                                     </div>
                                 </div>
 
                                 <div className="relative z-10">
-                                    <h3 className={`font-semibold text-lg mb-2 transition-colors ${isDarkMode ? 'text-white group-hover:text-emerald-400' : 'text-gray-900 group-hover:text-emerald-600'}`}>
+                                    <h3 className="font-semibold text-lg mb-2 transition-colors text-textMain group-hover:text-emerald-500">
                                         {prompt.title}
                                     </h3>
-                                    <p className={`text-sm line-clamp-3 leading-relaxed ${isDarkMode ? 'text-zinc-400 group-hover:text-zinc-300' : 'text-gray-500 group-hover:text-gray-600'}`}>
+                                    <p className="text-sm line-clamp-3 leading-relaxed text-textMuted group-hover:text-textMain">
                                         {prompt.description}
                                     </p>
                                 </div>
@@ -213,9 +201,9 @@ export default function PromptsModal({ isOpen, onClose, onSelectPrompt, isDarkMo
 
                     {filteredPrompts.length === 0 && (
                         <div className="flex flex-col items-center justify-center h-64 text-center opacity-50">
-                            <Search className="w-16 h-16 mb-4 text-zinc-600" />
-                            <p className="text-xl font-medium text-zinc-400">Nenhum prompt encontrado</p>
-                            <p className="text-sm text-zinc-500 mt-2">Tente buscar por outro termo ou categoria</p>
+                            <Search className="w-16 h-16 mb-4 text-textMuted" />
+                            <p className="text-xl font-medium text-textMuted">Nenhum prompt encontrado</p>
+                            <p className="text-sm text-textMuted mt-2">Tente buscar por outro termo ou categoria</p>
                         </div>
                     )}
                 </div>

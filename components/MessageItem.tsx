@@ -94,7 +94,7 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
         <div className={`relative flex-1 overflow-hidden ${isUser ? 'flex justify-end' : 'pt-1.5'}`}>
           <div className={`
             ${isUser
-              ? 'bg-[#27272a] text-white rounded-3xl rounded-tr-sm px-5 py-2.5 max-w-[85%] shadow-md'
+              ? 'bg-surfaceHighlight text-textMain border border-borderLight rounded-3xl rounded-tr-sm px-5 py-2.5 max-w-[85%] shadow-md'
               : ''}
           `}>
             {!isUser && (
@@ -141,6 +141,19 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
+                    // 🔗 FIX: Open links in new tab
+                    a({ node, children, ...props }) {
+                      return (
+                        <a
+                          {...props}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:text-blue-400 hover:underline transition-colors"
+                        >
+                          {children}
+                        </a>
+                      );
+                    },
                     img({ node, ...props }) {
                       const imgProps = props as any; // 🔧 FIX: Cast to any to avoid TS errors with react-markdown types
                       return (
