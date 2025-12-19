@@ -50,10 +50,10 @@ export default function AntiGlosaView({ isDarkMode, onGenerate, isLoading = fals
         <div className={`flex flex-col h-full w-full max-w-4xl mx-auto p-4 md:p-6 animate-in fade-in duration-500 relative`}>
             {/* Loading Overlay */}
             {isLoading && (
-                <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/80 dark:bg-black/80 backdrop-blur-sm rounded-3xl">
+                <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-surface/80 backdrop-blur-sm rounded-3xl">
                     <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-emerald-500 mb-4"></div>
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Consultando Jurisprudência...</h3>
-                    <p className="text-gray-500 dark:text-zinc-400">Analisando Rol da ANS e Leis vigentes.</p>
+                    <h3 className="text-xl font-bold text-textMain mb-2">Consultando Jurisprudência...</h3>
+                    <p className="text-textMuted">Analisando Rol da ANS e Leis vigentes.</p>
                 </div>
             )}
 
@@ -61,8 +61,7 @@ export default function AntiGlosaView({ isDarkMode, onGenerate, isLoading = fals
             <div className="mb-8 text-center relative">
                 <button
                     onClick={toggleSidebar}
-                    className={`absolute top-0 left-0 p-2 rounded-xl transition-colors md:hidden ${isDarkMode ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'
-                        }`}
+                    className="absolute top-0 left-0 p-2 rounded-xl transition-colors md:hidden hover:bg-surfaceHighlight text-textMuted hover:text-textMain"
                     title="Menu"
                 >
                     <Menu size={24} />
@@ -70,10 +69,10 @@ export default function AntiGlosaView({ isDarkMode, onGenerate, isLoading = fals
                 <div className="inline-flex items-center justify-center p-3 rounded-2xl mb-4 bg-emerald-500/10 text-emerald-500">
                     <Shield size={32} />
                 </div>
-                <h1 className={`text-3xl font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                <h1 className="text-3xl font-bold mb-2 text-textMain">
                     Defesa de Procedimento
                 </h1>
-                <p className={`text-lg ${isDarkMode ? 'text-zinc-400' : 'text-gray-500'}`}>
+                <p className="text-lg text-textMuted">
                     Anti-Glosa Inteligente
                 </p>
             </div>
@@ -81,12 +80,12 @@ export default function AntiGlosaView({ isDarkMode, onGenerate, isLoading = fals
             {/* Main Input Card */}
             <div className={`
                 flex-1 flex flex-col rounded-3xl shadow-xl overflow-hidden mb-6 transition-opacity duration-300
-                ${isDarkMode ? 'bg-[#18181b] border border-white/10' : 'bg-white border border-gray-200'}
+                bg-surface border border-borderLight
                 ${isLoading ? 'opacity-50 pointer-events-none' : 'opacity-100'}
             `}>
                 <div className="p-6 md:p-8 flex-1 flex flex-col">
                     <div className="flex items-center justify-between mb-4">
-                        <label className={`text-sm font-semibold uppercase tracking-wider flex items-center gap-2 ${isDarkMode ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                        <label className="text-sm font-semibold uppercase tracking-wider flex items-center gap-2 text-textMuted">
                             <Pencil size={14} />
                             Descreva o caso e a negativa
                         </label>
@@ -96,17 +95,12 @@ export default function AntiGlosaView({ isDarkMode, onGenerate, isLoading = fals
                         value={localText}
                         onChange={(e) => setLocalText(e.target.value)}
                         placeholder="Ex: Paciente João Silva, 45 anos. Convênio negou Cirurgia Bariátrica alegando falta de tratamento clínico prévio. Paciente tem IMC 40, hipertensão e tentou dieta por 2 anos sem sucesso. Preciso de uma justificativa técnica citando a resolução da ANS."
-                        className={`
-                            flex-1 w-full p-4 rounded-xl text-lg resize-none outline-none border transition-all mb-4
-                            ${isDarkMode
-                                ? 'bg-zinc-900/50 text-zinc-300 border-white/5 focus:border-emerald-500/50 focus:bg-zinc-900'
-                                : 'bg-gray-50 text-gray-700 border-gray-200 focus:border-emerald-500/50 focus:bg-white'}
-                        `}
+                        className="flex-1 w-full p-4 rounded-xl text-lg resize-none outline-none border transition-all mb-4 bg-surfaceHighlight text-textMain border-borderLight focus:border-emerald-500/50 focus:bg-surface"
                     />
 
                     {/* Value Input */}
                     <div className="relative w-full md:w-1/3">
-                        <label className={`text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-2 ${isDarkMode ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                        <label className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2 mb-2 text-textMuted">
                             Valor Estimado (R$)
                         </label>
                         <input
@@ -114,20 +108,15 @@ export default function AntiGlosaView({ isDarkMode, onGenerate, isLoading = fals
                             value={estimatedValue}
                             onChange={handleValueChange}
                             placeholder="R$ 0,00"
-                            className={`
-                                w-full p-3 rounded-xl text-lg outline-none border transition-all
-                                ${isDarkMode
-                                    ? 'bg-zinc-900/50 text-emerald-400 border-white/5 focus:border-emerald-500/50 focus:bg-zinc-900 placeholder-zinc-700'
-                                    : 'bg-gray-50 text-emerald-600 border-gray-200 focus:border-emerald-500/50 focus:bg-white placeholder-gray-400'}
-                            `}
+                            className="w-full p-3 rounded-xl text-lg outline-none border transition-all bg-surfaceHighlight text-emerald-500 border-borderLight focus:border-emerald-500/50 focus:bg-surface placeholder-textMuted"
                         />
                     </div>
                 </div>
 
                 {/* Toolbar */}
-                <div className={`p-4 border-t flex items-center justify-between ${isDarkMode ? 'border-white/5 bg-black/20' : 'border-gray-100 bg-gray-50'}`}>
+                <div className="p-4 border-t flex items-center justify-between border-borderLight bg-surfaceHighlight/50">
                     <div className="flex items-center gap-4">
-                        <span className={`text-sm font-medium hidden md:block ${isDarkMode ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                        <span className="text-sm font-medium hidden md:block text-textMuted">
                             Pode ditar os detalhes:
                         </span>
                         <button
@@ -136,14 +125,14 @@ export default function AntiGlosaView({ isDarkMode, onGenerate, isLoading = fals
                                 relative w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-sm group
                                 ${isListening
                                     ? 'bg-red-500 hover:bg-red-600 shadow-red-500/30'
-                                    : (isDarkMode ? 'bg-zinc-800 hover:bg-zinc-700' : 'bg-white hover:bg-gray-100 border border-gray-200')}
+                                    : 'bg-surface hover:bg-surfaceHighlight border border-borderLight'}
                             `}
                             title="Gravar áudio"
                         >
                             {isListening ? (
                                 <Square size={16} className="text-white fill-current" />
                             ) : (
-                                <Mic size={20} className={isListening ? 'text-white' : (isDarkMode ? "text-zinc-400 group-hover:text-white" : "text-gray-400 group-hover:text-gray-600")} />
+                                <Mic size={20} className={isListening ? 'text-white' : "text-textMuted group-hover:text-textMain"} />
                             )}
                         </button>
                     </div>
@@ -165,7 +154,7 @@ export default function AntiGlosaView({ isDarkMode, onGenerate, isLoading = fals
             </div>
 
             {/* Hint / History Placeholder */}
-            <div className={`text-center text-sm ${isDarkMode ? 'text-zinc-500' : 'text-zinc-400'}`}>
+            <div className="text-center text-sm text-textMuted">
                 Histórico de defesas geradas aparecerá aqui.
             </div>
         </div>

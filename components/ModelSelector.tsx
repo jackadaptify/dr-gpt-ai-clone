@@ -138,15 +138,9 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
 
     return (
         <div className="relative" ref={dropdownRef}>
-            {/* Trigger Button */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`
-                    flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 border
-                    ${isDarkMode
-                        ? 'bg-surfaceHighlight border-borderLight hover:bg-white/5 text-textMain shadow-convex'
-                        : 'bg-white border-gray-200 hover:bg-gray-50 text-gray-800 shadow-sm'}
-                `}
+                className="flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 border bg-surfaceHighlight border-borderLight hover:bg-surface text-textMain shadow-convex"
             >
                 <div className="flex items-center gap-2">
                     {getDisplayIcon()}
@@ -159,15 +153,9 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
 
             {/* Dropdown Menu */}
             {isOpen && (
-                <div className={`
-                    absolute top-full left-0 mt-2 w-[360px] max-h-[500px] overflow-hidden rounded-2xl border shadow-2xl z-50 flex flex-col
-                    animate-in fade-in zoom-in-95 duration-200 origin-top-left
-                    ${isDarkMode
-                        ? 'bg-[#1a1a1a]/95 backdrop-blur-xl border-white/10 text-textMain'
-                        : 'bg-white/95 backdrop-blur-xl border-gray-200 text-gray-800'}
-                `}>
+                <div className="absolute top-full left-0 mt-2 w-[360px] max-h-[500px] overflow-hidden rounded-2xl border shadow-2xl z-50 flex flex-col animate-in fade-in zoom-in-95 duration-200 origin-top-left bg-surface/95 backdrop-blur-xl border-borderLight text-textMain">
                     {/* Tabs */}
-                    <div className="flex items-center p-1 m-2 bg-black/20 rounded-xl">
+                    <div className="flex items-center p-1 m-2 bg-surfaceHighlight rounded-xl">
                         {(['text', 'image', 'expert'] as Tab[]).map((tab) => (
                             <button
                                 key={tab}
@@ -175,8 +163,8 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
                                 className={`
                                     flex-1 py-1.5 text-xs font-bold rounded-lg transition-all capitalize
                                     ${activeTab === tab
-                                        ? (isDarkMode ? 'bg-white/10 text-white shadow-sm' : 'bg-white text-black shadow-sm')
-                                        : 'text-zinc-500 hover:text-zinc-300'}
+                                        ? 'bg-surface text-textMain shadow-sm border border-borderLight'
+                                        : 'text-textMuted hover:text-textMain'}
                                 `}
                             >
                                 {tab === 'text' ? 'Texto' : tab === 'image' ? 'Imagens' : 'Experts'}
@@ -186,18 +174,15 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
 
                     {/* Search Bar */}
                     <div className="px-3 pb-2">
-                        <div className={`
-                            flex items-center gap-2 px-3 py-2 rounded-xl
-                            ${isDarkMode ? 'bg-black/20' : 'bg-gray-100'}
-                        `}>
-                            <IconSearch className="w-4 h-4 text-gray-400" />
+                        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-surfaceHighlight">
+                            <IconSearch className="w-4 h-4 text-textMuted" />
                             <input
                                 ref={searchInputRef}
                                 type="text"
                                 placeholder="Buscar modelo..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="bg-transparent border-none outline-none text-sm w-full placeholder-gray-500"
+                                className="bg-transparent border-none outline-none text-sm w-full placeholder-textMuted text-textMain"
                             />
                         </div>
                     </div>
@@ -208,7 +193,7 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
                         {activeTab !== 'expert' && getGroupedModels(filteredItems as AIModel[]).map(({ category, models: groupModels }) => (
                             <div key={category} className="mb-4">
                                 <div className="px-3 py-1 mb-1">
-                                    <span className={`text-[10px] font-bold uppercase tracking-wider ${isDarkMode ? 'text-zinc-500' : 'text-gray-400'}`}>
+                                    <span className="text-[10px] font-bold uppercase tracking-wider text-textMuted">
                                         {category}
                                     </span>
                                 </div>
@@ -225,12 +210,12 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
                                                 className={`
                                                     w-full text-left px-3 py-3 rounded-xl flex items-center justify-between group transition-all
                                                     ${isSelected
-                                                        ? (isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
-                                                        : (isDarkMode ? 'hover:bg-white/5 text-gray-300 hover:text-white' : 'hover:bg-gray-50 text-gray-700 hover:text-black')}
+                                                        ? 'bg-emerald-500/10 text-emerald-500'
+                                                        : 'text-textMuted hover:bg-surfaceHighlight hover:text-textMain'}
                                                 `}
                                             >
                                                 <div className="flex items-start gap-3 overflow-hidden">
-                                                    <div className={`p-1.5 rounded-lg flex-shrink-0 mt-0.5 ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
+                                                    <div className="p-1.5 rounded-lg flex-shrink-0 mt-0.5 bg-surfaceHighlight">
                                                         {model.logo ? (
                                                             <div className="w-5 h-5 rounded-sm overflow-hidden">
                                                                 <img src={model.logo} alt={model.name} className="w-full h-full object-cover" />
@@ -272,11 +257,11 @@ export default function ModelSelector({ models, selectedModelId, onSelect, isDar
                                     }}
                                     className={`
                                         w-full text-left px-3 py-3 rounded-xl flex items-center justify-between group transition-all mb-1
-                                        ${isDarkMode ? 'hover:bg-white/5 text-gray-300 hover:text-white' : 'hover:bg-gray-50 text-gray-700 hover:text-black'}
+                                        hover:bg-surfaceHighlight text-textMuted hover:text-textMain
                                     `}
                                 >
                                     <div className="flex items-center gap-3">
-                                        <div className={`relative flex-shrink-0 w-8 h-8 rounded-lg overflow-hidden ${isDarkMode ? 'bg-white/5' : 'bg-gray-100'}`}>
+                                        <div className="relative flex-shrink-0 w-8 h-8 rounded-lg overflow-hidden bg-surfaceHighlight">
                                             {agent.avatarUrl ? (
                                                 <img
                                                     src={agent.avatarUrl}

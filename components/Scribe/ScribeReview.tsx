@@ -81,18 +81,18 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, on
     }, [typewriterTrigger]); // Only trigger when typewriterTrigger changes
 
     return (
-        <div className={`flex flex-col md:flex-row w-full h-full overflow-hidden animate-in fade-in duration-300 ${isDarkMode ? 'bg-[#09090b]' : 'bg-gray-50'}`}>
+        <div className="flex flex-col md:flex-row w-full h-full overflow-hidden animate-in fade-in duration-300 bg-background">
 
             {/* Mobile Tabs */}
-            <div className={`md:hidden flex border-b ${isDarkMode ? 'border-white/10 bg-[#18181b]' : 'border-gray-200 bg-white'}`}>
+            <div className="md:hidden flex border-b border-borderLight bg-surface">
                 {/* Back Button (Mobile Only in Tab Bar?? No, maybe better in header or above tabs) */}
                 {/* Actually, let's put a small back button to the left of tabs if needed, OR just rely on the main header back button which we are about to add */}
 
                 <button
                     onClick={() => setMobileTab('document')}
                     className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${mobileTab === 'document'
-                            ? (isDarkMode ? 'border-emerald-500 text-emerald-500' : 'border-emerald-600 text-emerald-600')
-                            : 'border-transparent text-gray-500'
+                        ? 'border-emerald-500 text-emerald-500'
+                        : 'border-transparent text-textMuted'
                         }`}
                 >
                     Documento
@@ -100,8 +100,8 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, on
                 <button
                     onClick={() => setMobileTab('chat')}
                     className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${mobileTab === 'chat'
-                            ? (isDarkMode ? 'border-emerald-500 text-emerald-500' : 'border-emerald-600 text-emerald-600')
-                            : 'border-transparent text-gray-500'
+                        ? 'border-emerald-500 text-emerald-500'
+                        : 'border-transparent text-textMuted'
                         }`}
                 >
                     Chat e Ajustes
@@ -111,32 +111,31 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, on
             {/* Left Column: SOAP Editor (60%) or Mobile 'document' tab */}
             <div className={`
                 ${mobileTab === 'document' ? 'flex' : 'hidden'} 
-                md:flex w-full md:w-[60%] flex-col border-r h-full relative 
-                ${isDarkMode ? 'border-white/10' : 'border-gray-200'}
+                md:flex w-full md:w-[60%] flex-col border-r border-borderLight h-full relative 
             `}>
 
                 {/* Header */}
-                <div className={`h-16 flex items-center justify-between px-4 md:px-6 border-b shrink-0 ${isDarkMode ? 'bg-[#18181b] border-white/5' : 'bg-white border-gray-100'}`}>
+                <div className="h-16 flex items-center justify-between px-4 md:px-6 border-b border-borderLight shrink-0 bg-surface">
                     <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
                         {/* Back Button */}
                         {onClose && (
                             <button
                                 onClick={onClose}
-                                className={`p-2 rounded-lg mr-1 transition-colors ${isDarkMode ? 'hover:bg-white/10 text-zinc-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'}`}
+                                className="p-2 rounded-lg mr-1 transition-colors hover:bg-surfaceHighlight text-textMuted hover:text-textMain"
                                 title="Voltar"
                             >
                                 <ArrowLeft size={20} />
                             </button>
                         )}
 
-                        <div className={`p-1.5 md:p-2 rounded-lg shrink-0 ${isDarkMode ? 'bg-emerald-500/10 text-emerald-500' : 'bg-emerald-50 text-emerald-600'}`}>
+                        <div className="p-1.5 md:p-2 rounded-lg shrink-0 bg-emerald-500/10 text-emerald-500">
                             <FileText size={18} />
                         </div>
-                        <h2 className={`font-bold text-base md:text-lg truncate ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                        <h2 className="font-bold text-base md:text-lg truncate text-textMain">
                             {title}
                         </h2>
                         {isUpdating && (
-                            <span className={`text-[10px] md:text-xs px-2 py-0.5 rounded-full ${isDarkMode ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                            <span className="text-[10px] md:text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500">
                                 Atualizando...
                             </span>
                         )}
@@ -150,7 +149,7 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, on
                                 flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-all
                                 ${copied
                                     ? 'bg-emerald-500 text-white'
-                                    : (isDarkMode ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50')
+                                    : 'bg-surfaceHighlight text-textMain border border-borderLight hover:bg-surface'
                                 }
                                 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}
                             `}
@@ -166,7 +165,7 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, on
                                 flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-all ml-2
                                 ${saving
                                     ? 'bg-emerald-500 text-white'
-                                    : (isDarkMode ? 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50')
+                                    : 'bg-surfaceHighlight text-textMain border border-borderLight hover:bg-surface'
                                 }
                                 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}
                             `}
@@ -187,11 +186,7 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, on
                         readOnly={isUpdating}
                         className={`
                             w-full h-full p-4 md:p-6 text-sm md:text-base leading-relaxed resize-none text-left outline-none rounded-xl border
-                            font-mono
-                            ${isDarkMode
-                                ? 'bg-[#121215] border-white/5 text-zinc-300 placeholder-zinc-700 focus:border-emerald-500/50'
-                                : 'bg-white border-gray-200 text-gray-800 placeholder-gray-400 focus:border-emerald-500'
-                            }
+                            font-mono bg-surface border-borderLight text-textMain placeholder-textMuted focus:border-emerald-500/50
                             ${isUpdating ? 'cursor-wait opacity-90' : ''}
                             transition-all scrollbar-thin
                         `}

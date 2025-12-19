@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="dark">
+<html lang="pt-BR">
 
 <head>
   <meta charset="UTF-8" />
@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
     rel="stylesheet">
   <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -25,7 +26,12 @@
             primary: '#10b981',
             accent: '#34d399',
             textMain: 'var(--text-main)',
-            textMuted: 'var(--text-muted)'
+            textMuted: 'var(--text-muted)',
+
+            // ADICIONADOS (não quebram nada existente, só te dão tokens melhores)
+            textSubtle: 'var(--text-subtle)',
+            textStrong: 'var(--text-strong)',
+            textPlaceholder: 'var(--text-placeholder)',
           },
           fontFamily: {
             sans: ['Inter', 'sans-serif'],
@@ -47,34 +53,42 @@
       },
     }
   </script>
+
   <style>
     :root {
-      /* Light Mode Defaults - Medical Grade (Slate Palette) */
-      --bg-background: #ffffff;
-      --bg-sidebar: #f8fafc;
-      /* Slate 50 */
+      /* Light Mode – Premium Neutral (ChatGPT-like) */
+      --bg-background: #f7f7f8;
+      /* base off-white do app (ChatGPT vibes) */
+      --bg-sidebar: #ffffff;
+      /* sidebar limpa */
       --bg-surface: #ffffff;
-      --bg-surface-highlight: #f1f5f9;
-      /* Slate 100 */
-      --border-light: #cbd5e1;
-      /* Slate 300 - Distinct Borders */
-      --text-main: #0f172a;
-      /* Slate 900 - High Ink */
-      --text-muted: #64748b;
-      /* Slate 500 */
-      --text-strong: #020617;
-      /* Slate 950 - Pitch Black */
+      /* superfícies principais */
+      --bg-surface-highlight: #fbfbfc;
+      /* highlight quase invisível */
 
-      /* Flattened Shadows for Light Mode */
-      --shadow-card-3d: none;
-      --shadow-card-3d-hover: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      --border-light: rgba(15, 23, 42, 0.10);
+      /* borda “quase nada” */
+      --text-main: #0f172a;
+      --text-muted: #334155;
+      /* secundário legível */
+      --text-subtle: #64748b;
+      /* terciário (hints) */
+      --text-placeholder: #64748b;
+      --text-strong: #020617;
+
+      /* Shadows: micro (o segredo do premium no light) */
+      --shadow-card-3d: 0 1px 2px rgba(15, 23, 42, 0.06);
+      --shadow-card-3d-hover: 0 8px 24px rgba(15, 23, 42, 0.10);
+
       --shadow-inner-depth: none;
       --shadow-convex: none;
       --shadow-concave: none;
 
-      --glass-panel-bg: rgba(255, 255, 255, 0.95);
-      --glass-panel-border: #cbd5e1;
-      /* Slate 300 */
+      --glass-panel-bg: rgba(255, 255, 255, 0.72);
+      --glass-panel-border: rgba(15, 23, 42, 0.10);
+
+      --scrollbar-thumb: rgba(15, 23, 42, 0.18);
+      --scrollbar-thumb-hover: rgba(15, 23, 42, 0.28);
     }
 
     .dark {
@@ -84,10 +98,12 @@
       --bg-surface: #18181b;
       --bg-surface-highlight: #27272a;
       --border-light: transparent;
+
       --text-main: #E4E4E7;
       --text-muted: #a1a1aa;
+      --text-subtle: #a1a1aa;
+      --text-placeholder: #a1a1aa;
       --text-strong: #ffffff;
-      /* New variable for strong text */
 
       --shadow-card-3d: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
       --shadow-card-3d-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
@@ -97,6 +113,10 @@
 
       --glass-panel-bg: rgba(9, 9, 11, 0.6);
       --glass-panel-border: transparent;
+
+      /* Scrollbar (Dark) */
+      --scrollbar-thumb: #3f3f46;
+      --scrollbar-thumb-hover: #52525b;
     }
 
     /* Modern Scrollbar */
@@ -110,12 +130,12 @@
     }
 
     ::-webkit-scrollbar-thumb {
-      background: #3f3f46;
+      background: var(--scrollbar-thumb);
       border-radius: 10px;
     }
 
     ::-webkit-scrollbar-thumb:hover {
-      background: #52525b;
+      background: var(--scrollbar-thumb-hover);
     }
 
     html,
@@ -125,7 +145,6 @@
       overflow: hidden;
       overscroll-behavior: none;
       -webkit-user-select: none;
-      /* Optional: Prevent text selection if desired for app-like feel */
       user-select: none;
     }
 
@@ -141,6 +160,48 @@
       height: 100%;
       width: 100%;
       overflow: hidden;
+    }
+
+    /* =========================================================
+       PATCH DE CONTRASTE (O que estava te ferrando no modo claro)
+       Captura classes hardcoded tipo text-zinc-400 e hover:text-zinc-200
+       e força tokens do design system NO LIGHT MODE.
+       ========================================================= */
+    html:not(.dark) .text-zinc-400,
+    html:not(.dark) .text-zinc-500,
+    html:not(.dark) .text-slate-400,
+    html:not(.dark) .text-slate-500 {
+      color: var(--text-muted) !important;
+    }
+
+    html:not(.dark) .text-zinc-300,
+    html:not(.dark) .text-slate-300 {
+      color: var(--text-subtle) !important;
+    }
+
+    /* Hovers comuns que estavam deixando ainda mais claro (ruim no light) */
+    html:not(.dark) .hover\:text-zinc-200:hover,
+    html:not(.dark) .hover\:text-zinc-300:hover,
+    html:not(.dark) .hover\:text-slate-200:hover,
+    html:not(.dark) .hover\:text-slate-300:hover {
+      color: var(--text-main) !important;
+    }
+
+    /* Placeholder legível */
+    input::placeholder,
+    textarea::placeholder {
+      color: var(--text-placeholder);
+      opacity: 1;
+    }
+
+    html:not(.dark) input,
+    html:not(.dark) textarea {
+      color: var(--text-main);
+    }
+
+    html:not(.dark) input::placeholder,
+    html:not(.dark) textarea::placeholder {
+      color: var(--text-subtle);
     }
 
     /* Custom animations */
@@ -183,33 +244,24 @@
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       border-top: 1px solid var(--glass-panel-border);
-      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-      /* Subtle shadow border */
+      border-bottom: 1px solid var(--glass-panel-border);
     }
 
     /* Container da Resposta da IA */
     .ai-response {
       font-family: 'Inter', sans-serif;
-      /* A fonte limpa */
       font-size: 16px;
       line-height: 1.75;
-      /* O "Respiro" crucial */
       color: var(--text-main);
-      /* FIXED: Replaced #d4d4d8 with var */
       -webkit-font-smoothing: antialiased;
-      /* Deixa a fonte fina e chique */
     }
 
-    /* O SEGREDO DO NEGRITO (Isso que falta no seu) */
     .ai-response strong,
     .ai-response b {
       color: var(--text-strong);
-      /* FIXED: Replaced #ffffff with var */
       font-weight: 700 !important;
-      /* BEM grosso */
     }
 
-    /* Títulos Brancos */
     .ai-response h1,
     .ai-response h2,
     .ai-response h3,
@@ -217,13 +269,11 @@
     .ai-response h5,
     .ai-response h6 {
       color: var(--text-strong) !important;
-      /* FIXED: Replaced #ffffff with var */
       font-weight: 700 !important;
       margin-top: 1.5em;
       margin-bottom: 0.5em;
     }
 
-    /* Listas (Bolinhas e Números) */
     .ai-response ul,
     .ai-response ol {
       margin-top: 1em;
@@ -233,18 +283,15 @@
 
     .ai-response li {
       margin-bottom: 0.5em;
-      /* Espaço entre itens da lista */
     }
 
-    /* Isso força o contraste que falta */
     .prose strong,
     .prose b {
       font-weight: 700 !important;
-      /* Deixa BEM grosso */
       color: var(--text-strong) !important;
-      /* FIXED: Replaced #ffffff with var */
     }
   </style>
+
   <script type="importmap">
 {
   "imports": {
@@ -258,6 +305,7 @@
   }
 }
 </script>
+
   <link rel="stylesheet" href="/index.css">
 </head>
 

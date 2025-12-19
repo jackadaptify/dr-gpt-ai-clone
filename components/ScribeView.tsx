@@ -175,7 +175,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
             <div className="flex items-center justify-between mb-4">
                 <button
                     onClick={toggleSidebar}
-                    className={`p-2 rounded-xl transition-colors ${isDarkMode ? 'hover:bg-zinc-800 text-zinc-400 hover:text-white' : 'hover:bg-gray-100 text-gray-500 hover:text-gray-900'}`}
+                    className="p-2 rounded-xl transition-colors hover:bg-surfaceHighlight text-textMuted hover:text-textMain"
                 >
                     <Menu size={24} />
                 </button>
@@ -189,13 +189,12 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                         placeholder="Sem Título"
                         className={`
                             w-full text-center bg-transparent border-none outline-none text-xl md:text-2xl font-semibold placeholder-opacity-50 transition-all
-                            ${isDarkMode ? 'text-white placeholder-zinc-600' : 'text-gray-900 placeholder-gray-400'}
+                            text-textMain placeholder-textMuted
                             focus:placeholder-opacity-30
                         `}
                     />
                     <Edit2
-                        size={14}
-                        className={`absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity ${isDarkMode ? 'text-zinc-600' : 'text-gray-300'}`}
+                        className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-textMuted"
                     />
                 </div>
 
@@ -210,10 +209,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                         onChange={(e) => setSelectedScenario(e.target.value as Scenario)}
                         className={`
                             w-full appearance-none rounded-xl px-4 py-3 pl-12 text-center font-medium cursor-pointer transition-all
-                            ${isDarkMode
-                                ? 'bg-zinc-800 text-white border-zinc-700 hover:bg-zinc-700'
-                                : 'bg-gray-900 text-white border-gray-800 hover:bg-gray-800'
-                            }
+                            bg-surfaceHighlight text-textMain border-borderLight hover:bg-surface
                             border shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/50
                         `}
                     >
@@ -229,14 +225,14 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
 
             {/* Mode Switcher - Outline/Ghost Style */}
             <div className="flex justify-center mb-8">
-                <div className={`flex p-0.5 rounded-xl border ${isDarkMode ? 'border-zinc-800' : 'border-gray-200'}`}>
+                <div className="flex p-0.5 rounded-xl border border-borderLight">
                     <button
                         onClick={() => !isRecording && setMode('presential')}
                         className={`
                             flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
                             ${mode === 'presential'
-                                ? (isDarkMode ? 'bg-zinc-800 text-white' : 'bg-gray-100 text-gray-900')
-                                : (isDarkMode ? 'text-zinc-500 hover:text-zinc-300' : 'text-gray-500 hover:text-gray-700')
+                                ? 'bg-surfaceHighlight text-textMain'
+                                : 'text-textMuted hover:text-textMain'
                             }
                         `}
                     >
@@ -248,8 +244,8 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                         className={`
                             flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
                             ${mode === 'telemedicine'
-                                ? (isDarkMode ? 'bg-zinc-800 text-white' : 'bg-gray-100 text-gray-900')
-                                : (isDarkMode ? 'text-zinc-500 hover:text-zinc-300' : 'text-gray-500 hover:text-gray-700')
+                                ? 'bg-surfaceHighlight text-textMain'
+                                : 'text-textMuted hover:text-textMain'
                             }
                         `}
                     >
@@ -260,10 +256,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
             </div>
 
             {/* Main Content Area */}
-            <div className={`
-                flex-1 flex flex-col rounded-3xl relative transition-all duration-500
-                ${isDarkMode ? 'bg-[#18181b]/50' : 'bg-white/50'}
-            `}>
+            <div className="flex-1 flex flex-col rounded-3xl relative transition-all duration-500 bg-surface/50">
 
                 {/* Visualizer & Mic Area */}
                 <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 min-h-[300px]">
@@ -303,7 +296,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                     </div>
 
                     {/* Text Below Mic */}
-                    <p className={`mt-6 text-sm font-medium ${isDarkMode ? 'text-zinc-400' : 'text-gray-500'}`}>
+                    <p className="mt-6 text-sm font-medium text-textMuted">
                         {isRecording
                             ? (mode === 'telemedicine' ? "Gravando áudio do sistema..." : "Escutando consulta...")
                             : "Toque para iniciar a escuta inteligente"
@@ -327,7 +320,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
 
                     {/* Empty State Hint */}
                     {!isRecording && !consultationTranscript && !consultationBlob && (
-                        <p className={`mt-8 text-sm ${isDarkMode ? 'text-zinc-600' : 'text-gray-400'} animate-pulse`}>
+                        <p className="mt-8 text-sm text-textMuted animate-pulse">
                             Selecione o tipo de atendimento acima e comece a gravar
                         </p>
                     )}
@@ -337,8 +330,8 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
 
             {/* Transcript Preview Area */}
             {(consultationTranscript || consultationBlob) && (
-                <div className={`mt-6 rounded-2xl p-4 max-h-40 overflow-y-auto border ${isDarkMode ? 'bg-zinc-900/50 border-white/5' : 'bg-gray-50 border-gray-100'}`}>
-                    <p className={`text-sm leading-relaxed whitespace-pre-wrap ${isDarkMode ? 'text-zinc-400' : 'text-gray-600'}`}>
+                <div className="mt-6 rounded-2xl p-4 max-h-40 overflow-y-auto border bg-surfaceHighlight border-borderLight">
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap text-textMuted">
                         {consultationTranscript || "(Áudio da Telemedicina capturado)"}
                     </p>
                 </div>
@@ -361,7 +354,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
             )}
 
             {/* Security Badge */}
-            <div className={`flex justify-center items-center gap-2 text-[10px] font-medium mt-6 mb-2 opacity-60 ${isDarkMode ? 'text-zinc-600' : 'text-zinc-400'}`}>
+            <div className="flex justify-center items-center gap-2 text-[10px] font-medium mt-6 mb-2 opacity-60 text-textMuted">
                 <Lock size={10} />
                 <span>Criptografia Ponta-a-Ponta</span>
             </div>

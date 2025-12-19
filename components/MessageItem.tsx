@@ -94,7 +94,7 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
         <div className={`relative flex-1 overflow-hidden ${isUser ? 'flex justify-end' : 'pt-1.5'}`}>
           <div className={`
             ${isUser
-              ? 'bg-[#27272a] text-white rounded-3xl rounded-tr-sm px-5 py-2.5 max-w-[85%] shadow-md'
+              ? 'bg-surfaceHighlight text-textMain border border-borderLight rounded-3xl rounded-tr-sm px-5 py-2.5 max-w-[85%] shadow-md'
               : ''}
           `}>
             {!isUser && (
