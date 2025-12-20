@@ -8,12 +8,13 @@ import { agentService } from './services/agentService';
 import { extractTextFromPdf } from './services/pdfService';
 import { projectService } from './services/projectService'; // Implemented
 import { adminService } from './services/adminService';
-import { IconMenu, IconSend, IconAttachment, IconGlobe, IconImage, IconBrain, IconPlus, IconCreditCard, IconFile } from './components/Icons';
+import { IconMenu, IconSend, IconAttachment, IconGlobe, IconImage, IconBrain, IconPlus, IconCreditCard, IconFile, IconCheck, IconAlertTriangle } from './components/Icons';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthPage from './components/Auth/AuthPage';
 // import { chatStorage } from './services/chatStorage'; // Removed for Supabase
 import AdminPage from './components/Admin/AdminPage';
+import InviteSignupPage from './components/Auth/InviteSignupPage';
 import { modelHealthService, ModelHealth } from './services/modelHealthService';
 import { authService } from './services/authService';
 import { supabase } from './lib/supabase';
@@ -21,6 +22,8 @@ import ModelSelector from './components/ModelSelector';
 import AttachmentMenu from './components/AttachmentMenu';
 import PromptsModal from './components/PromptsModal';
 import AIScribeModal from './components/AIScribeModal';
+import SettingsModal from './components/SettingsModal';
+import { SettingsContent } from './components/SettingsContent';
 
 import {
     Folder as FolderIcon,
@@ -143,6 +146,9 @@ function AppContent() {
         theme: 'dark',
         language: 'pt-BR'
     });
+
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false); // Add modal state
+
     const [nickname, setNickname] = useState('');
     const [specialty, setSpecialty] = useState('');
     const [otherSpecialty, setOtherSpecialty] = useState('');
@@ -1040,7 +1046,7 @@ function AppContent() {
                 } : c));
 
                 try {
-                    const result = await orchestrateResearch(messageContent, (status) => {
+                    const result = await orchestrateResearch(messageContent, false, (status) => {
                         setChats(prev => prev.map(c => c.id === activeChatId ? {
                             ...c,
                             messages: c.messages.map(m => m.id === tempAiMessageId ? { ...m, content: `🔄 ${status}` } : m)
@@ -1202,6 +1208,10 @@ function AppContent() {
     // Simple client-side routing for Admin
     if (window.location.pathname === '/admin') {
         return <AdminPage />;
+    }
+
+    if (window.location.pathname === '/signup/invite') {
+        return <InviteSignupPage />;
     }
 
     const activeChat = getCurrentChat();
@@ -1455,6 +1465,33 @@ function AppContent() {
 
                             {/* Chat Area */}
                             <main className="flex-1 overflow-y-auto scroll-smooth relative flex flex-col items-center custom-scrollbar z-0">
+                                {/* TRIAL BANNER - ACTIVE */}
+                                {user?.trial_status === 'active' && user?.trial_ends_at && new Date(user.trial_ends_at) > new Date() && (
+                                    <div className="absolute top-20 left-0 right-0 z-10 px-4 pointer-events-none">
+                                        <div className="max-w-2xl mx-auto bg-emerald-500/10 border border-emerald-500/20 backdrop-blur-md p-3 rounded-xl flex items-center justify-between pointer-events-auto shadow-lg">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 bg-emerald-500/20 rounded-lg flex items-center justify-center text-emerald-500">
+                                                    <IconCheck className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <p className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
+                                                        Conta de Teste Ativa
+                                                    </p>
+                                                    <p className={`text-xs ${isDarkMode ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                                                        Expira em {Math.ceil((new Date(user.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))} dias.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => window.open('https://checkout.stripe.com/c/pay/...', '_blank')}
+                                                className="text-xs bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg font-medium transition-colors"
+                                            >
+                                                Assinar Agora
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {!activeChat || activeChat.messages.length === 0 ? (
                                     // Welcome Screen with 3D Cards
                                     <div className="flex-1 flex flex-col items-center justify-center p-6 text-center max-w-4xl w-full animate-in fade-in zoom-in-95 duration-500">
@@ -1519,190 +1556,224 @@ function AppContent() {
                                 )}
                             </main>
 
-                            {/* Input Area (Floating Glass & Carved Input) */}
-                            <div className="absolute bottom-0 left-0 w-full p-4 md:p-8 z-20 pointer-events-none">
-                                <div className="max-w-3xl mx-auto pointer-events-auto">
-                                    {/* Input Container */}
-                                    <div
-                                        className={`rounded-[32px] p-1.5 relative transition-all duration-300 ${isDarkMode ? 'shadow-2xl glass-panel' : 'bg-white border border-slate-300 shadow-sm'} ${isDragging ? 'ring-2 ring-emerald-500 bg-emerald-500/10' : ''}`}
-                                        onDragOver={handleDragOver}
-                                        onDragLeave={handleDragLeave}
-                                        onDrop={handleDrop}
-                                    >
+                            {/* Input Area (Floating Glass & Carved Input) - BLOCKED IF TRIAL EXPIRED */}
+                            {(() => {
+                                const isTrialExpired =
+                                    (user?.trial_status === 'expired') ||
+                                    (user?.trial_status === 'active' && user?.trial_ends_at && new Date(user.trial_ends_at) < new Date());
 
-                                        {/* Pending Attachments Preview */}
-                                        {pendingAttachments.length > 0 && (
-                                            <div className="flex gap-3 px-6 pt-4 pb-2 overflow-x-auto">
-                                                {pendingAttachments.map(att => (
-                                                    <div key={att.id} className={`relative group flex items-center gap-3 p-3 rounded-2xl border transition-all duration-200 min-w-[200px] hover:shadow-md ${isDarkMode ? 'bg-[#27272a] border-zinc-700' : 'bg-white border-slate-200'}`}>
-                                                        {att.type === 'image' ? (
-                                                            <div className="relative w-10 h-10 shrink-0">
-                                                                <img src={att.url} alt="Preview" className="h-full w-full object-cover rounded-lg" />
-                                                            </div>
-                                                        ) : (
-                                                            <div className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-lg ${isDarkMode ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
-                                                                <IconFile className="w-5 h-5" />
-                                                            </div>
-                                                        )}
-
-                                                        <div className="flex-1 min-w-0 pr-4">
-                                                            <p className={`text-xs font-semibold truncate ${isDarkMode ? 'text-zinc-200' : 'text-slate-700'}`}>
-                                                                {att.name}
-                                                            </p>
-                                                            <p className="text-[10px] text-textMuted uppercase font-medium">
-                                                                {att.mimeType.split('/').pop()} {att.mimeType === 'application/pdf' && att.extractedText ? '• Processado' : ''}
-                                                            </p>
-                                                        </div>
-
-                                                        <button
-                                                            onClick={() => removeAttachment(att.id)}
-                                                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:scale-110"
-                                                        >
-                                                            <X size={12} />
-                                                        </button>
+                                if (isTrialExpired) {
+                                    return (
+                                        <div className="absolute bottom-0 left-0 w-full p-4 md:p-8 z-20">
+                                            <div className="max-w-3xl mx-auto">
+                                                <div className={`rounded-2xl p-6 text-center border ${isDarkMode ? 'bg-[#18181b]/90 border-red-500/30' : 'bg-white/90 border-red-200'} backdrop-blur-md shadow-2xl`}>
+                                                    <div className="w-12 h-12 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                        <IconAlertTriangle className="w-6 h-6 text-red-500" />
                                                     </div>
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        {/* Drop Overlay Message */}
-                                        {isDragging && (
-                                            <div className="absolute inset-0 z-50 flex items-center justify-center rounded-[32px] bg-emerald-500/20 backdrop-blur-sm pointer-events-none border-2 border-emerald-500 border-dashed">
-                                                <div className="flex flex-col items-center p-4 bg-black/50 rounded-2xl text-white animate-bounce">
-                                                    <IconAttachment className="w-8 h-8 mb-2" />
-                                                    <span className="font-bold">Solte para anexar</span>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* The "Carved" Input Slot */}
-                                        <div className={`relative rounded-[28px] overflow-visible transition-all duration-300 ${isDarkMode ? 'bg-[#18181b] border border-white/10 shadow-[0px_10px_30px_rgba(0,0,0,0.5)] hover:shadow-[0px_10px_30px_rgba(16,185,129,0.1)]' : 'bg-surface border border-borderLight shadow-sm hover:border-emerald-400'}`}>
-                                            <textarea
-                                                ref={textareaRef}
-                                                value={input}
-                                                onChange={(e) => setInput(e.target.value)}
-                                                onKeyDown={handleKeyDown}
-                                                placeholder={
-                                                    activeTools.web ? "Pesquisar na Web..." :
-                                                        ((activeTools.image || availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.imageGeneration) && activeMode !== 'scribe' && activeMode !== 'scribe-review') ? "Descreva a imagem que você quer criar..." :
-                                                            isGenerating ? "Aguarde a resposta..." : "Pergunte algo ao Dr. GPT..."
-                                                }
-                                                className={`w-full bg-transparent text-textMain placeholder-textMuted text-[16px] md:text-lg px-6 py-5 max-h-48 overflow-y-auto resize-none outline-none transition-opacity duration-200 ${isGenerating ? 'opacity-60 cursor-wait' : 'opacity-100'}`}
-                                                rows={1}
-                                                style={{ minHeight: '72px' }}
-                                                readOnly={isGenerating}
-                                            />
-
-                                            {/* Hidden File Input */}
-                                            <input
-                                                type="file"
-                                                ref={fileInputRef}
-                                                className="hidden"
-                                                onChange={handleFileSelect}
-                                                accept="image/*,application/pdf" // Adjust as needed
-                                            />
-
-                                            {/* Toolbar inside the slot */}
-                                            <div className="flex items-center justify-between px-4 pb-3 pt-2">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="relative">
-                                                        <AttachmentMenu
-                                                            isOpen={isAttachmentMenuOpen}
-                                                            onClose={() => setIsAttachmentMenuOpen(false)}
-                                                            isDarkMode={isDarkMode}
-                                                            triggerRef={attachmentButtonRef}
-                                                            isImageMode={activeMode !== 'scribe' && activeMode !== 'scribe-review' && !!availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.imageGeneration}
-                                                            isWebActive={activeTools.web}
-                                                            onToggleWeb={() => setActiveTools(prev => ({ ...prev, web: !prev.web }))}
-                                                            onSelect={(option) => {
-                                                                if (option === 'upload') {
-                                                                    fileInputRef.current?.click();
-                                                                } else if (option === 'photos') {
-                                                                    // Handle photos
-                                                                    fileInputRef.current?.click();
-                                                                } else if (option === 'prompts') {
-                                                                    setIsPromptsModalOpen(true);
-                                                                }
-                                                            }}
-                                                        />
-                                                        <button
-                                                            ref={attachmentButtonRef}
-                                                            onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
-                                                            className={`
-                                                    w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200
-                                                    ${isAttachmentMenuOpen
-                                                                    ? 'bg-zinc-700 text-white'
-                                                                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
-                                                                }
-                                                `}
-                                                        >
-                                                            <Plus size={24} />
-                                                        </button>
-                                                    </div>
-
-
-
-                                                </div>
-
-                                                <div className="flex items-center gap-4">
-                                                    {/* Active Tool Indicators */}
-                                                    {activeTools.web && (
-                                                        <div className="flex items-center gap-1 text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded text-xs">
-                                                            <Globe size={12} />
-                                                            <span>Web</span>
-                                                        </div>
-                                                    )}
-                                                    {activeTools.image && (
-                                                        <div className="flex items-center gap-1 text-purple-500 bg-purple-500/10 px-2 py-1 rounded text-xs">
-                                                            <Image size={12} />
-                                                            <span>Img</span>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Reasoning Toggle (Raciocínio) */}
-                                                    {availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.reasoning && (
-                                                        <button
-                                                            onClick={() => setActiveTools(prev => ({ ...prev, thinking: !prev.thinking }))}
-                                                            className={`
-                                                    flex items-center gap-2 text-sm font-medium transition-colors duration-200
-                                                    ${activeTools.thinking ? 'text-emerald-400' : 'text-zinc-400 hover:text-zinc-200'}
-                                                `}
-                                                        >
-                                                            <span>Raciocínio</span>
-                                                            <ChevronDown size={14} className={`transition-transform duration-200 ${activeTools.thinking ? 'rotate-180' : ''}`} />
-                                                        </button>
-                                                    )}
-
-                                                    {hasMicSupport && (
-                                                        <button
-                                                            onClick={handleMicClick}
-                                                            className={`transition-colors duration-200 ${isListening
-                                                                ? 'text-red-500 animate-pulse'
-                                                                : 'text-zinc-400 hover:text-zinc-200'
-                                                                }`}
-                                                            title="Gravar áudio"
-                                                        >
-                                                            <Mic size={24} />
-                                                        </button>
-                                                    )}
-
-                                                    {(input.trim() || pendingAttachments.length > 0) && (
-                                                        <button
-                                                            onClick={() => handleSendMessage()}
-                                                            disabled={isGenerating}
-                                                            className={`transition-colors duration-200 ${isDarkMode ? 'text-white' : 'text-black'}`}
-                                                        >
-                                                            <IconSend />
-                                                        </button>
-                                                    )}
+                                                    <h3 className={`text-lg font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
+                                                        Período de Teste Expirado
+                                                    </h3>
+                                                    <p className={`text-sm mb-6 max-w-md mx-auto ${isDarkMode ? 'text-zinc-400' : 'text-slate-600'}`}>
+                                                        Sua conta entrou em modo somente leitura. Assine o plano Pro para continuar gerando diagnósticos e documentos com IA.
+                                                    </p>
+                                                    <button
+                                                        onClick={() => window.open('https://checkout.stripe.com/c/pay/...', '_blank')}
+                                                        className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg hover:shadow-emerald-500/25 active:scale-95"
+                                                    >
+                                                        Assinar Agora
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
+                                    );
+                                }
+
+                                return (
+                                    <div className="absolute bottom-0 left-0 w-full p-4 md:p-8 z-20 pointer-events-none">
+                                        <div className="max-w-3xl mx-auto pointer-events-auto">
+                                            {/* Input Container */}
+                                            <div
+                                                className={`rounded-[32px] p-1.5 relative transition-all duration-300 ${isDarkMode ? 'shadow-2xl glass-panel' : 'bg-white border border-slate-300 shadow-sm'} ${isDragging ? 'ring-2 ring-emerald-500 bg-emerald-500/10' : ''}`}
+                                                onDragOver={handleDragOver}
+                                                onDragLeave={handleDragLeave}
+                                                onDrop={handleDrop}
+                                            >
+
+                                                {/* Pending Attachments Preview */}
+                                                {pendingAttachments.length > 0 && (
+                                                    <div className="flex gap-3 px-6 pt-4 pb-2 overflow-x-auto">
+                                                        {pendingAttachments.map(att => (
+                                                            <div key={att.id} className={`relative group flex items-center gap-3 p-3 rounded-2xl border transition-all duration-200 min-w-[200px] hover:shadow-md ${isDarkMode ? 'bg-[#27272a] border-zinc-700' : 'bg-white border-slate-200'}`}>
+                                                                {att.type === 'image' ? (
+                                                                    <div className="relative w-10 h-10 shrink-0">
+                                                                        <img src={att.url} alt="Preview" className="h-full w-full object-cover rounded-lg" />
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className={`w-10 h-10 shrink-0 flex items-center justify-center rounded-lg ${isDarkMode ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600'}`}>
+                                                                        <IconFile className="w-5 h-5" />
+                                                                    </div>
+                                                                )}
+
+                                                                <div className="flex-1 min-w-0 pr-4">
+                                                                    <p className={`text-xs font-semibold truncate ${isDarkMode ? 'text-zinc-200' : 'text-slate-700'}`}>
+                                                                        {att.name}
+                                                                    </p>
+                                                                    <p className="text-[10px] text-textMuted uppercase font-medium">
+                                                                        {att.mimeType.split('/').pop()} {att.mimeType === 'application/pdf' && att.extractedText ? '• Processado' : ''}
+                                                                    </p>
+                                                                </div>
+
+                                                                <button
+                                                                    onClick={() => removeAttachment(att.id)}
+                                                                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:scale-110"
+                                                                >
+                                                                    <X size={12} />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {/* Drop Overlay Message */}
+                                                {isDragging && (
+                                                    <div className="absolute inset-0 z-50 flex items-center justify-center rounded-[32px] bg-emerald-500/20 backdrop-blur-sm pointer-events-none border-2 border-emerald-500 border-dashed">
+                                                        <div className="flex flex-col items-center p-4 bg-black/50 rounded-2xl text-white animate-bounce">
+                                                            <IconAttachment className="w-8 h-8 mb-2" />
+                                                            <span className="font-bold">Solte para anexar</span>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* The "Carved" Input Slot */}
+                                                <div className={`relative rounded-[28px] overflow-visible transition-all duration-300 ${isDarkMode ? 'bg-[#18181b] border border-white/10 shadow-[0px_10px_30px_rgba(0,0,0,0.5)] hover:shadow-[0px_10px_30px_rgba(16,185,129,0.1)]' : 'bg-surface border border-borderLight shadow-sm hover:border-emerald-400'}`}>
+                                                    <textarea
+                                                        ref={textareaRef}
+                                                        value={input}
+                                                        onChange={(e) => setInput(e.target.value)}
+                                                        onKeyDown={handleKeyDown}
+                                                        placeholder={
+                                                            activeTools.web ? "Pesquisar na Web..." :
+                                                                ((activeTools.image || availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.imageGeneration) && activeMode !== 'scribe' && activeMode !== 'scribe-review') ? "Descreva a imagem que você quer criar..." :
+                                                                    isGenerating ? "Aguarde a resposta..." : "Pergunte algo ao Dr. GPT..."
+                                                        }
+                                                        className={`w-full bg-transparent text-textMain placeholder-textMuted text-[16px] md:text-lg px-6 py-5 max-h-48 overflow-y-auto resize-none outline-none transition-opacity duration-200 ${isGenerating ? 'opacity-60 cursor-wait' : 'opacity-100'}`}
+                                                        rows={1}
+                                                        style={{ minHeight: '72px' }}
+                                                        readOnly={isGenerating}
+                                                    />
+
+                                                    {/* Hidden File Input */}
+                                                    <input
+                                                        type="file"
+                                                        ref={fileInputRef}
+                                                        className="hidden"
+                                                        onChange={handleFileSelect}
+                                                        accept="image/*,application/pdf" // Adjust as needed
+                                                    />
+
+                                                    {/* Toolbar inside the slot */}
+                                                    <div className="flex items-center justify-between px-4 pb-3 pt-2">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="relative">
+                                                                <AttachmentMenu
+                                                                    isOpen={isAttachmentMenuOpen}
+                                                                    onClose={() => setIsAttachmentMenuOpen(false)}
+                                                                    isDarkMode={isDarkMode}
+                                                                    triggerRef={attachmentButtonRef}
+                                                                    isImageMode={activeMode !== 'scribe' && activeMode !== 'scribe-review' && !!availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.imageGeneration}
+                                                                    isWebActive={activeTools.web}
+                                                                    onToggleWeb={() => setActiveTools(prev => ({ ...prev, web: !prev.web }))}
+                                                                    onSelect={(option) => {
+                                                                        if (option === 'upload') {
+                                                                            fileInputRef.current?.click();
+                                                                        } else if (option === 'photos') {
+                                                                            // Handle photos
+                                                                            fileInputRef.current?.click();
+                                                                        } else if (option === 'prompts') {
+                                                                            setIsPromptsModalOpen(true);
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <button
+                                                                    ref={attachmentButtonRef}
+                                                                    onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
+                                                                    className={`
+                                                                    w-10 h-10 rounded-full flex items-center justify-center transition-all duration-200
+                                                                    ${isAttachmentMenuOpen
+                                                                            ? 'bg-zinc-700 text-white'
+                                                                            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
+                                                                        }
+                                                                `}
+                                                                >
+                                                                    <Plus size={24} />
+                                                                </button>
+                                                            </div>
 
 
+
+                                                        </div>
+
+                                                        <div className="flex items-center gap-4">
+                                                            {/* Active Tool Indicators */}
+                                                            {activeTools.web && (
+                                                                <div className="flex items-center gap-1 text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded text-xs">
+                                                                    <Globe size={12} />
+                                                                    <span>Web</span>
+                                                                </div>
+                                                            )}
+                                                            {activeTools.image && (
+                                                                <div className="flex items-center gap-1 text-purple-500 bg-purple-500/10 px-2 py-1 rounded text-xs">
+                                                                    <Image size={12} />
+                                                                    <span>Img</span>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Reasoning Toggle (Raciocínio) */}
+                                                            {availableAndHealthyModels.find(m => m.id === selectedModelId)?.capabilities.reasoning && (
+                                                                <button
+                                                                    onClick={() => setActiveTools(prev => ({ ...prev, thinking: !prev.thinking }))}
+                                                                    className={`
+                                                                    flex items-center gap-2 text-sm font-medium transition-colors duration-200
+                                                                    ${activeTools.thinking ? 'text-emerald-400' : 'text-zinc-400 hover:text-zinc-200'}
+                                                                `}
+                                                                >
+                                                                    <span>Raciocínio</span>
+                                                                    <ChevronDown size={14} className={`transition-transform duration-200 ${activeTools.thinking ? 'rotate-180' : ''}`} />
+                                                                </button>
+                                                            )}
+
+                                                            {hasMicSupport && (
+                                                                <button
+                                                                    onClick={handleMicClick}
+                                                                    className={`transition-colors duration-200 ${isListening
+                                                                        ? 'text-red-500 animate-pulse'
+                                                                        : 'text-zinc-400 hover:text-zinc-200'
+                                                                        }`}
+                                                                    title="Gravar áudio"
+                                                                >
+                                                                    <Mic size={24} />
+                                                                </button>
+                                                            )}
+
+                                                            {(input.trim() || pendingAttachments.length > 0) && (
+                                                                <button
+                                                                    onClick={() => handleSendMessage()}
+                                                                    disabled={isGenerating}
+                                                                    className={`transition-colors duration-200 ${isDarkMode ? 'text-white' : 'text-black'}`}
+                                                                >
+                                                                    <IconSend />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
+                                );
+                            })()}
 
 
                             <PromptsModal
@@ -1759,6 +1830,17 @@ function AppContent() {
                             >
                                 {renderChatUI()}
                             </ScribeReview>
+                        ) : activeMode === 'settings' ? (
+                            <SettingsContent
+                                activeTab={
+                                    settingsTab === 'profile' ? 'personalization' :
+                                        settingsTab === 'appearance' ? 'general' :
+                                            settingsTab === 'security' ? 'data' :
+                                                settingsTab
+                                }
+                                isDarkMode={isDarkMode}
+                                toggleTheme={toggleTheme}
+                            />
                         ) : (
                             (activeMode === 'chat' || activeMode === 'chat-research' || (currentChatId && activeMode === 'scribe')) ? renderChatUI() :
                                 null
@@ -2094,359 +2176,23 @@ Seja conciso, técnico e direto.'`;
                         }}
                         toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
                         onOpenSettings={() => {
-                            setActiveMode('settings');
-                            setSidebarOpen(true);
+                            // setActiveMode('settings'); // REMOVED
+                            setIsSettingsOpen(true); // OPEN MODAL INSTEAD
+                            setSidebarOpen(false); // Close sidebar on mobile
                         }}
                     />
                 )}
 
+                <SettingsModal
+                    isOpen={isSettingsOpen}
+                    onClose={() => setIsSettingsOpen(false)}
+                    isDarkMode={isDarkMode}
+                    toggleTheme={() => setIsDarkMode(!isDarkMode)}
+                />
 
 
-                {activeMode === 'settings' && (
-                    <div className="flex flex-col h-full overflow-y-auto custom-scrollbar p-8 animate-in fade-in duration-500">
 
-                        {/* Settings Header */}
-                        <div className="mb-8">
-                            <h1 className="text-3xl font-bold bg-gradient-to-r from-zinc-200 to-zinc-400 bg-clip-text text-transparent mb-2">
-                                Configurações
-                            </h1>
-                            <p className="text-zinc-400">
-                                {settingsTab === 'profile' && 'Gerencie seus dados pessoais.'}
-                                {settingsTab === 'subscription' && 'Detalhes do seu plano e faturamento.'}
-                                {settingsTab === 'appearance' && 'Personalize a aparência do Dr. GPT.'}
-                                {settingsTab === 'security' && 'Gerencie a segurança da sua conta.'}
-                            </p>
-                        </div>
 
-                        {/* SUBSCRIPTION VIEW */}
-                        {settingsTab === 'subscription' && (
-                            <div className="max-w-4xl mx-auto w-full space-y-8 animate-in slide-in-from-bottom-4 duration-300">
-
-                                {/* Current Plan Card */}
-                                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-8 relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                                        <IconCreditCard className="w-64 h-64 text-emerald-500" />
-                                    </div>
-
-                                    <div className="relative z-10">
-                                        <div className="flex items-center gap-3 mb-4">
-                                            <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center text-emerald-400">
-                                                <IconCreditCard className="w-6 h-6" />
-                                            </div>
-                                            <span className="text-sm font-bold text-emerald-400 uppercase tracking-widest">Plano Atual</span>
-                                        </div>
-
-                                        <div className="flex items-baseline gap-3 mb-6">
-                                            <h2 className="text-5xl font-extrabold text-white">
-                                                {user?.plan?.name || 'Plano Gratuito'}
-                                            </h2>
-                                            <span className="px-3 py-1 rounded-full bg-emerald-500 text-black text-xs font-bold uppercase tracking-wider">
-                                                Ativo
-                                            </span>
-                                        </div>
-
-                                        <p className="text-zinc-400 text-lg max-w-xl mb-8 leading-relaxed">
-                                            Você tem acesso a inteligência clínica avançada, transcrição de áudio ilimitada e todos os recursos premium do Dr. GPT.
-                                        </p>
-
-                                        <button
-                                            className="px-6 py-3 bg-white text-emerald-900 font-bold rounded-xl hover:bg-zinc-200 transition-all shadow-lg active:scale-95 flex items-center gap-2"
-                                            onClick={() => window.open('https://checkout.stripe.com/c/pay/...', '_blank')}
-                                        >
-                                            <Settings className="w-4 h-4" />
-                                            Gerenciar Assinatura na Stripe
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Billing Details Grid */}
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div className="bg-white/5 p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
-                                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider block mb-2">Status</span>
-                                        <div className="flex items-center gap-2 text-emerald-400">
-                                            <Check className="w-5 h-5" />
-                                            <span className="font-semibold text-lg">Pagamento em dia</span>
-                                        </div>
-                                    </div>
-                                    <div className="bg-white/5 p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
-                                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider block mb-2">Próxima Cobrança</span>
-                                        <div className="flex items-center gap-2 text-zinc-200">
-                                            <Activity className="w-5 h-5 text-zinc-500" />
-                                            <span className="font-semibold text-lg">
-                                                {user?.billing_current_period_end
-                                                    ? new Date(user.billing_current_period_end).toLocaleDateString('pt-BR')
-                                                    : 'N/A'
-                                                }
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="bg-white/5 p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-colors">
-                                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider block mb-2">Método</span>
-                                        <div className="flex items-center gap-2 text-zinc-200">
-                                            <CreditCard className="w-5 h-5 text-zinc-500" />
-                                            <span className="font-semibold text-lg">Cartão •••• 4242</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* PROFILE VIEW */}
-                        {settingsTab === 'profile' && (
-                            <div className="max-w-4xl mx-auto w-full space-y-8 animate-in slide-in-from-bottom-4 duration-300">
-                                <div className="bg-surface border border-borderLight rounded-2xl p-8 space-y-8 shadow-card-3d">
-                                    <div className="flex items-center gap-4 mb-2">
-                                        <div className="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-400">
-                                            <User className="w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-xl font-bold text-textMain">Dados Pessoais</h2>
-                                            <p className="text-textMuted text-sm">Personalize como a IA interage com você.</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {/* Field 1: Nickname */}
-                                        <div className="space-y-3">
-                                            <label className="text-sm font-semibold text-textMain">Como o Dr. GPT deve te chamar?</label>
-                                            <input
-                                                type="text"
-                                                value={nickname}
-                                                onChange={(e) => setNickname(e.target.value)}
-                                                className="w-full bg-surfaceHighlight border border-borderLight rounded-xl px-4 py-3 text-sm text-textMain focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-textMuted"
-                                                placeholder="Ex: Dr. Jack"
-                                            />
-                                        </div>
-
-                                        {/* Field 2: Specialty */}
-                                        <div className="space-y-3">
-                                            <label className="text-sm font-semibold text-textMain">Especialidade Médica</label>
-                                            <div className="relative">
-                                                <select
-                                                    value={specialty}
-                                                    onChange={(e) => setSpecialty(e.target.value)}
-                                                    className="w-full bg-surfaceHighlight border border-borderLight rounded-xl px-4 py-3 text-sm text-textMain focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none cursor-pointer"
-                                                >
-                                                    <option value="" disabled>Selecione sua área...</option>
-                                                    <option value="Cardiologia">Cardiologia</option>
-                                                    <option value="Dermatologia">Dermatologia</option>
-                                                    <option value="Clínica Geral">Clínica Geral</option>
-                                                    <option value="Pediatria">Pediatria</option>
-                                                    <option value="Ortopedia">Ortopedia</option>
-                                                    <option value="Neurologia">Neurologia</option>
-                                                    <option value="Ginecologia">Ginecologia</option>
-                                                    <option value="Psiquiatria">Psiquiatria</option>
-                                                    <option value="Outra">Outra Especialidade</option>
-                                                </select>
-                                                <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 rotate-90" />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Conditional Input for 'Outra' */}
-                                    {specialty === 'Outra' && (
-                                        <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                                            <label className="text-sm font-semibold text-textMain">Qual sua especialidade?</label>
-                                            <input
-                                                type="text"
-                                                value={otherSpecialty}
-                                                onChange={(e) => setOtherSpecialty(e.target.value)}
-                                                className="w-full bg-surfaceHighlight border border-borderLight rounded-xl px-4 py-3 text-sm text-textMain focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all placeholder-textMuted"
-                                                placeholder="Digite sua especialidade..."
-                                            />
-                                        </div>
-                                    )}
-
-                                    {/* Field 3: Professional Focus */}
-                                    <div className="space-y-3">
-                                        <label className="text-sm font-semibold text-textMain">Qual seu objetivo principal?</label>
-                                        <div className="relative">
-                                            <select
-                                                value={professionalFocus}
-                                                onChange={(e) => setProfessionalFocus(e.target.value)}
-                                                className="w-full bg-surfaceHighlight border border-borderLight rounded-xl px-4 py-3 text-sm text-textMain focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all appearance-none cursor-pointer"
-                                            >
-                                                <option value="" disabled>Selecione o foco...</option>
-                                                <option value="Auxílio Clínico & Segunda Opinião">Auxílio Clínico & Segunda Opinião</option>
-                                                <option value="Burocracia & Documentação">Burocracia & Documentação (Laudos/Atestados)</option>
-                                                <option value="Estudos & Atualização Científica">Estudos & Atualização Científica</option>
-                                                <option value="Marketing Médico & Redes Sociais">Marketing Médico & Redes Sociais</option>
-                                                <option value="Gestão de Clínica">Gestão de Clínica</option>
-                                            </select>
-                                            <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 rotate-90" />
-                                        </div>
-                                    </div>
-
-                                    {/* Field 4: Specific Preference */}
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between items-baseline">
-                                            <label className="text-sm font-semibold text-textMain">Alguma preferência específica?</label>
-                                            <span className={`text-xs ${specificPreference.length > 180 ? 'text-red-400' : 'text-textMuted'}`}>
-                                                {specificPreference.length}/200
-                                            </span>
-                                        </div>
-                                        <textarea
-                                            value={specificPreference}
-                                            onChange={(e) => {
-                                                if (e.target.value.length <= 200) {
-                                                    setSpecificPreference(e.target.value);
-                                                }
-                                            }}
-                                            className="w-full h-24 bg-surfaceHighlight border border-borderLight rounded-xl p-4 text-sm text-textMain focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all resize-none placeholder-textMuted custom-scrollbar"
-                                            placeholder="Ex: Cite sempre fontes da SBC; Prefiro respostas em tópicos..."
-                                        />
-                                    </div>
-
-                                    <div className="flex justify-end pt-4 border-t border-borderLight">
-                                        <button
-                                            onClick={handleSaveProfile}
-                                            disabled={isSettingsSaving}
-                                            className="px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-900/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                                        >
-                                            {isSettingsSaving ? (
-                                                <>
-                                                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
-                                                    Salvando...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Check className="w-5 h-5" />
-                                                    Salvar Alterações
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* APPEARANCE VIEW */}
-                        {settingsTab === 'appearance' && (
-                            <div className="max-w-4xl mx-auto w-full space-y-8 animate-in slide-in-from-bottom-4 duration-300">
-                                <div className="bg-surface border border-borderLight rounded-2xl p-8 space-y-6 shadow-card-3d">
-                                    <h2 className="text-xl font-bold text-textMain mb-6">Aparência e Cores</h2>
-
-                                    <div className="flex items-center justify-between p-4 bg-surfaceHighlight rounded-xl border border-borderLight">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 bg-zinc-700/10 dark:bg-zinc-700/50 rounded-lg flex items-center justify-center">
-                                                <Palette className="w-5 h-5 text-textMuted" />
-                                            </div>
-                                            <div>
-                                                <label className="block font-bold text-textMain">Tema da Interface</label>
-                                                <p className="text-sm text-textMuted">Escolha entre modo claro ou escuro.</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex bg-surface p-1 rounded-lg border border-borderLight">
-                                            <button
-                                                onClick={() => {
-                                                    setIsDarkMode(false);
-                                                    setSettingsState({ ...settingsState, theme: 'light' });
-                                                }}
-                                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${!isDarkMode ? 'bg-surfaceHighlight text-textMain shadow-sm border border-borderLight' : 'text-textMuted hover:text-textMain'
-                                                    }`}
-                                            >
-                                                Claro
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setIsDarkMode(true);
-                                                    setSettingsState({ ...settingsState, theme: 'dark' });
-                                                }}
-                                                className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${isDarkMode ? 'bg-surfaceHighlight text-textMain shadow-sm border border-borderLight' : 'text-textMuted hover:text-textMain'
-                                                    }`}
-                                            >
-                                                Escuro
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center justify-between p-4 bg-surfaceHighlight rounded-xl border border-borderLight">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 bg-zinc-700/10 dark:bg-zinc-700/50 rounded-lg flex items-center justify-center">
-                                                <Globe className="w-5 h-5 text-textMuted" />
-                                            </div>
-                                            <div>
-                                                <label className="block font-bold text-textMain">Idioma</label>
-                                                <p className="text-sm text-textMuted">Idioma principal do sistema.</p>
-                                            </div>
-                                        </div>
-                                        <select
-                                            value={settingsState.language}
-                                            onChange={(e) => setSettingsState({ ...settingsState, language: e.target.value })}
-                                            className="bg-surface border border-borderLight rounded-lg px-4 py-2 text-sm text-textMain focus:outline-none focus:border-emerald-500"
-                                        >
-                                            <option value="pt-BR">Português (Brasil)</option>
-                                            <option value="en-US">English (US)</option>
-                                        </select>
-                                    </div>
-
-                                    <div className="p-4 bg-emerald-500/5 border border-emerald-500/10 rounded-xl flex gap-3">
-                                        <div className="mt-1">
-                                            <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                                        </div>
-                                        <div>
-                                            <h4 className="text-sm font-bold text-emerald-400">Preferência de Tema Salva</h4>
-                                            <p className="text-xs text-textMuted mt-1">Sua preferência de tema é salva localmente e sincronizada com seu perfil.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* SECURITY VIEW */}
-                        {settingsTab === 'security' && (
-                            <div className="max-w-4xl mx-auto w-full space-y-8 animate-in slide-in-from-bottom-4 duration-300">
-                                <div className="bg-surface border border-borderLight rounded-2xl p-8 space-y-6 shadow-card-3d">
-                                    <h2 className="text-xl font-bold text-textMain mb-6">Segurança da Conta</h2>
-
-                                    <div className="p-4 bg-surfaceHighlight rounded-xl border border-borderLight flex flex-col md:flex-row items-start md:items-center gap-6">
-                                        <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center shrink-0">
-                                            <Shield className="w-6 h-6 text-red-400" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <h3 className="font-bold text-textMain text-lg">Redefinir Senha</h3>
-                                            <p className="text-sm text-textMuted mt-1">
-                                                Para garantir a segurança máxima da sua conta, enviaremos um link seguro para o seu email registrado ({user?.email}) para você criar uma nova senha.
-                                            </p>
-                                        </div>
-                                        <button
-                                            onClick={async () => {
-                                                console.log('Attempting reset for:', user?.email);
-                                                if (user?.email) {
-                                                    const { error } = await authService.resetPasswordForEmail(user.email);
-                                                    console.log('Reset result error:', error);
-                                                    if (error) {
-                                                        toast.error('Erro ao enviar email: ' + error.message);
-                                                    } else {
-                                                        toast.success('Email de redefinição enviado com sucesso!');
-                                                    }
-                                                } else {
-                                                    console.error('User email not found');
-                                                    toast.error('Email do usuário não encontrado.');
-                                                }
-                                            }}
-                                            className="px-6 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-red-900/20 active:scale-95 whitespace-nowrap"
-                                        >
-                                            Enviar Link
-                                        </button>
-                                    </div>
-
-                                    <div className="p-4 bg-blue-500/5 border border-blue-500/10 rounded-xl flex gap-3">
-                                        <div className="mt-1">
-                                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                        </div>
-                                        <div>
-                                            <h4 className="text-sm font-bold text-blue-400">Método 100% Seguro</h4>
-                                            <p className="text-xs text-textMuted mt-1">
-                                                Não solicitamos sua senha antiga. A confirmação via email garante que apenas o proprietário da conta possa realizar alterações críticas.
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
 
             </div>
         </div >

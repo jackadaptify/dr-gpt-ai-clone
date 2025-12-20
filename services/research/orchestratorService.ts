@@ -82,10 +82,9 @@ async function executeSearch(providers: any[], query: string): Promise<ResearchS
     return allSources.slice(0, 10);
 }
 
-export const orchestrateResearch = async (query: string, onProgress?: (status: string) => void): Promise<ResearchResult> => {
+export const orchestrateResearch = async (query: string, useDeepResearch: boolean = false, onProgress?: (status: string) => void): Promise<ResearchResult> => {
     try {
-        // 1. Semantic Normalization (RxNorm) - Keep this for context if needed, but for Sonar we might skip or use as hint.
-        // For now, let's keep it to log intent.
+        // 1. Semantic Normalization (RxNorm)
         onProgress?.('💊 Identificando fármacos (RxNav)...');
         const rxResult = await normalizeDrugName(query);
         let contextString = '';
@@ -95,64 +94,50 @@ export const orchestrateResearch = async (query: string, onProgress?: (status: s
             contextString = rxResult.name;
         }
 
-        // 2. Classification - Still useful to understand intent, but strictly for logging if we use Sonar online.
+        // 2. Classification
         onProgress?.('🧠 Analisando pergunta e critérios...');
         const intent = await classifyQuery(query, contextString);
         console.log('Research Intent:', intent);
 
         let allSources: ResearchSource[] = [];
         let answer = "";
-        let finalCitations: string[] = [];
 
-        // CHECK MODEL: If Perplexity, skip manual waterfall.
-        if (SYNTHESIS_MODEL.includes('perplexity') || SYNTHESIS_MODEL.includes('sonar')) {
-            onProgress?.(`🌐 Pesquisando na Web Médica (Perplexity Sonar Reasoning Pro)...`);
+        // CHECK MODEL: If Deep Research enabled
+        if (useDeepResearch) {
+            onProgress?.(`🌐 Pesquisando na Web Médica (Perplexity Sonar Reasoning Pro)... Isso pode demorar até 45s.`);
 
-            const systemPrompt = `Você é o MedPilot, o agente de pesquisa clínica do Dr. GPT. Sua resposta deve ser uma síntese técnica de alto nível.
-Regras:
-1. Use linguagem médica acadêmica.
-2. Nunca use introduções como 'Aqui está o que encontrei'.
-3. Formate parágrafos densos com citações numéricas [1], [2].
-4. Priorize PubMed e diretrizes de sociedades médicas de 2024 e 2025.`;
+            const systemPrompt = `Você é o Dr. GPT, um especialista em pesquisa clínica de alto nível.
+Regras OBRIGATÓRIAS:
+1. Responda SEMPRE em Português do Brasil.
+2. Seja EXTENSIVO e DETALHADO. Use estrutura científica: Introdução, Metodologia (se aplicável), Evidências Principais, Análise Crítica e Conclusão.
+3. CITE TUDO: Use o formato [1], [2] ao longo do texto.
+4. Ao final, liste as Referências Bibliográficas completas com links se houver.
+5. Se não encontrar evidências exatas, diga claramente.
+6. Use Markdown para formatar (negrito, listas, tabelas).`;
 
             const message: Message = {
                 id: 'synthesis-msg',
                 role: Role.USER,
-                content: intent.originalQuery, // Send original query to let Sonar search
+                content: query, // Use raw query or intent.originalQuery
                 timestamp: Date.now()
             };
 
-            // Call ChatCompletion with "citations" expectation
-            // NOTE: We need to update openRouterService to return citations.
-            // For now, we assume the service returns just text, but we will patch it next.
-            // If using Sonar, we can pass specific parameters.
-
-            // We'll trust the modified openRouterService to handle this.
-            // Let's assume for this step we just get text, and I'll modify openRouterService to return { text, citations }
-            // But wait, orchestrateResearch expects string answer.
-            // I need to intercept the response.
-
-            // Temporary hack: We will fetch response.
-            // To properly support citations, we really need to change chatCompletion signature or parse them.
-            // Let's rely on the text containing [1] and hope OpenRouter appends the URL list at the bottom or we parse it.
-            // Actually, the user says "API... returns an array called citations".
-            // I will implement a specialized call here if possible, or update the service.
-
             try {
+                // Using the specialized model
                 const response = await chatCompletion(
-                    SYNTHESIS_MODEL,
+                    'perplexity/sonar-reasoning-pro',
                     [message],
                     systemPrompt
                 );
-                answer = response; // This will be the text + citations if I update the service.
 
-                // If I update service to append citations to text, answer will have them.
-                // If I update service to return object, I need to change type here.
-                // Let's assume I update service to append citations to the end of text as a "Sources" list.
+                answer = response;
+                // Note: The OpenRouter service already appends citations at the bottom if parsing works.
+                // We rely on that for now.
 
             } catch (e) {
                 console.error("Perplexity Search Failed", e);
-                answer = "Erro na pesquisa online. Tente novamente.";
+                // Propagate error to layout to handle credits/auth issues
+                throw e;
             }
 
         } else {
@@ -175,16 +160,20 @@ Regras:
                 `[Source ${i + 1}]\nTitle: ${s.title}\nDate: ${s.date}\nAuthors: ${s.authors.join(', ')}\nAbstract: ${s.abstract.length > 1000 ? s.abstract.substring(0, 1000) + '...' : s.abstract}\nURL: ${s.url}\n`
             ).join('\n---\n');
 
-            const systemPrompt = `You are Dr. GPT. [LEGACY PROMPT]...`; // Truncated for brevity as we are focusing on Sonar path
-
-            // (Keep existing synthesis logic for non-Sonar models)
-            const msg: Message = { id: 's', role: Role.USER, content: "Synthesize...", timestamp: Date.now() };
+            const systemPrompt = `Você é o Dr. GPT. Sua tarefa é sintetizar as evidências fornecidas acima para responder à pergunta do médico: "${query}".
+Diretrizes:
+- Use Português do Brasil.
+- Cite as fontes usando [1], [2], etc.
+- Seja objetivo e clínico.
+- Inclua "Conclusão Clínica" no final.
+`;
+            const msg: Message = { id: 's', role: Role.USER, content: context, timestamp: Date.now() };
             answer = await chatCompletion('anthropic/claude-3.5-sonnet', [msg], systemPrompt); // Hardcoded fallback if SYNTHESIS_MODEL is changed
         }
 
         return {
             answer: answer,
-            sources: allSources, // Might be empty for Sonar unless we parse citations into sources
+            sources: allSources, // Might be empty for Sonar unless we parse citations into sources manually here, but OpenRouter service appends them to text.
             intent: intent
         };
 

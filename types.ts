@@ -69,6 +69,9 @@ export interface User {
   billing_current_period_end?: string;
   billing_plan_id?: string;
   billing_status?: string;
+  trial_status?: 'none' | 'active' | 'expired' | 'converted';
+  trial_ends_at?: string;
+  is_test?: boolean;
 }
 
 export interface Agent {

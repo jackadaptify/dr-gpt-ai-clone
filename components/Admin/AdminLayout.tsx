@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { IconBrain, IconSettings, IconUser, IconGlobe } from '../Icons';
+import { Ticket } from 'lucide-react';
 
 interface AdminLayoutProps {
     children: React.ReactNode;
@@ -30,6 +31,7 @@ export default function AdminLayout({ children, activeTab, onTabChange }: AdminL
         { id: 'users', label: 'Usuários', icon: IconUser },
         { id: 'agents', label: 'Agentes', icon: IconBrain }, // Reusing IconBrain or similar
         { id: 'models', label: 'Modelos IA', icon: IconBrain },
+        { id: 'invites', label: 'Convites', icon: Ticket },
         { id: 'settings', label: 'Configurações', icon: IconSettings },
     ];
 
