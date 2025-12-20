@@ -14,7 +14,9 @@ export const createOpenRouterChatStream = async (
     onChunk: (text: string) => void,
     systemPrompt?: string,
     reviewMode?: boolean,
-    currentContent?: string
+    currentContent?: string,
+    onMessageUpdate?: (msg: Message) => void,
+    onComplete?: (msg: Message) => void
 ): Promise<string> => {
     try {
         // Mandatory System Message for Dr. GPT
@@ -27,7 +29,7 @@ export const createOpenRouterChatStream = async (
   
   Se o usuário enviar termos médicos em inglês, explique-os em português.`;
 
-        // Handle Review Mode (Refinement) Logic - Ported from Edge Function
+        // Handle Review Mode (Refinement) Logic
         if (reviewMode && currentContent) {
             const refinementPrompt = `
 VOCÊ ESTÁ EM MODO DE REFINAMENTO DE PRONTUÁRIO CLÍNICO.
@@ -68,131 +70,174 @@ INSTRUÇÕES ESPECIAIS:
         // Add new message
         messages.push({ role: 'user', content: newMessage });
 
-        // Fetch custom API Key
-        const { data: setting } = await supabase
-            .from('app_settings')
-            .select('value')
-            .eq('key', 'openrouter_api_key')
-            .single();
+        // 1. Get Authentication (JWT)
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
 
-        // 🛡️ Priority: Env Var (Local Override) > DB Setting (Admin Panel)
-        // Since we have a known bad key in DB that we can't remove (RLS), we force the Env Var to take precedence.
-        const customApiKey = import.meta.env.VITE_OPENROUTER_API_KEY || setting?.value;
-
-        if (!customApiKey) {
-            throw new Error("API Key configuration missing. Please check App Settings.");
+        if (!accessToken) {
+            throw new Error('Usuário não autenticado via Supabase.');
         }
 
-        // Direct OpenRouter Call (Bypassing Edge Function limitation)
-        // Using local proxy to avoid CORS if necessary, or direct if allowed. 
-        // OpenRouter allows direct calls.
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        // 2. Prepare Request Body for Edge Function
+        const requestBody = {
+            model: modelName,
+            messages: messages,
+            systemPrompt: systemContent,
+            stream: true,
+            reviewMode: reviewMode
+        };
+
+        // 3. Call Edge Function
+        const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/openrouter-chat`;
+
+        const response = await fetch(functionUrl, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${customApiKey}`,
                 'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`,
                 'HTTP-Referer': siteUrl,
                 'X-Title': siteName,
             },
-            body: JSON.stringify({
-                model: modelName,
-                messages: messages,
-                stream: true,
-                // Perplexity/Sonar specific:
-                temperature: 0.2,
-                max_tokens: 1200, // Safe limit for reasoning models
-                include_citations: true // Explicitly request citations
-            }),
+            body: JSON.stringify(requestBody)
         });
 
+        // 4. Handle Errors
         if (!response.ok) {
-            let errorMessage = `Erro OpenRouter: ${response.statusText}`;
+            let errorMessage = `Erro Edge Function: ${response.statusText}`;
             try {
                 const errorData = await response.json();
                 if (errorData.error) {
-                    const specificMsg = errorData.error.message || JSON.stringify(errorData.error);
-                    if (response.status === 401) {
-                        errorMessage = `🔑 Chave API Inválida (401). Verifique se é uma chave OpenRouter ('sk-or-v1...') e não Anthropic/OpenAI direta. Detalhe: ${specificMsg}`;
-                    } else if (response.status === 402) {
-                        errorMessage = `💰 Saldo Insuficiente (402). Verifique seus créditos no OpenRouter. Detalhe: ${specificMsg}`;
+                    const specificMsg = typeof errorData.error === 'string' ? errorData.error : JSON.stringify(errorData.error);
+                    if (response.status === 401) errorMessage = `🔑 Erro de Autenticação na Edge Function.`;
+                    else if (response.status === 500 && specificMsg.includes('402')) {
+                        errorMessage = `💰 Saldo Insuficiente (OpenRouter). Verifique os créditos.`;
+                    } else if (response.status === 500 && specificMsg.includes('401')) {
+                        errorMessage = `🔑 Chave API Inválida (OpenRouter). Verifique a chave configurada na Edge Function.`;
                     } else {
-                        errorMessage = `Erro OpenRouter (${response.status}): ${specificMsg}`;
+                        errorMessage = specificMsg;
                     }
                 }
             } catch (e) {
-                // Fallback to text if JSON parse fails
                 errorMessage = await response.text();
             }
-            console.error('OpenRouter API Error:', errorMessage);
+            console.error('Edge Function Error:', errorMessage);
+
+            if (onMessageUpdate && onComplete) {
+                const errorMsg: Message = {
+                    id: 'error-' + Date.now(),
+                    role: Role.MODEL,
+                    content: `⚠️ **${errorMessage}**\n\nPor favor, tente novamente mais tarde.`,
+                    timestamp: Date.now(),
+                    isStreaming: false
+                };
+                onMessageUpdate(errorMsg);
+                onComplete(errorMsg);
+            }
             throw new Error(errorMessage);
         }
-        if (!response.body) throw new Error('No response body');
+
+        // 5. Process Streaming Response
+        if (!response.body) throw new Error('ReadableStream not supported.');
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
+        let buffer = '';
         let fullText = '';
+        const citations: string[] = [];
+
+        // Initial Callback
+        let currentMessage: Message | undefined;
+        if (onMessageUpdate) {
+            currentMessage = {
+                id: 'response-' + Date.now(),
+                role: Role.MODEL,
+                content: '',
+                timestamp: Date.now(),
+                isStreaming: true,
+                modelId: modelName
+            };
+            onMessageUpdate(currentMessage);
+        }
 
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
 
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n');
+            const chunk = decoder.decode(value, { stream: true });
+            buffer += chunk;
+
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
 
             for (const line of lines) {
-                if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-                    try {
-                        const json = JSON.parse(line.slice(6));
-                        const content = json.choices?.[0]?.delta?.content || '';
+                const trimmed = line.trim();
+                if (!trimmed || trimmed === 'data: [DONE]') continue;
+                if (!trimmed.startsWith('data: ')) continue;
 
-                        // Perplexity/OpenRouter Citations Handling
-                        if (json.citations && Array.isArray(json.citations)) {
-                            // Store citations to append later or stream them?
-                            // Since we return fullText at the end, let's append them there or handle them via regex in UI.
-                            // For now, let's just log them or append to a global Set to avoid duplicates if streamed?
-                            // Actually, citations usually come in a specific packet or are consistent.
-                            // Let's assume they might appear in any chunk.
-                            // We'll append them at the very end of the stream loop.
-                            // Hack: Store in a temporary property on the function scope?
-                            // Better: parse at the end. 
-                            // Wait, scoping issues. 
-                            // Let's just allow the 'citations' field to be accessible.
-                            // But this function returns string.
-                            // I will convert the citations to a Markdown list at the end of the fullText.
+                const jsonStr = trimmed.replace('data: ', '');
+                try {
+                    const json = JSON.parse(jsonStr);
+                    const content = json.choices?.[0]?.delta?.content || '';
 
-                            // (No-op in chunk loop, processed after loop)
-                            (reader as any).citations = json.citations;
-                        }
-
-                        if (content) {
-                            // Typerwriter effect: split chunk into characters
-                            const chars = content.split('');
-                            for (const char of chars) {
-                                fullText += char;
-                                onChunk(char); // Send char by char
-                                // Small delay for cadence (approx 15ms per char ~ 4000 chars/min)
-                                await new Promise(r => setTimeout(r, 15));
-                            }
-                        }
-                    } catch (e) {
-                        // Ignore parse errors for partial chunks
+                    // Capture Citations
+                    if (json.citations && Array.isArray(json.citations)) {
+                        citations.push(...json.citations);
                     }
+
+                    if (content) {
+                        if (currentMessage) {
+                            currentMessage.content += content;
+                        }
+
+                        // Typewriter effect
+                        const chars = content.split('');
+                        for (const char of chars) {
+                            fullText += char;
+                            onChunk(char);
+                            await new Promise(r => setTimeout(r, 5));
+                        }
+
+                        if (onMessageUpdate) onMessageUpdate({ ...currentMessage! });
+                    }
+                } catch (e) {
+                    console.warn('Error parsing stream chunk', e);
                 }
             }
         }
 
-        // Append Citations if found (Perplexity)
-        const citations = (reader as any).citations;
-        if (citations && Array.isArray(citations) && citations.length > 0) {
-            const references = citations.map((url: string, index: number) => `[${index + 1}] ${url}`).join('\n');
-            fullText += `\n\n### Referências\n${references}`;
-            onChunk(`\n\n### Referências\n${references}`);
+        // Append Citations
+        if (citations.length > 0) {
+            const uniqueCitations = Array.from(new Set(citations));
+            const references = uniqueCitations.map((url, index) => `[${index + 1}] ${url}`).join('\n');
+            const refText = `\n\n### Referências\n${references}`;
+            fullText += refText;
+            if (currentMessage) {
+                currentMessage.content += refText;
+                if (onMessageUpdate) onMessageUpdate({ ...currentMessage });
+            }
+            onChunk(refText);
+        }
+
+        // Finalize
+        if (currentMessage) {
+            currentMessage.isStreaming = false;
+            if (onMessageUpdate) onMessageUpdate(currentMessage);
+            if (onComplete) onComplete(currentMessage);
         }
 
         return fullText;
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("OpenRouter Chat Error:", error);
+        const errorMsg: Message = {
+            id: 'error-' + Date.now(),
+            role: Role.MODEL,
+            content: `⚠️ **Erro de Conexão**: ${error.message || 'Erro desconhecido.'}`,
+            timestamp: Date.now(),
+            isStreaming: false
+        };
+        if (onMessageUpdate) onMessageUpdate(errorMsg);
+        if (onComplete) onComplete(errorMsg);
         throw error;
     }
 };

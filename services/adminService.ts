@@ -42,7 +42,7 @@ export const adminService = {
     async updateModelStatus(modelId: string, enabled: boolean) {
         console.log(`AdminService: Updating model ${modelId} to ${enabled}`);
         // Fetch current settings
-        const { data, error: fetchError } = await supabase.from('app_settings').select('value').eq('key', 'enabled_models').single();
+        const { data, error: fetchError } = await supabase.from('app_settings').select('value').eq('key', 'enabled_models').maybeSingle();
 
         if (fetchError && fetchError.code !== 'PGRST116') { // Ignore not found error
             console.error('AdminService: Error fetching settings:', fetchError);
@@ -94,7 +94,7 @@ export const adminService = {
             .from('app_settings')
             .select('value')
             .eq('key', 'model_categories')
-            .single();
+            .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
             console.error('AdminService: Error fetching model categories:', error);
@@ -120,7 +120,7 @@ export const adminService = {
             .from('app_settings')
             .select('value')
             .eq('key', 'model_overrides')
-            .single();
+            .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
             console.error('AdminService: Error fetching model overrides:', error);
@@ -146,7 +146,7 @@ export const adminService = {
             .from('app_settings')
             .select('value')
             .eq('key', 'openrouter_api_key')
-            .single();
+            .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
             console.error('AdminService: Error fetching API key:', error);
@@ -165,5 +165,14 @@ export const adminService = {
             console.error('AdminService: Error saving API key:', error);
             throw error;
         }
+    },
+
+    async createUser(data: { email: string; password: string; fullName: string }) {
+        const { data: responseData, error } = await supabase.functions.invoke('create-user', {
+            body: data
+        });
+
+        if (error) throw error;
+        return responseData;
     }
 };

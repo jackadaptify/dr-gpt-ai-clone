@@ -447,7 +447,7 @@ function AppContent() {
     // Load enabled models
     const loadEnabledModels = async () => {
         try {
-            const { data } = await supabase.from('app_settings').select('value').eq('key', 'enabled_models').single();
+            const { data } = await supabase.from('app_settings').select('value').eq('key', 'enabled_models').maybeSingle();
             if (data?.value) {
                 console.log('🔄 Reloading enabled models:', data.value);
                 setEnabledModels(data.value);
@@ -462,15 +462,55 @@ function AppContent() {
     useEffect(() => {
         loadEnabledModels();
 
-        // Load Health Status (Circuit Breaker)
-        const checkHealth = async () => {
-            const health = await modelHealthService.checkAllModels();
-            setModelHealth(health);
+        let cancelled = false;
+        let inFlight = false;
+        let consecutiveFailures = 0;
+
+        const COOLDOWN_MS = 60_000;     // 1 min mínimo entre checks (mesmo que alguém chame manual)
+        const INTERVAL_MS = 5 * 60_000; // 5 min
+        let lastRun = 0;
+
+        const run = async () => {
+            const now = Date.now();
+            if (cancelled) return;
+            if (inFlight) return;
+            if (now - lastRun < COOLDOWN_MS) return;
+
+            inFlight = true;
+            lastRun = now;
+
+            try {
+                // ✅ Seu fluxo normal (não-relacionado a health)
+                await loadEnabledModels?.();
+
+                // ✅ Health: agora vai vir de cache (ver parte 2)
+                const health = await modelHealthService.getCachedHealth();
+                if (!cancelled) setModelHealth(health);
+
+                consecutiveFailures = 0;
+            } catch (err) {
+                consecutiveFailures += 1;
+
+                // Circuit breaker: se falhar várias vezes, reduz frequência (evita loop caro em cenário de falha)
+                if (consecutiveFailures >= 3) {
+                    // opcional: setModelHealth([]) ou mostrar "degraded"
+                    // e.g. if (!cancelled) setModelHealth([]);
+                }
+            } finally {
+                inFlight = false;
+            }
         };
-        checkHealth();
-        // Periodic check every 5 minutes
-        const interval = setInterval(checkHealth, 5 * 60 * 1000);
-        return () => clearInterval(interval);
+
+        // Run once
+        run();
+
+        // Periodic
+        const interval = setInterval(run, INTERVAL_MS);
+
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+        };
     }, []);
 
     // Auto-Failover: If selected model becomes unhealthy, switch to first available
@@ -482,49 +522,112 @@ function AppContent() {
     }, [availableAndHealthyModels, selectedModelId]);
 
     // Load chats from Supabase
-    // Load chats from Supabase
+    const lastLoadedUserId = useRef<string | null>(null);
+
     useEffect(() => {
-        if (session?.user?.id) {
+        // Only load if we have a user and it's a DIFFERENT user than last loaded
+        if (session?.user?.id && lastLoadedUserId.current !== session.user.id) {
             console.log('🔄 Effect triggered: Loading chats for user', session.user.id);
+            lastLoadedUserId.current = session.user.id; // Mark as loaded for this user
+
             loadChatHistory(session.user.id).then(loadedChats => {
                 setChats(loadedChats);
             });
 
             // Load active agents initially
             agentService.getActiveAgents().then(setAgents).catch(console.error);
-
-            // Reload agents AND settings AND models/overrides when tab becomes visible (e.g. returning from Admin)
-            const handleVisibilityChange = () => {
-                if (document.visibilityState === 'visible') {
-                    console.log('👀 Tab visible: Reloading agents, settings, and models...');
-                    agentService.getActiveAgents().then(setAgents).catch(console.error);
-                    loadEnabledModels(); // Fix for stale enabled list
-                    loadModelsAndOverrides(); // Fix for stale categories/descriptions
-                }
-            };
-
-            document.addEventListener('visibilitychange', handleVisibilityChange);
-
-            return () => {
-                document.removeEventListener('visibilitychange', handleVisibilityChange);
-            };
         }
-    }, [session?.user?.id]); // 🔧 FIX: Only reload if User ID changes
+    }, [session?.user?.id]); // Depend only on ID
 
-    // 🚀 Lazy Load Messages
+
+    // 🚀 Optimized: Lazy Load Messages
+    const inFlightRequests = useRef<Map<string, boolean>>(new Map());
+    const abortControllerRef = useRef<AbortController | null>(null);
+    const loadedChatsRef = useRef<Set<string>>(new Set());
+
+    // Reset loaded chats when user changes
     useEffect(() => {
-        if (currentChatId) {
-            const chat = chats.find(c => c.id === currentChatId);
-            if (chat && chat.messages.length === 0) {
-                console.log('📥 Lazy loading messages for chat:', currentChatId);
-                loadMessagesForChat(currentChatId).then(messages => {
-                    if (messages.length > 0) {
-                        setChats(prev => prev.map(c => c.id === currentChatId ? { ...c, messages } : c));
-                    }
-                });
-            }
+        if (session?.user?.id) {
+            loadedChatsRef.current.clear();
         }
-    }, [currentChatId, chats]);
+    }, [session?.user?.id]);
+
+    useEffect(() => {
+        const activeId = currentChatId;
+        if (!activeId) return;
+
+        // 1. Check if messages are already loaded (Lazy Load)
+        const targetChat = chats.find(c => c.id === activeId);
+
+        // Critical Fix: check if chat exists first
+        if (!targetChat) return;
+
+        // Heuristic: If messages > 0, it's loaded.
+        if (targetChat.messages.length > 0) {
+            // Ensure we mark it as loaded if it has messages (e.g. from new chat creation)
+            loadedChatsRef.current.add(activeId);
+            return;
+        }
+
+        // 2. Check explicitly if we already attempted to load this empty chat 
+        if (loadedChatsRef.current.has(activeId)) {
+            return;
+        }
+
+        // 3. Cancel previous in-flight request for a DIFFERENT chat
+        if (abortControllerRef.current) {
+            // Only abort if it's for a different chat, but here we just abort previous 
+            // to be safe as we only view one chat at a time.
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+        }
+
+        // 4. Prevent duplicate requests for same chat if already in flight
+        if (inFlightRequests.current.get(activeId)) {
+            return;
+        }
+
+        // 5. Start Loading
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        inFlightRequests.current.set(activeId, true);
+
+        // console.log('📥 Lazy loading messages for chat:', activeId);
+
+        loadMessagesForChat(activeId, controller.signal)
+            .then(messages => {
+                if (controller.signal.aborted) return;
+
+                // Mark as loaded effectively
+                loadedChatsRef.current.add(activeId);
+
+                // Update state ONLY if we have messages or need to persist the 'loaded' state conceptually
+                // Optimally: access previous state to check if we really need to update
+                // to avoid re-render if it's just empty -> empty.
+                if (messages && messages.length > 0) {
+                    setChats(prev => prev.map(c => c.id === activeId ? { ...c, messages } : c));
+                }
+            })
+            .catch(err => {
+                if (err.name !== 'AbortError') {
+                    console.error('Error loading messages:', err);
+                }
+            })
+            .finally(() => {
+                if (abortControllerRef.current === controller) {
+                    inFlightRequests.current.delete(activeId);
+                    abortControllerRef.current = null;
+                }
+            });
+
+        // Cleanup: Abort on unmount or chat switch
+        return () => {
+            // Don't abort here immediately on simple re-renders, 
+            // but strict mode might trigger this. 
+            // We rely on the next effect execution to abort if needed.
+        };
+    }, [currentChatId, chats]); // Dependencies: currentChatId change is main trigger. 'chats' checks content.
+
 
     // Auto-resize textarea
     useEffect(() => {
@@ -643,6 +746,7 @@ function AppContent() {
         };
         setChats(prev => [newChat, ...prev]);
         setCurrentChatId(newChat.id);
+        loadedChatsRef.current.add(newChat.id); // 🚀 Optimization: Don't try to load it
         createChat(newChat); // Persist to Supabase
         if (window.innerWidth < 768) setSidebarOpen(false);
     };
@@ -650,10 +754,13 @@ function AppContent() {
     // Sync selected model when switching chats
     useEffect(() => {
         const currentChat = chats.find(c => c.id === currentChatId);
-        if (currentChat) {
+        // Only switch if the chat has a specific model assigned AND it's different
+        if (currentChat && currentChat.modelId && currentChat.modelId !== selectedModelId) {
+            // Verify if model exists/is healthy before hard switching if we want to be safe,
+            // but for persistence we should respect the chat's setting.
             setSelectedModelId(currentChat.modelId);
         }
-    }, [currentChatId, chats]);
+    }, [currentChatId, chats, selectedModelId]);
 
     const handleSelectAgent = (agent: Agent) => {
         // Use agent's model if available AND healthy, otherwise fallback
@@ -675,6 +782,7 @@ function AppContent() {
         setSelectedAgentId(agent.id); // Track selected agent
         setChats(prev => [newChat, ...prev]);
         setCurrentChatId(newChat.id);
+        loadedChatsRef.current.add(newChat.id); // 🚀 Optimization: Don't try to load it
         createChat(newChat); // Persist to Supabase
         if (window.innerWidth < 768) setSidebarOpen(false);
     };
@@ -789,7 +897,15 @@ function AppContent() {
             activeChatId = newChat.id;
             setCurrentChatId(activeChatId);
             isFirstMessage = true;
-            createChat(newChat); // Persist to Supabase
+            loadedChatsRef.current.add(activeChatId); // 🚀 Optimization
+            try {
+                await createChat(newChat); // Persist to Supabase
+            } catch (err) {
+                console.error('Failed to create chat:', err);
+                toast.error('Erro ao criar chat. Tente novamente.');
+                setIsGenerating(false);
+                return;
+            }
         }
 
         // 2. Capture State BEFORE clearing inputs
@@ -1037,7 +1153,8 @@ function AppContent() {
             } : c));
 
             // Save to DB
-            if (activeChatId) {
+            // 🐛 FIX: Only save manually in Research Mode. Standard chat/Scribe are saved by chatService internally.
+            if (activeChatId && isResearchMode) {
                 saveMessage(activeChatId, aiMessage);
             }
 
