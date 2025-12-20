@@ -14,6 +14,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthPage from './components/Auth/AuthPage';
 // import { chatStorage } from './services/chatStorage'; // Removed for Supabase
 import AdminPage from './components/Admin/AdminPage';
+import InviteSignupPage from './components/Auth/InviteSignupPage';
 import { modelHealthService, ModelHealth } from './services/modelHealthService';
 import { authService } from './services/authService';
 import { supabase } from './lib/supabase';
@@ -1045,7 +1046,7 @@ function AppContent() {
                 } : c));
 
                 try {
-                    const result = await orchestrateResearch(messageContent, (status) => {
+                    const result = await orchestrateResearch(messageContent, false, (status) => {
                         setChats(prev => prev.map(c => c.id === activeChatId ? {
                             ...c,
                             messages: c.messages.map(m => m.id === tempAiMessageId ? { ...m, content: `🔄 ${status}` } : m)
@@ -1207,6 +1208,10 @@ function AppContent() {
     // Simple client-side routing for Admin
     if (window.location.pathname === '/admin') {
         return <AdminPage />;
+    }
+
+    if (window.location.pathname === '/signup/invite') {
+        return <InviteSignupPage />;
     }
 
     const activeChat = getCurrentChat();

@@ -4,6 +4,7 @@ import Dashboard from './Dashboard';
 import UsersList from './UsersList';
 import { AgentManager } from './AgentManager';
 import ModelManager from './ModelManager';
+import TrialInvites from './TrialInvites';
 
 export default function AdminPage() {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -18,6 +19,8 @@ export default function AdminPage() {
                 return <AgentManager />;
             case 'models':
                 return <ModelManager />;
+            case 'invites':
+                return <TrialInvites />;
             case 'settings':
                 return <div className="text-zinc-500">Configurações gerais (em breve)</div>;
             default:

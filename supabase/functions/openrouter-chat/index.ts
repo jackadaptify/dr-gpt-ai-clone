@@ -34,8 +34,8 @@ const DEFAULT_CHAT_MODEL = "openai/gpt-4o-mini"; // change to your desired defau
 const ALLOWED_CHAT_MODELS = new Set([
     "openai/gpt-4o-mini",
     "openai/gpt-4o",
-    "openai/gpt-5.2-chat", // if you use it
-    // add ONLY what you want to allow
+    "openai/gpt-5.2-chat",
+    "perplexity/sonar-reasoning-pro",
 ]);
 
 const ALLOWED_IMAGE_MODELS = new Set([
@@ -183,11 +183,35 @@ serve(async (req: Request) => {
 
         // Hard guarantee: never allow unknown models
         if (!ALLOWED_CHAT_MODELS.has(model)) {
-            return new Response(JSON.stringify({ error: "Server misconfigured" }), {
-                status: 500,
+            return new Response(JSON.stringify({ error: "Model not allowed" }), {
+                status: 403,
                 headers: { ...corsHeaders, "Content-Type": "application/json" },
             });
         }
+
+        // ---- DEEP RESEARCH CREDIT CHECK ----
+        if (model === "perplexity/sonar-reasoning-pro") {
+            // Call the RPC function to deduct credit safely
+            const { data: creditDeducted, error: creditError } = await supabaseClient.rpc('deduct_research_credit', {
+                user_id: user.id
+            });
+
+            if (creditError) {
+                console.error("Credit check failed:", creditError);
+                return new Response(JSON.stringify({ error: "Failed to check credits" }), {
+                    status: 500,
+                    headers: { ...corsHeaders, "Content-Type": "application/json" },
+                });
+            }
+
+            if (creditDeducted !== true) {
+                return new Response(JSON.stringify({ error: "Insufficient research credits (402)" }), {
+                    status: 402, // Payment Required
+                    headers: { ...corsHeaders, "Content-Type": "application/json" },
+                });
+            }
+        }
+        // ------------------------------------
 
         const apiMessages: any[] = [];
 
@@ -224,6 +248,12 @@ INSTRUÇÕES ESPECIAIS:
             body.stream = false;
         }
         if (image_config) body.image_config = image_config;
+
+        // Specific config for Research
+        if (model === "perplexity/sonar-reasoning-pro") {
+            body.max_tokens = 4000; // Deprecated but used by some providers
+            body.max_output_tokens = 4000; // Preferable
+        }
 
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
             method: "POST",
