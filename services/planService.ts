@@ -51,5 +51,22 @@ export const planService = {
     isProPlan(user: User | null): boolean {
         if (!user?.plan) return false;
         return user.plan.slug === 'user_147';
+    },
+
+    /**
+     * Fetches all active subscription plans.
+     */
+    async listActivePlans(): Promise<SubscriptionPlan[]> {
+        const { data, error } = await supabase
+            .from('subscription_plans')
+            .select('*')
+            .eq('is_active', true);
+
+        if (error) {
+            console.error('Error fetching active plans:', error);
+            return [];
+        }
+
+        return data as SubscriptionPlan[];
     }
 };

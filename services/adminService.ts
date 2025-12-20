@@ -167,7 +167,14 @@ export const adminService = {
         }
     },
 
-    async createUser(data: { email: string; password: string; fullName: string }) {
+    async createUser(data: {
+        email: string;
+        password?: string;
+        fullName: string;
+        trialDays?: number;
+        isTest?: boolean;
+        generateMagicLink?: boolean;
+    }) {
         const { data: responseData, error } = await supabase.functions.invoke('create-user', {
             body: data
         });
