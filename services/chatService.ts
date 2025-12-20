@@ -29,17 +29,26 @@ export const loadChatHistory = async (userId: string): Promise<ChatSession[]> =>
     }));
 };
 
-export const loadMessagesForChat = async (chatId: string): Promise<Message[]> => {
+export const loadMessagesForChat = async (chatId: string, abortSignal?: AbortSignal): Promise<Message[]> => {
     console.log(`Loading messages for chat ${chatId}...`);
-    const { data: messages, error } = await supabase
+    let query = supabase
         .from('messages')
         .select('*')
         .eq('chat_id', chatId)
         .order('created_at', { ascending: false }) // Get latest first
         .limit(50); // Load last 50 messages
 
+    if (abortSignal) {
+        query = query.abortSignal(abortSignal);
+    }
+
+    const { data: messages, error } = await query;
+
     if (error) {
-        console.error(`Error loading messages for chat ${chatId}:`, error);
+        // Ignore abort errors
+        if (error.code !== '20' && !abortSignal?.aborted) { // 20 is sometimes query_canceled, but safe check is aborted
+            console.error(`Error loading messages for chat ${chatId}:`, error);
+        }
         return [];
     }
 
@@ -160,6 +169,7 @@ export const streamChatResponse = async (
     let userSpecialty = userProfile?.specialty || 'General Medicine';
     let userGoal = userProfile?.goal || 'Clinical Assistance';
     let customInstructions = userProfile?.customInstructions || '';
+    let userLanguage = 'pt-BR'; // Default to Portuguese
 
     // If profile is missing, try to fetch from DB as fallback
     if (!userProfile) {
@@ -168,11 +178,14 @@ export const streamChatResponse = async (
             if (user) {
                 const { data: settings } = await supabase
                     .from('user_settings')
-                    .select('custom_instructions, response_preferences')
+                    .select('custom_instructions, response_preferences, language')
                     .eq('user_id', user.id)
                     .single();
 
                 if (settings) {
+                    // Get Language
+                    if (settings.language) userLanguage = settings.language;
+
                     // Parse Custom Instructions
                     const instructions = settings.custom_instructions || '';
                     const nameMatch = instructions.match(/Name: (.*?)(\n|$)/);
@@ -195,6 +208,11 @@ export const streamChatResponse = async (
         }
     }
 
+    // Determine Language Instruction
+    const languageInstruction = userLanguage === 'en-US'
+        ? 'IMPORTANT: Respond to the user IN ENGLISH (en-US), regardless of the input language.'
+        : 'IMPORTANTE: Responda ao usuário EM PORTUGUÊS (pt-BR), independente do idioma de entrada.';
+
     // Construct Dynamic System Prompt
     const personalizationPrompt = `
 Você é o Dr. GPT, um assistente de IA avançado para profissionais de saúde.
@@ -205,6 +223,7 @@ PERFIL DO USUÁRIO:
 - Objetivo Atual: ${userGoal}
 
 INSTRUÇÕES:
+- ${languageInstruction}
 - Dirija-se ao usuário pelo nome/título frequentemente.
 - Adapte todas as respostas especificamente para um especialista em ${userSpecialty}.
 - Se o objetivo for ${userGoal}, priorize funcionalidades relacionadas a isso (ex: se 'Marketing', use tom persuasivo; se 'Clínico', use tom médico formal).

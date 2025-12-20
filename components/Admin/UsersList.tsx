@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { adminService } from '../../services/adminService';
 import { User } from '../../types';
-import { IconUser } from '../Icons';
+import { IconUser, IconPlus } from '../Icons';
+import CreateUserModal from './CreateUserModal';
 
 export default function UsersList() {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     useEffect(() => {
         loadUsers();
@@ -26,9 +28,18 @@ export default function UsersList() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h2 className="text-3xl font-bold mb-2">Usuários</h2>
-                <p className="text-textMuted">Gerencie os usuários registrados no sistema.</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-3xl font-bold mb-2">Usuários</h2>
+                    <p className="text-textMuted">Gerencie os usuários registrados no sistema.</p>
+                </div>
+                <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    className="flex items-center gap-2 bg-primary hover:bg-primaryHover text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-lg shadow-primary/20"
+                >
+                    <IconPlus className="w-5 h-5" />
+                    Criar Usuário
+                </button>
             </div>
 
             <div className="bg-surface border border-borderLight rounded-2xl overflow-hidden">
@@ -75,6 +86,15 @@ export default function UsersList() {
                     </tbody>
                 </table>
             </div>
+
+            <CreateUserModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onSuccess={() => {
+                    loadUsers();
+                    // Optional: Show success toast
+                }}
+            />
         </div>
     );
 }
