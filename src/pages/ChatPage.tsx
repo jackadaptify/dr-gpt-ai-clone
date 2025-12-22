@@ -223,10 +223,10 @@ export default function ChatPage({
                                 </div>
                             </div>
                             <h2 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-200">
-                                Olá, Dr(a). {user?.user_metadata?.first_name || 'Médico(a)'}
+                                Olá, Doutor(a)
                             </h2>
                             <p className="text-textMuted max-w-lg mx-auto text-lg">
-                                Como posso auxiliar sua prática clínica hoje?
+                                Como posso auxiliar você hoje?
                             </p>
                         </div>
 
@@ -242,18 +242,19 @@ export default function ChatPage({
                             />
                         ))}
                         <div ref={messagesEndRef} />
-                        {isGenerating && (
+                        {isGenerating && messages.length > 0 && messages[messages.length - 1].role === Role.USER && (
                             <div className="flex justify-start w-full animate-in fade-in slide-in-from-bottom-2">
                                 <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface border border-borderLight shadow-sm">
                                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                                     <span className="text-xs font-medium text-emerald-500 animate-pulse ml-2">
-                                        {activeTools.thinking ? 'Raciocinando...' : activeTools.image ? 'Gerando imagem...' : 'Digitando...'}
+                                        Pensando...
                                     </span>
                                 </div>
                             </div>
                         )}
+
                     </div>
                 )}
             </main>

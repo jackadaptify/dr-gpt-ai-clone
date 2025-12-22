@@ -10,13 +10,17 @@ interface RailNavProps {
 
 const RailNav: React.FC<RailNavProps> = ({ activeMode, onModeChange, isDarkMode }) => {
 
+    const { user } = useAuth();
+
     const navItems = [
         { mode: 'chat', icon: MessageCircle, label: 'Discussão Clínica' },
         { mode: 'research', icon: BookOpen, label: 'Pesquisa Médica' },
         { mode: 'scribe', icon: Edit2, label: 'Transcribe' }
     ];
 
-    const { user } = useAuth();
+    if (user?.role === 'admin') {
+        navItems.push({ mode: 'admin', icon: Shield, label: 'Painel Admin' });
+    }
 
     return (
         <div className={`

@@ -600,7 +600,7 @@ function AppContent(): React.ReactElement {
             </div>
 
             {/* Sidebar */}
-            {activeMode !== 'scribe-review' && (
+            {activeMode !== 'scribe-review' && activeMode !== 'admin' && (
                 <Sidebar
                     chats={chats.filter(c => {
                         // 🔍 Research Mode Filtering
@@ -933,6 +933,8 @@ function AppContent(): React.ReactElement {
                             />
                         )}
                     </ScribePage>
+                ) : activeMode === 'admin' ? (
+                    <AdminPage />
                 ) : (activeMode === 'chat' || (currentChatId && activeMode === 'scribe')) ? (
                     <ChatPage
                         isDarkMode={isDarkMode}

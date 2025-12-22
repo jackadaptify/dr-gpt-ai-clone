@@ -36,7 +36,7 @@ function corsHeaders(req: Request) {
 /**
  * ================== MODEL LOCK ==================
  */
-const LOCKED_MODEL = "anthropic/claude-haiku-4.5";
+const LOCKED_MODEL = "google/gemini-2.5-flash";
 
 serve(async (req) => {
     const cors = corsHeaders(req);
