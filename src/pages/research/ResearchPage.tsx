@@ -114,7 +114,7 @@ export default function ResearchPage({ isDarkMode, user }: ResearchPageProps) {
                     <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-md shadow-sm ${isDarkMode ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-white border-indigo-100'}`}>
                         <Search className={`w-4 h-4 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
                         <span className={`font-semibold text-xs md:text-sm tracking-wide ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                            Medical Research
+                            MedPilot 1 Research
                         </span>
                     </div>
                 </div>

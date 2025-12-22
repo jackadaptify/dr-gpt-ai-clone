@@ -8,7 +8,7 @@ import { useChat } from '../contexts/ChatContext';
 import {
     IconMenu, IconSend, IconAttachment, IconGlobe, IconImage, IconBrain, IconPlus, IconCreditCard, IconFile, IconCheck, IconAlertTriangle
 } from '../../components/Icons';
-import { Menu, Check, Mic, Plus, Globe, Image, Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail, Pin, Edit, X } from 'lucide-react';
+import { Menu, Check, Mic, Plus, Globe, Image, Send, Edit, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 interface ChatPageProps {
@@ -16,13 +16,7 @@ interface ChatPageProps {
     sidebarOpen: boolean;
     setSidebarOpen: (open: boolean) => void;
     activeMode: AppMode;
-    // Model & Agent Props (kept for now, or could be context)
-    availableAndHealthyModels: any[];
-    selectedModelId: string;
-    handleModelSelect: (id: string) => void;
-    agents: Agent[];
-    handleSelectAgent: (id: string) => void;
-    selectedAgentId: string | null;
+
     user: any;
 
 
@@ -38,12 +32,7 @@ export default function ChatPage({
     sidebarOpen,
     setSidebarOpen,
     activeMode,
-    availableAndHealthyModels,
-    selectedModelId,
-    handleModelSelect,
-    agents,
-    handleSelectAgent,
-    selectedAgentId,
+
     user,
 
     handleMicClick,
@@ -83,7 +72,7 @@ export default function ChatPage({
 
     const handleSend = () => {
         if (input.trim() || pendingAttachments.length > 0) {
-            sendMessage(input, selectedModelId);
+            sendMessage(input, 'medpilot-1');
         }
     };
 
@@ -148,11 +137,7 @@ export default function ChatPage({
 
 
     // Helper to render icons for suggestions
-    const renderIcon = (iconName: string, className?: string) => {
-        const icons: any = { Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail };
-        const Icon = icons[iconName];
-        return Icon ? <Icon className={className} size={20} /> : <MessageCircle className={className} size={20} />;
-    };
+
 
     return (
         <>
@@ -184,15 +169,14 @@ export default function ChatPage({
                             </div>
 
                         ) : (
-                            <ModelSelector
-                                models={availableAndHealthyModels}
-                                selectedModelId={selectedModelId}
-                                onSelect={handleModelSelect}
-                                isDarkMode={isDarkMode}
-                                agents={agents}
-                                onSelectAgent={(agent) => handleSelectAgent(agent.id)}
-                                selectedAgentId={selectedAgentId} // Pass selected Agent ID
-                            />
+                            <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-md shadow-sm ${isDarkMode ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-white border-indigo-100'}`}>
+                                <span className="relative flex h-2 w-2">
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                                </span>
+                                <span className={`font-semibold text-xs md:text-sm tracking-wide ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                                    Medpilot 1
+                                </span>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -255,7 +239,6 @@ export default function ChatPage({
                                 key={message.id}
                                 message={message}
                                 isDarkMode={isDarkMode}
-                                agent={agents.find(a => a.id === selectedAgentId)}
                             />
                         ))}
                         <div ref={messagesEndRef} />

@@ -39,17 +39,6 @@ import {
     Plus,
     Globe,
     Image,
-    Activity,
-    ShieldAlert,
-    FileText,
-    Siren,
-    ClipboardList,
-    Instagram,
-    MessageCircle,
-    Star,
-    Brain,
-    Mail,
-    Pin,
     CreditCard,
     User,
     Palette,
@@ -72,65 +61,9 @@ import { ChatProvider, useChat } from './src/contexts/ChatContext';
 import { Toaster, toast } from 'react-hot-toast';
 
 // POOL MESTRE DE SUGESTÕES
-const ALL_SUGGESTIONS = [
-    // CLÍNICO (A dor da incerteza e tempo)
-    {
-        title: "Hipóteses Clínicas",
-        text: "Atue como médico sênior. Baseado nos sintomas e histórico que vou colar, liste hipóteses clínicas diferenciais ordenadas por probabilidade e exames sugeridos.",
-        icon: "Activity"
-    },
-    {
-        title: "Interação Medicamentosa",
-        text: "Vou listar os medicamentos do paciente. Verifique interações graves, contraindicações e ajustes de dose necessários baseados nas bulas recentes.",
-        icon: "ShieldAlert"
-    },
-    {
-        title: "Resumir Artigo/PDF",
-        text: "Vou colar um texto técnico. Resuma: Metodologia, Resultados principais (NNT/NNH) e aplicabilidade prática para o consultório.",
-        icon: "FileText"
-    },
-    {
-        title: "Protocolo de Emergência",
-        text: "Cite o passo a passo do protocolo mais atual (ACLS/ATLS/PALS) para a condição clínica que vou descrever.",
-        icon: "Siren"
-    },
-    {
-        title: "Evolução SOAP",
-        text: "Transforme minhas anotações soltas em uma Evolução Clínica formal no formato SOAP (Subjetivo, Objetivo, Avaliação, Plano).",
-        icon: "ClipboardList"
-    },
 
-    // MARKETING & GESTÃO (A dor de atrair pacientes e burocracia)
-    {
-        title: "Post para Instagram",
-        text: "Crie uma legenda educativa para Instagram sobre a doença que vou citar, com tom empático e focado em atrair pacientes particulares.",
-        icon: "Instagram"
-    },
-    {
-        title: "Responder Paciente (WhatsApp)",
-        text: "Escreva uma mensagem de pós-consulta elegante para perguntar a evolução do paciente e fidelizar, sem parecer invasivo.",
-        icon: "MessageCircle"
-    },
-    {
-        title: "Responder Avaliação Google",
-        text: "Escreva uma resposta profissional e grata para uma avaliação 5 estrelas que recebi no Google My Business.",
-        icon: "Star"
-    },
-    {
-        title: "Simplificar Laudo",
-        text: "Reescreva este laudo técnico em linguagem simples e analógica para que um paciente leigo possa entender a gravidade.",
-        icon: "Brain"
-    },
-    {
-        title: "Email para Convênio",
-        text: "Escreva uma carta de justificativa técnica para convênio médico autorizar o procedimento X para o paciente Y.",
-        icon: "Mail"
-    }
-];
 
-const ICON_MAP: Record<string, any> = {
-    Activity, ShieldAlert, FileText, Siren, ClipboardList, Instagram, MessageCircle, Star, Brain, Mail
-};
+
 
 function AppContent(): React.ReactElement {
     const { session, user, loading } = useAuth();
@@ -252,47 +185,16 @@ function AppContent(): React.ReactElement {
     const [settingsTab, setSettingsTab] = useState<'profile' | 'subscription' | 'appearance' | 'security'>('profile');
 
     // Rotating Suggestions Logic
-    // Load pinned suggestions from localStorage
-    const [pinnedSuggestions, setPinnedSuggestions] = useState<string[]>(() => {
-        try {
-            const saved = localStorage.getItem('drgpt_pinned_suggestions');
-            return saved ? JSON.parse(saved) : [];
-        } catch (e) {
-            console.error('Error loading pinned suggestions:', e);
-            return [];
-        }
-    });
 
-    const [suggestions, setSuggestions] = useState<any[]>([]);
 
     // Typewriter trigger for ScribeReview
     const [typewriterTrigger, setTypewriterTrigger] = useState<{ content: string; timestamp: number } | null>(null);
     const [reviewTitle, setReviewTitle] = useState('Revisão de Prontuário');
 
     // Update suggestions when pinned items change or on mount
-    useEffect(() => {
-        const pinnedItems = ALL_SUGGESTIONS.filter(s => pinnedSuggestions.includes(s.title));
-        const unpinnedItems = ALL_SUGGESTIONS.filter(s => !pinnedSuggestions.includes(s.title));
 
-        // Shuffle unpinned items
-        const shuffledUnpinned = [...unpinnedItems].sort(() => 0.5 - Math.random());
 
-        // Combine: Pinned first, then fill remaining slots up to 4
-        const newSuggestions = [...pinnedItems, ...shuffledUnpinned].slice(0, 4);
-        setSuggestions(newSuggestions);
-    }, [pinnedSuggestions]);
 
-    const togglePin = (e: React.MouseEvent, title: string) => {
-        e.stopPropagation(); // Prevent triggering the suggestion
-        setPinnedSuggestions(prev => {
-            const newPinned = prev.includes(title)
-                ? prev.filter(t => t !== title)
-                : [...prev, title]; // No limit on pins, but UI shows max 4 anyway
-
-            localStorage.setItem('drgpt_pinned_suggestions', JSON.stringify(newPinned));
-            return newPinned;
-        });
-    };
 
     // Rotating Suggestions Logic remains...
     // Removed duplicate state logic.
@@ -359,10 +261,7 @@ function AppContent(): React.ReactElement {
         setActiveTools(prev => ({ ...prev, [tool]: !prev[tool] }));
     };
 
-    const onSuggestionClick = (text: string) => {
-        setInput(text);
-        if (window.innerWidth < 768) setSidebarOpen(false);
-    };
+
 
     // Load Dynamic Models & Overrides
     const loadModelsAndOverrides = async () => {
@@ -1030,10 +929,7 @@ function AppContent(): React.ReactElement {
                                 handleMicClick={handleMicClick}
                                 isListening={isListening}
                                 hasMicSupport={hasMicSupport}
-                                suggestions={suggestions}
-                                togglePin={togglePin}
-                                pinnedSuggestions={pinnedSuggestions}
-                                onSuggestionClick={onSuggestionClick}
+
                             />
                         )}
                     </ScribePage>
@@ -1060,10 +956,7 @@ function AppContent(): React.ReactElement {
                         handleMicClick={handleMicClick}
                         isListening={isListening}
                         hasMicSupport={hasMicSupport}
-                        suggestions={suggestions}
-                        togglePin={togglePin}
-                        pinnedSuggestions={pinnedSuggestions}
-                        onSuggestionClick={onSuggestionClick}
+
                     />
                 ) : null}
 
