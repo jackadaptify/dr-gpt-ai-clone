@@ -3,7 +3,6 @@ import {
     Paperclip,
     Image,
     Plus,
-    Globe,
     Book
 } from 'lucide-react';
 
@@ -14,8 +13,7 @@ interface AttachmentMenuProps {
     isDarkMode: boolean;
     triggerRef: React.RefObject<HTMLButtonElement>;
     isImageMode?: boolean;
-    isWebActive?: boolean;
-    onToggleWeb?: () => void;
+
 }
 
 export default function AttachmentMenu({
@@ -25,8 +23,6 @@ export default function AttachmentMenu({
     isDarkMode,
     triggerRef,
     isImageMode = false,
-    isWebActive = false,
-    onToggleWeb
 }: AttachmentMenuProps) {
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -91,34 +87,6 @@ export default function AttachmentMenu({
                     </button>
                 ))}
 
-                {/* Deep Research Toggle (Text Mode Only) */}
-                {!isImageMode && onToggleWeb && (
-                    <div className={`
-                        w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer
-                        hover:bg-surfaceHighlight hover:text-textMain
-                    `}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onToggleWeb();
-                        }}
-                    >
-                        <div className="flex items-center gap-3">
-                            <Globe className="w-4 h-4 opacity-70" />
-                            <span>Deep Research</span>
-                        </div>
-
-                        {/* Toggle Switch */}
-                        <div className={`
-                            relative w-9 h-5 rounded-full transition-colors duration-200
-                            ${isWebActive ? 'bg-emerald-500' : 'bg-surfaceHighlight border border-borderLight'}
-                        `}>
-                            <div className={`
-                                absolute top-1 left-1 w-3 h-3 rounded-full bg-white shadow transition-transform duration-200
-                                ${isWebActive ? 'translate-x-4' : 'translate-x-0'}
-                            `} />
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

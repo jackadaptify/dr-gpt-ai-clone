@@ -5,7 +5,7 @@ export enum Role {
   MODEL = 'model'
 }
 
-export type AppMode = 'chat' | 'scribe' | 'antiglosa' | 'justificativa' | 'settings' | 'scribe-review' | 'chat-research';
+export type AppMode = 'chat' | 'scribe' | 'antiglosa' | 'justificativa' | 'settings' | 'scribe-review' | 'research' | 'admin';
 
 export interface Attachment {
   id: string;
@@ -14,6 +14,11 @@ export interface Attachment {
   mimeType: string;
   name: string;
   extractedText?: string;
+}
+
+export interface PendingAttachment extends Attachment {
+  previewUrl: string;
+  file: File;
 }
 
 export interface Message {

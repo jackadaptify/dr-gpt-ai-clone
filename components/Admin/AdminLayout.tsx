@@ -36,7 +36,7 @@ export default function AdminLayout({ children, activeTab, onTabChange }: AdminL
     ];
 
     return (
-        <div className="flex h-screen bg-background text-textMain font-sans selection:bg-emerald-500/30">
+        <div className="flex h-full bg-background text-textMain font-sans selection:bg-emerald-500/30">
             {/* Sidebar */}
             <aside className="w-64 border-r border-borderLight bg-surface flex flex-col">
                 <div className="p-6 border-b border-borderLight">

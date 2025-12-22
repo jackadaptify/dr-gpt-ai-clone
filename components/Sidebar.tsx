@@ -267,7 +267,7 @@ export default function Sidebar({
   const renderContent = () => {
     switch (activeMode) {
       case 'chat':
-      case 'chat-research': // 🔍 FIX: Ensure research mode renders the chat list too!
+
         return (
           <>
 
@@ -510,19 +510,7 @@ export default function Sidebar({
                 </div>
               </button>
 
-              {/* Button 2: Pesquisa */}
-              <button
-                onClick={() => { onModeChange('chat-research'); if (window.innerWidth < 768) setIsOpen(false); }}
-                className={`relative w-full p-4 rounded-2xl border transition-all text-left flex items-center gap-4 group ${activeMode === 'chat-research' ? 'bg-emerald-500/10 border-emerald-500/50' : 'bg-transparent border-white/10 hover:bg-white/5 hover:border-white/20'}`}
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${activeMode === 'chat-research' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/10 text-emerald-400'}`}>
-                  <IconSearch />
-                </div>
-                <div>
-                  <h3 className={`font-bold text-base ${activeMode === 'chat-research' ? 'text-emerald-400' : 'text-white'}`}>Pesquisa</h3>
-                  <p className="text-xs text-zinc-400">Guidelines e artigos científicos</p>
-                </div>
-              </button>
+
 
               {/* Button 3: Transcribe */}
               <button

@@ -1,4 +1,4 @@
-import { MessageCircle, Mic, Search, Settings, Shield, ClipboardCheck, User, LogOut, Edit2 } from 'lucide-react';
+import { MessageCircle, Mic, Search, Settings, Shield, ClipboardCheck, User, LogOut, Edit2, BookOpen } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { AppMode } from '../types';
 
@@ -10,13 +10,17 @@ interface RailNavProps {
 
 const RailNav: React.FC<RailNavProps> = ({ activeMode, onModeChange, isDarkMode }) => {
 
+    const { user } = useAuth();
+
     const navItems = [
         { mode: 'chat', icon: MessageCircle, label: 'Discussão Clínica' },
-        { mode: 'chat-research', icon: Search, label: 'Pesquisa' }, // Maps to chat but different label
+        { mode: 'research', icon: BookOpen, label: 'Pesquisa Médica' },
         { mode: 'scribe', icon: Edit2, label: 'Transcribe' }
     ];
 
-    const { user } = useAuth();
+    if (user?.role === 'admin') {
+        navItems.push({ mode: 'admin', icon: Shield, label: 'Painel Admin' });
+    }
 
     return (
         <div className={`
