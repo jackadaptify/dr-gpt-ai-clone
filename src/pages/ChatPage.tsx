@@ -25,11 +25,7 @@ interface ChatPageProps {
     selectedAgentId: string | null;
     user: any;
 
-    // Suggestions & Mic (could be moved too, but keeping minimal changes first)
-    suggestions: any[];
-    togglePin: (e: React.MouseEvent, title: string) => void;
-    pinnedSuggestions: string[];
-    onSuggestionClick: (text: string) => void;
+
 
     // Mic Props
     handleMicClick: () => void;
@@ -49,10 +45,7 @@ export default function ChatPage({
     handleSelectAgent,
     selectedAgentId,
     user,
-    suggestions,
-    togglePin,
-    pinnedSuggestions,
-    onSuggestionClick,
+
     handleMicClick,
     isListening,
     hasMicSupport
@@ -253,39 +246,7 @@ export default function ChatPage({
                             </p>
                         </div>
 
-                        {/* SUGGESTIONS GRID */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-3xl mt-12 px-2">
-                            {suggestions.map((sug, i) => (
-                                <button
-                                    key={i}
-                                    onClick={() => onSuggestionClick(sug.text)}
-                                    className="group relative p-4 rounded-xl border border-borderLight bg-surface/50 hover:bg-surfaceHighlight hover:border-emerald-500/30 transition-all text-left flex items-start gap-4 shadow-sm hover:shadow-md"
-                                >
-                                    <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                                        {renderIcon(sug.icon)}
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between">
-                                            <h3 className="font-semibold text-textMain text-sm group-hover:text-emerald-400 transition-colors">
-                                                {sug.title}
-                                            </h3>
-                                            <div
-                                                onClick={(e) => togglePin(e, sug.title)}
-                                                className={`p-1 rounded-full transition-colors ${pinnedSuggestions.includes(sug.title)
-                                                    ? 'text-emerald-500 bg-emerald-500/10'
-                                                    : 'text-zinc-600 hover:text-zinc-400'
-                                                    }`}
-                                            >
-                                                <Pin size={14} className={pinnedSuggestions.includes(sug.title) ? 'fill-emerald-500' : ''} />
-                                            </div>
-                                        </div>
-                                        <p className="text-xs text-textMuted mt-1 line-clamp-2 leading-relaxed">
-                                            {sug.text}
-                                        </p>
-                                    </div>
-                                </button>
-                            ))}
-                        </div>
+
                     </div>
                 ) : (
                     <div className="w-full max-w-3xl px-2 md:px-0 pt-24 pb-48 space-y-6">
