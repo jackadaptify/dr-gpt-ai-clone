@@ -69,6 +69,20 @@ serve(async (req: Request) => {
             });
         }
 
+        // REPLAY PROTECTION: Check if session was already consumed
+        const { data: existingSession } = await supabaseAdmin
+            .from('consumed_stripe_sessions')
+            .select('session_id')
+            .eq('session_id', session_id)
+            .single();
+
+        if (existingSession) {
+            return new Response(JSON.stringify({ error: 'Este pagamento já foi utilizado.' }), {
+                status: 400,
+                headers: { ...headers, 'Content-Type': 'application/json' },
+            });
+        }
+
         const email = session.customer_details?.email;
         if (!email) {
             return new Response(JSON.stringify({ error: 'Email não encontrado no pagamento.' }), {
@@ -100,7 +114,21 @@ serve(async (req: Request) => {
         const user = authData.user;
         if (!user) throw new Error('User creation failed');
 
-        // 3. Update Profile with Subscription Status
+        // 3. Mark Session as Consumed (Critical Step)
+        const { error: consumeError } = await supabaseAdmin
+            .from('consumed_stripe_sessions')
+            .insert({
+                session_id: session_id,
+                email: email,
+                user_id: user.id
+            });
+
+        if (consumeError) {
+            console.error("Failed to mark session as consumed", consumeError);
+            // Critical error, but user created. We log heavily.
+        }
+
+        // 4. Update Profile with Subscription Status
         const profileUpdates = {
             subscription_status: true,
             billing_status: 'active',
