@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { authService } from '../../services/authService';
 import { IconBrain } from '../Icons';
 
-export default function AuthPage() {
-    const [isLogin, setIsLogin] = useState(true);
+export default function AuthPage({ initialMode = 'login' }: { initialMode?: 'login' | 'signup' }) {
+    const [isLogin, setIsLogin] = useState(initialMode === 'login');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [fullName, setFullName] = useState('');
@@ -44,10 +44,7 @@ export default function AuthPage() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background text-textMain font-sans selection:bg-emerald-500/30 relative overflow-hidden">
-            {/* Background Effects */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900/40 via-background to-background pointer-events-none z-0" />
-            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
-            <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/5 rounded-full blur-[120px] pointer-events-none" />
+            {/* Background Effects Removed */}
 
             <div className="w-full max-w-md p-8 relative z-10 animate-in fade-in zoom-in-95 duration-500">
                 <div className="text-center mb-10">
@@ -191,14 +188,7 @@ export default function AuthPage() {
                             >
                                 Voltar para o Login
                             </button>
-                        ) : (
-                            <button
-                                onClick={() => setIsLogin(!isLogin)}
-                                className="text-sm text-textMuted hover:text-emerald-400 transition-colors"
-                            >
-                                {isLogin ? 'Não tem uma conta? Cadastre-se' : 'Já tem uma conta? Entre'}
-                            </button>
-                        )}
+                        ) : null}
                     </div>
                 )}
             </div>

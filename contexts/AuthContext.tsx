@@ -87,7 +87,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const signOut = async () => {
-        await authService.signOut();
+        try {
+            await authService.signOut();
+        } catch (error) {
+            console.error('Error signing out:', error);
+        } finally {
+            setSession(null);
+            setUser(null);
+            window.location.href = '/login';
+        }
     };
 
     const value = {

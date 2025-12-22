@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import MessageItem from './components/MessageItem';
 import { ChatSession, Message, Role, AVAILABLE_MODELS, Folder, Agent, Attachment, AIModel, AppMode } from './types';
@@ -15,6 +16,8 @@ import AuthPage from './components/Auth/AuthPage';
 // import { chatStorage } from './services/chatStorage'; // Removed for Supabase
 import AdminPage from './components/Admin/AdminPage';
 import InviteSignupPage from './components/Auth/InviteSignupPage';
+import SignupPaymentPage from './components/Auth/SignupPaymentPage';
+import PaywallPage from './components/Auth/PaywallPage';
 import { modelHealthService, ModelHealth } from './services/modelHealthService';
 import { authService } from './services/authService';
 import { supabase } from './lib/supabase';
@@ -980,12 +983,50 @@ function AppContent(): React.ReactElement {
     );
 }
 
+
+function RequireAuth({ children }: { children: JSX.Element }) {
+    const { user, loading } = useAuth();
+    if (loading) return <div className="flex items-center justify-center h-screen bg-background"><div className="animate-spin h-8 w-8 border-4 border-emerald-500 rounded-full border-t-transparent"></div></div>;
+    if (!user) return <Navigate to="/login" replace />;
+
+    // Paywall Check
+    if (!user.subscription_status && user.trial_status !== 'active') {
+        return <Navigate to="/paywall" replace />;
+    }
+
+    return children;
+}
+
+function PublicRoute({ children }: { children: JSX.Element }) {
+    const { user, loading } = useAuth();
+    if (loading) return null;
+    if (user) return <Navigate to="/app" replace />;
+    return children;
+}
+
 export default function App() {
     return (
         <AuthProvider>
             <ChatProvider>
                 <Toaster />
-                <AppContent />
+                <BrowserRouter>
+                    <Routes>
+                        <Route path="/login" element={<PublicRoute><AuthPage initialMode="login" /></PublicRoute>} />
+                        <Route path="/signup/invite" element={<InviteSignupPage />} />
+                        <Route path="/signup/payment" element={<SignupPaymentPage />} />
+                        <Route path="/paywall" element={<PaywallPage />} />
+
+                        <Route path="/app/*" element={
+                            <RequireAuth>
+                                <AppContent />
+                            </RequireAuth>
+                        } />
+
+                        {/* Default Redirects */}
+                        <Route path="/" element={<Navigate to="/signup/invite" replace />} />
+                        <Route path="*" element={<Navigate to="/signup/invite" replace />} />
+                    </Routes>
+                </BrowserRouter>
             </ChatProvider>
         </AuthProvider>
     );

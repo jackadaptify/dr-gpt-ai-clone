@@ -77,6 +77,8 @@ export interface User {
   trial_status?: 'none' | 'active' | 'expired' | 'converted';
   trial_ends_at?: string;
   is_test?: boolean;
+  subscription_status?: boolean;
+  stripe_customer_id?: string;
 }
 
 export interface Agent {
