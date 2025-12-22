@@ -74,9 +74,12 @@ export default function Sidebar({
     if (activeMode === 'scribe') {
       return matchesSearch && matchesFolder && chat.agentId === 'scribe-mode';
     }
+    if (activeMode === 'research') {
+      return matchesSearch && matchesFolder && chat.agentId === 'research-mode';
+    }
     // Chat Mode: Exclude special modes
     // Note: We might want to include 'normal' chats AND agent chats here, but exclude scribe
-    return matchesSearch && matchesFolder && chat.agentId !== 'scribe-mode';
+    return matchesSearch && matchesFolder && chat.agentId !== 'scribe-mode' && chat.agentId !== 'research-mode';
   });
 
   const handleCreateFolder = (e: React.FormEvent) => {
@@ -357,6 +360,20 @@ export default function Sidebar({
           </>
         );
 
+      case 'research':
+        return (
+          <>
+            <div className="px-4 text-center mt-6 mb-4">
+              <div className="w-12 h-12 bg-indigo-500/10 rounded-full flex items-center justify-center mx-auto mb-2 text-indigo-500">
+                <IconSearch />
+              </div>
+              <p className="text-sm font-medium text-indigo-500">Research Hub</p>
+              <p className="text-xs text-textMuted">Histórico de pesquisas avançadas.</p>
+            </div>
+            {renderChatList('Pesquisas Recentes', 'Nenhuma pesquisa realizada.', <IconSearch className="w-4 h-4" />)}
+          </>
+        );
+
 
 
       case 'settings':
@@ -510,7 +527,19 @@ export default function Sidebar({
                 </div>
               </button>
 
-
+              {/* Button 2: Research */}
+              <button
+                onClick={() => { onModeChange('research'); if (window.innerWidth < 768) setIsOpen(false); }}
+                className={`relative w-full p-4 rounded-2xl border transition-all text-left flex items-center gap-4 group ${activeMode === 'research' ? 'bg-indigo-500/10 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.1)]' : 'bg-transparent border-white/10 hover:bg-white/5 hover:border-white/20'}`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${activeMode === 'research' ? 'bg-indigo-500 text-white' : 'bg-white/10 text-indigo-400'}`}>
+                  <IconSearch />
+                </div>
+                <div>
+                  <h3 className={`font-bold text-base ${activeMode === 'research' ? 'text-indigo-400' : 'text-white'}`}>Research Hub</h3>
+                  <p className="text-xs text-zinc-400">Pesquisa médica avançada</p>
+                </div>
+              </button>
 
               {/* Button 3: Transcribe */}
               <button

@@ -3,6 +3,12 @@ import { Send, Menu, Plus, User, Bot, Search } from 'lucide-react';
 import ResearchMessageItem from './ResearchMessageItem';
 import ResearchResults from './ResearchResults';
 import { streamResearchChat, ResearchMessage as APIResearchMessage } from './services/researchService';
+import { useChat } from '../../contexts/ChatContext'; // Import Context
+import { createChat, saveMessage, loadMessagesForChat } from '../../../services/chatService'; // Services
+import { ChatSession, Role, Message } from '../../../types'; // Global Types
+import { v4 as uuidv4 } from 'uuid';
+// import { useSupabaseClient } from '@supabase/auth-helpers-react'; // Removed
+import { supabase } from '../../../lib/supabase';
 
 interface ResearchPageProps {
     isDarkMode: boolean;
@@ -18,6 +24,7 @@ interface ResearchMessage {
 }
 
 export default function ResearchPage({ isDarkMode, user }: ResearchPageProps) {
+    const { currentChatId, selectChat, chats, createNewChat, updateChatTitle } = useChat();
     const [messages, setMessages] = useState<ResearchMessage[]>([]);
     const [input, setInput] = useState('');
     const [isSearching, setIsSearching] = useState(false);
@@ -29,6 +36,35 @@ export default function ResearchPage({ isDarkMode, user }: ResearchPageProps) {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
+    // Load History when currentChatId changes
+    useEffect(() => {
+        const loadHistory = async () => {
+            if (currentChatId) {
+                // Check if it's a research chat
+                const chat = chats.find(c => c.id === currentChatId);
+                // We permit loading if it exists (Sidebar handles filtering)
+                // or if we just created it.
+
+                if (chat) {
+                    console.log('Loading research chat:', chat.title);
+                    const historicalMessages = await loadMessagesForChat(currentChatId);
+
+                    const mappedMessages: ResearchMessage[] = historicalMessages.reverse().map(m => ({
+                        id: m.id,
+                        role: m.role as 'user' | 'model',
+                        content: m.content,
+                        timestamp: m.timestamp,
+                        results: m.metadata?.results // Load results from metadata
+                    }));
+                    setMessages(mappedMessages);
+                }
+            } else {
+                setMessages([]);
+            }
+        };
+        loadHistory();
+    }, [currentChatId, chats]); // Depend on chats to ensure we have the list
+
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
@@ -37,12 +73,30 @@ export default function ResearchPage({ isDarkMode, user }: ResearchPageProps) {
 
     // ... (inside component)
 
+
+
+    // Unified Handle Search
     const handleSearch = async () => {
         if (!input.trim() || isSearching) return;
-
         const userContent = input;
-        const userMsg: any = { // ID for UI, mapped to ResearchMessage for API
-            id: crypto.randomUUID(),
+        setInput('');
+        setIsSearching(true);
+
+        let activeId = currentChatId;
+
+        // Create Chat if new using Context to ensure Sidebar updates
+        if (!activeId) {
+            // 1. Create with correct agentId and model
+            activeId = createNewChat('research-mode', 'perplexity/sonar-reasoning-pro');
+
+            // 2. Update title immediately to match query
+            updateChatTitle(activeId, userContent.slice(0, 40) + '...');
+
+            // Note: createNewChat selects the chat automatically in context
+        }
+
+        const userMsg: ResearchMessage = {
+            id: uuidv4(),
             role: 'user',
             content: userContent,
             timestamp: Date.now()
@@ -50,12 +104,19 @@ export default function ResearchPage({ isDarkMode, user }: ResearchPageProps) {
 
         // UI Updates
         setMessages(prev => [...prev, userMsg]);
-        setInput('');
-        setIsSearching(true);
 
-        // Placeholder for AI response
-        const aiMsgId = crypto.randomUUID();
-        const aiMsgPlaceholder: any = {
+        // Save User Message
+        await saveMessage(activeId, {
+            id: userMsg.id,
+            role: Role.USER,
+            content: userMsg.content,
+            timestamp: userMsg.timestamp,
+            modelId: 'user'
+        });
+
+        // AI Placeholder
+        const aiMsgId = uuidv4();
+        const aiMsgPlaceholder: ResearchMessage = {
             id: aiMsgId,
             role: 'model',
             content: '',
@@ -64,7 +125,6 @@ export default function ResearchPage({ isDarkMode, user }: ResearchPageProps) {
         setMessages(prev => [...prev, aiMsgPlaceholder]);
 
         try {
-            // Prepare history for API (strip IDs/timestamps)
             const apiHistory: APIResearchMessage[] = messages.map(m => ({
                 role: m.role as 'user' | 'model',
                 content: m.content
@@ -82,6 +142,16 @@ export default function ResearchPage({ isDarkMode, user }: ResearchPageProps) {
                 ));
             });
 
+            // Save AI Message matching the structure of the placeholder (role model)
+            await saveMessage(activeId, {
+                id: aiMsgId,
+                role: Role.MODEL,
+                content: fullContent,
+                timestamp: Date.now(),
+                modelId: 'perplexity/sonar-reasoning-pro',
+                metadata: { results: [] } // Add results here if available later
+            });
+
         } catch (error) {
             console.error(error);
             setMessages(prev => prev.map(msg =>
@@ -93,6 +163,10 @@ export default function ResearchPage({ isDarkMode, user }: ResearchPageProps) {
             setIsSearching(false);
         }
     };
+
+
+    // Wire up to handleSearch - Already defined above as handleSearch
+    // const handleSearch = executeSearch;
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
