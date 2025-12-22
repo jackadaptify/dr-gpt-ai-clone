@@ -990,8 +990,15 @@ function RequireAuth({ children }: { children: JSX.Element }) {
     if (!user) return <Navigate to="/login" replace />;
 
     // Paywall Check
-    if (!user.subscription_status && user.trial_status !== 'active') {
-        return <Navigate to="/paywall" replace />;
+    const isSubscribed = !!user.subscription_status;
+    const isTrialActive = user.trial_status === 'active';
+    const isTrialExpired = user.trial_ends_at ? new Date(user.trial_ends_at) < new Date() : true;
+
+    // Check: Not Subscribed AND (Trial inactive OR Trial Expired)
+    if (!isSubscribed) {
+        if (!isTrialActive || isTrialExpired) {
+            return <Navigate to="/paywall" replace />;
+        }
     }
 
     return children;
@@ -1004,6 +1011,38 @@ function PublicRoute({ children }: { children: JSX.Element }) {
     return children;
 }
 
+
+function SmartEntry() {
+    const { user, loading } = useAuth();
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-background">
+                <div className="animate-spin h-8 w-8 border-4 border-emerald-500 rounded-full border-t-transparent"></div>
+            </div>
+        );
+    }
+
+    // 1. Not Logged -> Login
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
+
+    // 2. Logged but No Access -> Paywall
+    const isSubscribed = !!user.subscription_status;
+    const isTrialActive = user.trial_status === 'active';
+    const isTrialExpired = user.trial_ends_at ? new Date(user.trial_ends_at) < new Date() : true;
+
+    if (!isSubscribed) {
+        if (!isTrialActive || isTrialExpired) {
+            return <Navigate to="/paywall" replace />;
+        }
+    }
+
+    // 3. Logged & Active -> App
+    return <Navigate to="/app" replace />;
+}
+
 export default function App() {
     return (
         <AuthProvider>
@@ -1011,9 +1050,10 @@ export default function App() {
                 <Toaster />
                 <BrowserRouter>
                     <Routes>
+                        <Route path="/" element={<SmartEntry />} />
                         <Route path="/login" element={<PublicRoute><AuthPage initialMode="login" /></PublicRoute>} />
-                        <Route path="/signup/invite" element={<InviteSignupPage />} />
-                        <Route path="/signup/payment" element={<SignupPaymentPage />} />
+                        <Route path="/signup/invite" element={<PublicRoute><InviteSignupPage /></PublicRoute>} />
+                        <Route path="/signup/payment" element={<PublicRoute><SignupPaymentPage /></PublicRoute>} />
                         <Route path="/paywall" element={<PaywallPage />} />
 
                         <Route path="/app/*" element={
@@ -1022,9 +1062,8 @@ export default function App() {
                             </RequireAuth>
                         } />
 
-                        {/* Default Redirects */}
-                        <Route path="/" element={<Navigate to="/signup/invite" replace />} />
-                        <Route path="*" element={<Navigate to="/signup/invite" replace />} />
+                        {/* Catch all redirects to smart entry */}
+                        <Route path="*" element={<Navigate to="/" replace />} />
                     </Routes>
                 </BrowserRouter>
             </ChatProvider>

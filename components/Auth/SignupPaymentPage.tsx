@@ -101,55 +101,27 @@ export default function SignupPaymentPage() {
 
         setIsCreatingAccount(true);
         try {
-            // 1. Create Auth User
-            const { data: authData, error: authError } = await supabase.auth.signUp({
-                email: paymentData.email,
-                password: password,
-                options: {
-                    data: {
-                        full_name: fullName
-                    }
+            // Secure Signup via Edge Function
+            const { data, error } = await supabase.functions.invoke('consume-payment-signup', {
+                body: {
+                    session_id: sessionId,
+                    password: password,
+                    full_name: fullName
                 }
             });
 
-            if (authError) throw authError;
-            if (!authData.user) throw new Error('Erro ao criar usuário.');
+            if (error) throw error;
+            if (data?.error) throw new Error(data.error);
 
-            // 2. Update Profile
-            // Note: Triggers might handle profile creation, but we need to update extra fields.
-            // We wait a bit or try update immediately? usually triggers are fast but race conditions exist.
-            // However, signUp returns session usually if auto-confirm is on?
-            // If email confirmation is required, we can't update profile yet via RLS potentially if not logged in?
-            // Actually, if signUp logs us in (session exists), we can update.
-
-            // If session is null (email confirm required), we can't update profile easily from client.
-            // checking authData.session.
-
-            let userId = authData.user.id;
-
-            if (authData.session) {
-                // Logged in immediately
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .upsert({
-                        id: userId,
-                        email: paymentData.email,
-                        full_name: fullName,
-                        subscription_status: true,
-                        stripe_customer_id: paymentData.customer_id,
-                        billing_status: 'active'
-                    }, { onConflict: 'id' });
-
-                if (updateError) throw updateError;
-
-                navigate('/app', { replace: true });
-            } else {
-                toast.success('Conta criada! Verifique seu email para confirmar.');
-            }
+            // Success!
+            toast.success('Conta criada com sucesso! Faça login para continuar.');
+            navigate('/login');
 
         } catch (err: any) {
             console.error('Signup error:', err);
-            toast.error(err.message || 'Erro ao criar conta.');
+            let msg = err.message || 'Erro ao criar conta.';
+            // Handle specific JSON error structure if needed, or rely on msg
+            toast.error(msg);
         } finally {
             setIsCreatingAccount(false);
         }
