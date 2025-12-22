@@ -27,6 +27,9 @@ import PromptsModal from './components/PromptsModal';
 import AIScribeModal from './components/AIScribeModal';
 import SettingsModal from './components/SettingsModal';
 import { SettingsContent } from './components/SettingsContent';
+import ResearchPage from './src/pages/research/ResearchPage'; // Add ResearchPage import
+import ChatPage from './src/pages/ChatPage'; // Ensure ChatPage is imported from correct location if not already
+import ScribePage from './src/pages/ScribePage'; // Ensure imports exist
 
 import {
     Folder as FolderIcon,
@@ -51,12 +54,9 @@ import {
 import { settingsService, UserSettings } from './services/settingsService';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import RailNav from './components/RailNav';
-import ChatPage from './src/pages/ChatPage';
-// ... imports
-import ResearchPage from './src/pages/research/ResearchPage';
 
-// ... inside renderContent
-import ScribePage from './src/pages/ScribePage';
+
+
 import { ChatProvider, useChat } from './src/contexts/ChatContext';
 // import ScribeReview from './components/Scribe/ScribeReview';
 // import { ResearchLayout } from './components/Research/ResearchLayout'; // Removed to unify UI
@@ -623,6 +623,7 @@ function AppContent(): React.ReactElement {
                         // Default fallback (e.g. Scribe Mode showing history?)
                         // If we are in 'scribe', maybe we show 'scribe-mode' chats?
                         if (activeMode === 'scribe') return c.agentId === 'scribe-mode';
+                        if (activeMode === 'research') return c.agentId === 'research-mode';
                         if (activeMode === 'antiglosa') return c.agentId === 'antiglosa-mode';
                         if (activeMode === 'justificativa') return c.agentId === 'justificativa-mode';
 
@@ -916,51 +917,29 @@ function AppContent(): React.ReactElement {
                                 sidebarOpen={sidebarOpen}
                                 setSidebarOpen={setSidebarOpen}
                                 activeMode={activeMode}
-                                availableAndHealthyModels={availableAndHealthyModels}
-                                selectedModelId={selectedModelId}
-                                handleModelSelect={handleModelSelect}
-                                agents={agents}
-                                handleSelectAgent={(agentId) => {
-                                    const agent = agents.find(a => a.id === agentId);
-                                    if (agent) {
-                                        setSelectedAgentId(agent.id);
-                                        createNewChat(agent.id, agent.modelId || selectedModelId);
-                                    }
-                                }}
-                                selectedAgentId={selectedAgentId}
                                 user={user}
                                 handleMicClick={handleMicClick}
                                 isListening={isListening}
                                 hasMicSupport={hasMicSupport}
-
                             />
+
                         )}
                     </ScribePage>
                 ) : activeMode === 'admin' ? (
                     <AdminPage />
+                ) : activeMode === 'research' ? (
+                    <ResearchPage isDarkMode={isDarkMode} user={user} />
                 ) : (activeMode === 'chat' || (currentChatId && activeMode === 'scribe')) ? (
                     <ChatPage
                         isDarkMode={isDarkMode}
                         sidebarOpen={sidebarOpen}
                         setSidebarOpen={setSidebarOpen}
-                        activeMode={activeMode}
-                        availableAndHealthyModels={availableAndHealthyModels}
-                        selectedModelId={selectedModelId}
-                        handleModelSelect={handleModelSelect}
-                        agents={agents}
-                        handleSelectAgent={(agentId) => {
-                            const agent = agents.find(a => a.id === agentId);
-                            if (agent) {
-                                setSelectedAgentId(agent.id);
-                                createNewChat(agent.id, agent.modelId || selectedModelId);
-                            }
-                        }}
-                        selectedAgentId={selectedAgentId}
+                        activeMode={activeMode === 'scribe' ? 'scribe' : 'chat'} // Ensure correct mode passed
                         user={user}
-                        // inputs and messages handled by context
                         handleMicClick={handleMicClick}
                         isListening={isListening}
                         hasMicSupport={hasMicSupport}
+                    // inputs and messages handled by context
 
                     />
                 ) : null}
@@ -984,7 +963,7 @@ function AppContent(): React.ReactElement {
 }
 
 
-function RequireAuth({ children }: { children: JSX.Element }) {
+function RequireAuth({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
     if (loading) return <div className="flex items-center justify-center h-screen bg-background"><div className="animate-spin h-8 w-8 border-4 border-emerald-500 rounded-full border-t-transparent"></div></div>;
     if (!user) return <Navigate to="/login" replace />;
@@ -1004,7 +983,7 @@ function RequireAuth({ children }: { children: JSX.Element }) {
     return children;
 }
 
-function PublicRoute({ children }: { children: JSX.Element }) {
+function PublicRoute({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
     if (loading) return null;
     if (user) return <Navigate to="/app" replace />;

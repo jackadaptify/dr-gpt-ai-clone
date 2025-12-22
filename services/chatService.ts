@@ -58,7 +58,8 @@ export const loadMessagesForChat = async (chatId: string, abortSignal?: AbortSig
         content: m.content,
         timestamp: new Date(m.created_at).getTime(),
         isStreaming: false,
-        modelId: m.model_id
+        modelId: m.model_id,
+        metadata: m.metadata // Load metadata
     }));
 };
 
@@ -126,7 +127,8 @@ export const saveMessage = async (chatId: string, message: Message) => {
             role: message.role,
             content: message.content,
             created_at: new Date(message.timestamp).toISOString(),
-            model_id: message.modelId // Save model_id
+            model_id: message.modelId, // Save model_id
+            metadata: message.metadata // Save metadata
         });
 
     if (error) {
