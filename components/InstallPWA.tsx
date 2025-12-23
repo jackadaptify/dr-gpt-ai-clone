@@ -123,21 +123,8 @@ export default function InstallPWA() {
                                                 <p className="mb-2">
                                                     Toque no ícone de <strong>Compartilhar</strong>
                                                     <Share size={14} className="inline mx-1" />
+                                                    que fica no meio, na parte inferior da tela.
                                                 </p>
-                                                <div className="my-3 p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
-                                                    <div className="text-center text-xs text-zinc-600 dark:text-zinc-400 mb-2">
-                                                        O ícone fica aqui ↓
-                                                    </div>
-                                                    <div className="flex justify-center">
-                                                        <svg viewBox="0 0 200 40" className="w-full max-w-[240px]">
-                                                            <rect width="200" height="40" fill="#f4f4f5" rx="10" className="dark:fill-zinc-700" />
-                                                            <circle cx="40" cy="20" r="8" fill="#3b82f6" />
-                                                            <rect x="90" y="12" width="20" height="16" fill="#3b82f6" rx="2" />
-                                                            <circle cx="160" cy="20" r="8" fill="#3b82f6" />
-                                                            <path d="M 100 5 L 95 0 L 105 0 Z" fill="#ef4444" />
-                                                        </svg>
-                                                    </div>
-                                                </div>
                                             </div>
                                         </li>
                                         <li className="flex items-start gap-3">
