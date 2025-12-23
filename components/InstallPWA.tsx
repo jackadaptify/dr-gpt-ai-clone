@@ -112,7 +112,7 @@ export default function InstallPWA() {
                                                 1
                                             </span>
                                             <span>
-                                                Abra este site no <strong>Safari</strong> (não funciona no Chrome do iPhone)
+                                                Para instalar, abra este site no <strong>Safari</strong>
                                             </span>
                                         </li>
                                         <li className="flex items-start gap-3">
