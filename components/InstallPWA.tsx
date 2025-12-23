@@ -102,15 +102,55 @@ export default function InstallPWA() {
                             </p>
 
                             {isIOS ? (
-                                <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4 text-left space-y-3 text-sm border border-zinc-100 dark:border-zinc-800">
-                                    <div className="flex items-center gap-3">
-                                        <span className="flex items-center justify-center w-6 h-6 rounded bg-zinc-200 dark:bg-zinc-700 font-bold text-xs">1</span>
-                                        <span className="flex-1">Toque no botão <Share size={14} className="inline mx-1" /> <strong>Compartilhar</strong></span>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="flex items-center justify-center w-6 h-6 rounded bg-zinc-200 dark:bg-zinc-700 font-bold text-xs">2</span>
-                                        <span className="flex-1">Selecione <PlusSquare size={14} className="inline mx-1" /> <strong>Adicionar à Tela de Início</strong></span>
-                                    </div>
+                                <div className="space-y-4">
+                                    <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                                        Para instalar o Dr. GPT no seu iPhone:
+                                    </p>
+                                    <ol className="text-sm space-y-4 text-left text-zinc-700 dark:text-zinc-300">
+                                        <li className="flex items-start gap-3">
+                                            <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                                1
+                                            </span>
+                                            <span>
+                                                Abra este site no <strong>Safari</strong> (não funciona no Chrome do iPhone)
+                                            </span>
+                                        </li>
+                                        <li className="flex items-start gap-3">
+                                            <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                                2
+                                            </span>
+                                            <div className="flex-1">
+                                                <p className="mb-2">
+                                                    Toque no ícone de <strong>Compartilhar</strong>
+                                                    <Share size={14} className="inline mx-1" />
+                                                </p>
+                                                <div className="my-3 p-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
+                                                    <div className="text-center text-xs text-zinc-600 dark:text-zinc-400 mb-2">
+                                                        O ícone fica aqui ↓
+                                                    </div>
+                                                    <div className="flex justify-center">
+                                                        <svg viewBox="0 0 200 40" className="w-full max-w-[240px]">
+                                                            <rect width="200" height="40" fill="#f4f4f5" rx="10" className="dark:fill-zinc-700" />
+                                                            <circle cx="40" cy="20" r="8" fill="#3b82f6" />
+                                                            <rect x="90" y="12" width="20" height="16" fill="#3b82f6" rx="2" />
+                                                            <circle cx="160" cy="20" r="8" fill="#3b82f6" />
+                                                            <path d="M 100 5 L 95 0 L 105 0 Z" fill="#ef4444" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </li>
+                                        <li className="flex items-start gap-3">
+                                            <span className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                                3
+                                            </span>
+                                            <span>
+                                                Role para baixo e selecione <br />
+                                                <strong>Adicionar à Tela de Início</strong>
+                                                <PlusSquare size={14} className="inline mx-1" />
+                                            </span>
+                                        </li>
+                                    </ol>
                                 </div>
                             ) : (
                                 <div className="py-2">
