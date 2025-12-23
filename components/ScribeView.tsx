@@ -186,12 +186,13 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                         type="text"
                         value={patientName}
                         onChange={(e) => setPatientName(e.target.value)}
-                        placeholder="Sem Título"
+                        placeholder="Nome do Paciente"
                         className={`
                             w-full text-center bg-transparent border-none outline-none text-xl md:text-2xl font-semibold placeholder-opacity-50 transition-all
                             text-textMain placeholder-textMuted
                             focus:placeholder-opacity-30
                         `}
+                        title="Digite o nome do paciente"
                     />
                     <Edit2
                         className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity text-textMuted"
@@ -223,16 +224,17 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                 </div>
             </div>
 
-            {/* Mode Switcher - Outline/Ghost Style */}
+            {/* Mode Switcher - Distinct Tabs */}
             <div className="flex justify-center mb-8">
-                <div className="flex p-0.5 rounded-xl border border-borderLight">
+                <div className="flex p-1 rounded-xl bg-surface border border-borderLight shadow-sm">
                     <button
                         onClick={() => !isRecording && setMode('presential')}
+                        title="Modo Presencial: Grava pelo microfone (Sua voz + Paciente)"
                         className={`
-                            flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
+                            flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-300
                             ${mode === 'presential'
-                                ? 'bg-surfaceHighlight text-textMain'
-                                : 'text-textMuted hover:text-textMain'
+                                ? 'bg-emerald-500 text-white shadow-md transform scale-105'
+                                : 'text-textMuted hover:text-textMain hover:bg-surfaceHighlight'
                             }
                         `}
                     >
@@ -241,11 +243,12 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                     </button>
                     <button
                         onClick={() => !isRecording && setMode('telemedicine')}
+                        title="Modo Telemedicina: Grava áudio do sistema (Google Meet/Zoom)"
                         className={`
-                            flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
+                            flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-300
                             ${mode === 'telemedicine'
-                                ? 'bg-surfaceHighlight text-textMain'
-                                : 'text-textMuted hover:text-textMain'
+                                ? 'bg-blue-500 text-white shadow-md transform scale-105'
+                                : 'text-textMuted hover:text-textMain hover:bg-surfaceHighlight'
                             }
                         `}
                     >
@@ -275,12 +278,15 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                         >
                             {/* Ripple Effect when recording */}
                             {isRecording && (
-                                <span className="absolute inset-0 rounded-full border-4 border-red-400/30 animate-ping" />
+                                <>
+                                    <span className="absolute inset-0 rounded-full border-4 border-red-400/30 animate-ping" />
+                                    <span className="absolute inset-0 rounded-full border-2 border-red-500/50 animate-pulse" />
+                                </>
                             )}
 
                             {/* Glow Effect */}
                             {!isRecording && (
-                                <span className="absolute inset-0 rounded-full bg-emerald-400/20 blur-xl animate-pulse" />
+                                <span className="absolute inset-0 rounded-full bg-emerald-400/10 blur-2xl animate-pulse" />
                             )}
 
                             {isRecording ? (
@@ -296,10 +302,10 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                     </div>
 
                     {/* Text Below Mic */}
-                    <p className="mt-6 text-sm font-medium text-textMuted">
+                    <p className={`mt-6 text-sm font-medium transition-all ${isRecording ? 'text-red-500 animate-pulse' : 'text-textMuted'}`}>
                         {isRecording
-                            ? (mode === 'telemedicine' ? "Gravando áudio do sistema..." : "Escutando consulta...")
-                            : "Toque para iniciar a escuta inteligente"
+                            ? (mode === 'telemedicine' ? "🔴 Gravando áudio do sistema..." : "🔴 Escutando consulta em tempo real...")
+                            : "Toque no microfone para iniciar"
                         }
                     </p>
 
@@ -318,22 +324,51 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                         ))}
                     </div>
 
-                    {/* Empty State Hint */}
+                    {/* Empty State Cards (When not recording and no data) */}
                     {!isRecording && !consultationTranscript && !consultationBlob && (
-                        <p className="mt-8 text-sm text-textMuted animate-pulse">
-                            Selecione o tipo de atendimento acima e comece a gravar
-                        </p>
+                        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-3 w-full max-w-2xl px-2">
+                            <div className="p-3 rounded-2xl border border-borderLight bg-surface/50 hover:bg-surfaceHighlight transition-colors flex flex-col items-center text-center gap-1 cursor-help group">
+                                <span className="text-xl group-hover:scale-110 transition-transform">⌨️</span>
+                                <span className="font-semibold text-xs text-textMain">Atalhos</span>
+                                <span className="text-[10px] text-textMuted">Use Espaço para gravar</span>
+                            </div>
+                            <div className="p-3 rounded-2xl border border-borderLight bg-surface/50 hover:bg-surfaceHighlight transition-colors flex flex-col items-center text-center gap-1 cursor-help group">
+                                <span className="text-xl group-hover:scale-110 transition-transform">📊</span>
+                                <span className="font-semibold text-xs text-textMain">Produtividade</span>
+                                <span className="text-[10px] text-textMuted">Você economizou 2h hoje</span>
+                            </div>
+                            <div className="p-3 rounded-2xl border border-borderLight bg-surface/50 hover:bg-surfaceHighlight transition-colors flex flex-col items-center text-center gap-1 cursor-help group">
+                                <span className="text-xl group-hover:scale-110 transition-transform">🔒</span>
+                                <span className="font-semibold text-xs text-textMain">Privacidade</span>
+                                <span className="text-[10px] text-textMuted">Dados processados localmente</span>
+                            </div>
+                        </div>
                     )}
 
                 </div>
             </div>
 
-            {/* Transcript Preview Area */}
-            {(consultationTranscript || consultationBlob) && (
-                <div className="mt-6 rounded-2xl p-4 max-h-40 overflow-y-auto border bg-surfaceHighlight border-borderLight">
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap text-textMuted">
-                        {consultationTranscript || "(Áudio da Telemedicina capturado)"}
-                    </p>
+            {/* Transcript Preview Area (Always visible when recording or has data) */}
+            {(consultationTranscript || consultationBlob || isRecording) && (
+                <div className="mt-6 rounded-2xl p-6 min-h-[100px] max-h-60 overflow-y-auto border bg-surface border-borderLight shadow-inner w-full animate-in slide-in-from-bottom-2">
+
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`} />
+                        <span className="text-xs font-medium text-textMuted uppercase tracking-wider">
+                            {isRecording ? "Transcrição em Tempo Real" : "Transcrição Finalizada"}
+                        </span>
+                    </div>
+
+                    {isRecording && !consultationTranscript && mode === 'presential' ? (
+                        <div className="flex flex-col gap-2 opacity-60">
+                            <p className="text-sm text-textMuted animate-pulse">Aguardando fala...</p>
+                            <p className="text-xs text-textSubtle">A transcrição aparecerá aqui assim que você começar a falar.</p>
+                        </div>
+                    ) : (
+                        <p className="text-sm leading-relaxed whitespace-pre-wrap text-textMain font-mono opacity-90">
+                            {consultationTranscript || (mode === 'telemedicine' ? "🔈 Áudio do sistema sendo capturado..." : "")}
+                        </p>
+                    )}
                 </div>
             )}
 
