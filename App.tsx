@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import MessageItem from './components/MessageItem';
 import { ChatSession, Message, Role, AVAILABLE_MODELS, Folder, Agent, Attachment, AIModel, AppMode } from './types';
@@ -15,6 +16,8 @@ import AuthPage from './components/Auth/AuthPage';
 // import { chatStorage } from './services/chatStorage'; // Removed for Supabase
 import AdminPage from './components/Admin/AdminPage';
 import InviteSignupPage from './components/Auth/InviteSignupPage';
+import SignupPaymentPage from './components/Auth/SignupPaymentPage';
+import PaywallPage from './components/Auth/PaywallPage';
 import { modelHealthService, ModelHealth } from './services/modelHealthService';
 import { authService } from './services/authService';
 import { supabase } from './lib/supabase';
@@ -24,6 +27,9 @@ import PromptsModal from './components/PromptsModal';
 import AIScribeModal from './components/AIScribeModal';
 import SettingsModal from './components/SettingsModal';
 import { SettingsContent } from './components/SettingsContent';
+import ResearchPage from './src/pages/research/ResearchPage'; // Add ResearchPage import
+import ChatPage from './src/pages/ChatPage'; // Ensure ChatPage is imported from correct location if not already
+import ScribePage from './src/pages/ScribePage'; // Ensure imports exist
 
 import {
     Folder as FolderIcon,
@@ -51,8 +57,8 @@ import ChatPage from './src/pages/ChatPage';
 // ... imports
 import ResearchPage from './src/pages/research/ResearchPage';
 
-// ... inside renderContent
-import ScribePage from './src/pages/ScribePage';
+
+
 import { ChatProvider, useChat } from './src/contexts/ChatContext';
 // import ScribeReview from './components/Scribe/ScribeReview';
 // import { ResearchLayout } from './components/Research/ResearchLayout'; // Removed to unify UI
@@ -610,6 +616,7 @@ function AppContent(): React.ReactElement {
                         // Default fallback (e.g. Scribe Mode showing history?)
                         // If we are in 'scribe', maybe we show 'scribe-mode' chats?
                         if (activeMode === 'scribe') return c.agentId === 'scribe-mode';
+                        if (activeMode === 'research') return c.agentId === 'research-mode';
                         if (activeMode === 'antiglosa') return c.agentId === 'antiglosa-mode';
                         if (activeMode === 'justificativa') return c.agentId === 'justificativa-mode';
 
@@ -907,12 +914,14 @@ function AppContent(): React.ReactElement {
                                 handleMicClick={handleMicClick}
                                 isListening={isListening}
                                 hasMicSupport={hasMicSupport}
-
                             />
+
                         )}
                     </ScribePage>
                 ) : activeMode === 'admin' ? (
                     <AdminPage />
+                ) : activeMode === 'research' ? (
+                    <ResearchPage isDarkMode={isDarkMode} user={user} />
                 ) : (activeMode === 'chat' || (currentChatId && activeMode === 'scribe')) ? (
                     <ChatPage
                         isDarkMode={isDarkMode}
@@ -920,10 +929,10 @@ function AppContent(): React.ReactElement {
                         setSidebarOpen={setSidebarOpen}
                         activeMode={activeMode}
                         user={user}
-                        // inputs and messages handled by context
                         handleMicClick={handleMicClick}
                         isListening={isListening}
                         hasMicSupport={hasMicSupport}
+                    // inputs and messages handled by context
 
                     />
                 ) : null}
@@ -946,12 +955,89 @@ function AppContent(): React.ReactElement {
     );
 }
 
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+    const { user, loading } = useAuth();
+    if (loading) return <div className="flex items-center justify-center h-screen bg-background"><div className="animate-spin h-8 w-8 border-4 border-emerald-500 rounded-full border-t-transparent"></div></div>;
+    if (!user) return <Navigate to="/login" replace />;
+
+    // Paywall Check
+    const isSubscribed = !!user.subscription_status;
+    const isTrialActive = user.trial_status === 'active';
+    const isTrialExpired = user.trial_ends_at ? new Date(user.trial_ends_at) < new Date() : true;
+
+    // Check: Not Subscribed AND (Trial inactive OR Trial Expired)
+    if (!isSubscribed) {
+        if (!isTrialActive || isTrialExpired) {
+            return <Navigate to="/paywall" replace />;
+        }
+    }
+
+    return children;
+}
+
+function PublicRoute({ children }: { children: React.ReactNode }) {
+    const { user, loading } = useAuth();
+    if (loading) return null;
+    if (user) return <Navigate to="/app" replace />;
+    return children;
+}
+
+
+function SmartEntry() {
+    const { user, loading } = useAuth();
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-background">
+                <div className="animate-spin h-8 w-8 border-4 border-emerald-500 rounded-full border-t-transparent"></div>
+            </div>
+        );
+    }
+
+    // 1. Not Logged -> Login
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
+
+    // 2. Logged but No Access -> Paywall
+    const isSubscribed = !!user.subscription_status;
+    const isTrialActive = user.trial_status === 'active';
+    const isTrialExpired = user.trial_ends_at ? new Date(user.trial_ends_at) < new Date() : true;
+
+    if (!isSubscribed) {
+        if (!isTrialActive || isTrialExpired) {
+            return <Navigate to="/paywall" replace />;
+        }
+    }
+
+    // 3. Logged & Active -> App
+    return <Navigate to="/app" replace />;
+}
+
 export default function App() {
     return (
         <AuthProvider>
             <ChatProvider>
                 <Toaster />
-                <AppContent />
+                <BrowserRouter>
+                    <Routes>
+                        <Route path="/" element={<SmartEntry />} />
+                        <Route path="/login" element={<PublicRoute><AuthPage initialMode="login" /></PublicRoute>} />
+                        <Route path="/signup/invite" element={<PublicRoute><InviteSignupPage /></PublicRoute>} />
+                        <Route path="/signup/payment" element={<PublicRoute><SignupPaymentPage /></PublicRoute>} />
+                        <Route path="/paywall" element={<PaywallPage />} />
+
+                        <Route path="/app/*" element={
+                            <RequireAuth>
+                                <AppContent />
+                            </RequireAuth>
+                        } />
+
+                        {/* Catch all redirects to smart entry */}
+                        <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                </BrowserRouter>
             </ChatProvider>
         </AuthProvider>
     );

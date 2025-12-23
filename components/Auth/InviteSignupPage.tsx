@@ -83,20 +83,19 @@ export default function InviteSignupPage() {
 
         } catch (err: any) {
             console.error("Signup error:", err);
-            // Provide nice error messages
-            // Invoke checks for error text if response is JSON
-            // Depending on how supabase-js parses it.
-            // Usually err.message contains the response text if 400.
 
             let msg = 'Erro ao criar conta.';
-            if (err instanceof Error) { // Attempt to parse JSON error from edge function
-                try {
-                    // Sometimes err.message is "Edge Function returned a non-2xx status code"
-                    // We might need to handle this better but standard error display is fallback.
-                    // The edge function returns specific JSON error messages, hopefully supabase client passes them through.
+
+            if (err instanceof Error) {
+                // Check for network/connection errors
+                if (err.message.includes('Failed to send a request') || err.message.includes('fetch failed')) {
+                    msg = 'Erro de conexão: Não foi possível contatar o servidor. A função pode estar indisponível ou não implantada.';
+                } else {
+                    // Try to use the error message returned by the function/Supabase
                     msg = err.message;
-                } catch (e) { }
+                }
             }
+
             setError(msg);
         } finally {
             setLoading(false);
@@ -127,9 +126,7 @@ export default function InviteSignupPage() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background text-textMain font-sans relative overflow-hidden">
-            {/* Background Effects */}
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900/40 via-background to-background pointer-events-none z-0" />
-            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none" />
+
 
             <div className="w-full max-w-md p-8 relative z-10 animate-in fade-in zoom-in-95 duration-500">
                 <div className="text-center mb-8">

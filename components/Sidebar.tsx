@@ -74,9 +74,12 @@ export default function Sidebar({
     if (activeMode === 'scribe') {
       return matchesSearch && matchesFolder && chat.agentId === 'scribe-mode';
     }
+    if (activeMode === 'research') {
+      return matchesSearch && matchesFolder && chat.agentId === 'research-mode';
+    }
     // Chat Mode: Exclude special modes
     // Note: We might want to include 'normal' chats AND agent chats here, but exclude scribe
-    return matchesSearch && matchesFolder && chat.agentId !== 'scribe-mode';
+    return matchesSearch && matchesFolder && chat.agentId !== 'scribe-mode' && chat.agentId !== 'research-mode';
   });
 
   const handleCreateFolder = (e: React.FormEvent) => {
