@@ -47,7 +47,6 @@ import {
 } from 'lucide-react';
 import { settingsService, UserSettings } from './services/settingsService';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
-import RailNav from './components/RailNav';
 import ChatPage from './src/pages/ChatPage';
 // ... imports
 import ResearchPage from './src/pages/research/ResearchPage';
@@ -589,15 +588,6 @@ function AppContent(): React.ReactElement {
 
     return (
         <div className="flex h-[100dvh] bg-background text-textMain font-sans overflow-hidden selection:bg-emerald-500/30">
-
-            {/* Rail Navigation (Desktop Only) */}
-            <div className="hidden md:block h-full z-50">
-                <RailNav
-                    activeMode={activeMode}
-                    onModeChange={handleModeChange}
-                    isDarkMode={isDarkMode}
-                />
-            </div>
 
             {/* Sidebar */}
             {activeMode !== 'scribe-review' && activeMode !== 'admin' && (

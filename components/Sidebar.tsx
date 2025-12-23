@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatSession, Folder, Agent, AppMode } from '../types';
 import { IconMessage, IconSearch, IconBrain } from './Icons';
-import { User, CreditCard, Palette, LogOut, Shield, MoreHorizontal, FolderInput, X, Share, Users, Edit2, Archive, Trash2, ChevronRight, CornerUpLeft, Plus, Folder as LucideFolder, ShieldAlert, ClipboardCheck, SquarePen } from 'lucide-react';
+import { User, CreditCard, Palette, LogOut, Shield, MoreHorizontal, FolderInput, X, Share, Users, Edit2, Archive, Trash2, ChevronRight, CornerUpLeft, Plus, Folder as LucideFolder, MessageCircle, BookOpen, Mic, Settings } from 'lucide-react';
 
 import { useAuth } from '../contexts/AuthContext';
 import SettingsModal from './SettingsModal';
@@ -267,11 +267,8 @@ export default function Sidebar({
   const renderContent = () => {
     switch (activeMode) {
       case 'chat':
-
         return (
           <>
-
-
             {/* Folders Section */}
             <div className="px-3 mt-6">
               <div className="flex items-center justify-between px-2 mb-2">
@@ -357,7 +354,17 @@ export default function Sidebar({
           </>
         );
 
-
+      case 'research':
+        return (
+          <div className="px-4 text-center mt-6 mb-4">
+            <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-2 text-emerald-500">
+              <BookOpen />
+            </div>
+            <p className="text-sm font-medium text-emerald-500">Pesquisa Médica</p>
+            <p className="text-xs text-textMuted">Histórico de pesquisas.</p>
+          </div>
+          // If we want chat list for research, handle filtering above and call renderChatList here
+        );
 
       case 'settings':
         return (
@@ -456,12 +463,17 @@ export default function Sidebar({
           </div>
         );
 
-
-
       default:
-        return <div>Selecione um modo</div>;
+        // Use default if nothing matches, or maybe just 'chat'?
+        return null;
     }
   };
+
+  const navLinks = [
+    { mode: 'chat', label: 'Copiloto clínico', icon: MessageCircle },
+    { mode: 'research', label: 'Pesquisa avançada', icon: BookOpen },
+    { mode: 'scribe', label: 'Transcrição de consulta', icon: Mic },
+  ];
 
   return (
     <>
@@ -480,89 +492,97 @@ export default function Sidebar({
         md:relative md:translate-x-0
         bg-sidebar backdrop-blur-xl border-r border-borderLight
       `}>
-        {/* Header */}
-        <div className="p-4 space-y-4">
-          {/* Header Title - Removed in favor of clearer nav items, or kept small? 
-              User wants "everything in sidebar". Let's put the App Modes here.
-          */}
-
-          {/* Mobile Navigation Mode Switcher (Visible only on mobile/tablet or if RailNav is hidden) */}
-          <div className="block md:hidden space-y-2">
-            <div className="flex items-center gap-2 px-2 pb-2">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500 overflow-hidden flex items-center justify-center">
-                <span className="font-bold text-white text-xs">Dr</span>
-              </div>
-              <span className="font-bold text-lg">Dr. GPT</span>
+        {/* Header - Unified Navigation */}
+        <div className="p-3 space-y-2 border-b border-borderLight">
+          {/* Logo / Brand (Optional in sidebar if headerless, but good to have) */}
+          <div className="flex items-center gap-2 px-2 pb-2 pt-1">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500 overflow-hidden flex items-center justify-center">
+              <span className="font-bold text-white text-xs">Dr</span>
             </div>
-
-            <div className="flex flex-col gap-3">
-              {/* Button 1: Discussão Clínica */}
-              <button
-                onClick={() => { onModeChange('chat'); if (window.innerWidth < 768) setIsOpen(false); }}
-                className={`relative w-full p-4 rounded-2xl border transition-all text-left flex items-center gap-4 group ${activeMode === 'chat' ? 'bg-emerald-500/10 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.1)]' : 'bg-transparent border-white/10 hover:bg-white/5 hover:border-white/20'}`}
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${activeMode === 'chat' ? 'bg-emerald-500 text-black' : 'bg-white/10 text-emerald-400'}`}>
-                  <IconMessage />
-                </div>
-                <div>
-                  <h3 className={`font-bold text-base ${activeMode === 'chat' ? 'text-emerald-400' : 'text-white'}`}>Discussão Clínica</h3>
-                  <p className="text-xs text-zinc-400">Raciocínio e conduta médica</p>
-                </div>
-              </button>
-
-
-
-              {/* Button 3: Transcribe */}
-              <button
-                onClick={() => { onModeChange('scribe'); if (window.innerWidth < 768) setIsOpen(false); }}
-                className={`relative w-full p-4 rounded-2xl border transition-all text-left flex items-center gap-4 group ${activeMode === 'scribe' ? 'bg-emerald-500/10 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.1)]' : 'bg-transparent border-white/10 hover:bg-white/5 hover:border-white/20'}`}
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${activeMode === 'scribe' ? 'bg-emerald-500 text-black' : 'bg-white/10 text-emerald-400'}`}>
-                  <Edit2 size={20} />
-                </div>
-                <div>
-                  <h3 className={`font-bold text-base ${activeMode === 'scribe' ? 'text-emerald-400' : 'text-white'}`}>Transcribe</h3>
-                  <p className="text-xs text-zinc-400">Documentação automática</p>
-                </div>
-              </button>
-            </div>
-            <div className="h-px w-full my-2 bg-borderLight" />
+            <span className="font-bold text-lg">Dr. GPT</span>
           </div>
 
-
-          {/* Search & New Chat Row */}
-          <div className="flex items-center gap-2">
-            {/* Search Input */}
-            <div className={`relative group flex-1`}>
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted group-focus-within:text-emerald-500 transition-colors">
-                <IconSearch />
-              </div>
-              <input
-                type="text"
-                placeholder="Search"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 rounded-lg text-sm transition-all outline-none border border-transparent focus:border-emerald-500/50 bg-surfaceHighlight focus:bg-surface placeholder-textMuted text-textMain"
-              />
-            </div>
-
-            {/* New Chat Button */}
-            <button
-              onClick={onNewChat}
-              className="p-2 rounded-lg transition-colors border border-transparent hover:bg-surfaceHighlight text-textMuted hover:text-textMain"
-              title="Novo Chat"
-            >
-              <SquarePen size={20} />
-            </button>
+          <div className="space-y-1">
+            {navLinks.map((link) => {
+              const isActive = activeMode === link.mode;
+              const Icon = link.icon;
+              return (
+                <button
+                  key={link.mode}
+                  onClick={() => onModeChange(link.mode as AppMode)}
+                  className={`
+                       w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                       ${isActive
+                      ? 'bg-emerald-500/10 text-emerald-500 shadow-sm'
+                      : 'text-textMuted hover:text-textMain hover:bg-surfaceHighlight'}
+                     `}
+                >
+                  <Icon size={18} />
+                  <span>{link.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
+
+        {/* Global Search & New Chat */}
+        {activeMode === 'chat' && (
+          <div className="px-3 pt-4 pb-2 space-y-2">
+            <div className="flex items-center gap-2">
+              {/* Search Input */}
+              <div className={`relative group flex-1`}>
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted group-focus-within:text-emerald-500 transition-colors">
+                  <IconSearch />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 rounded-lg text-sm transition-all outline-none border border-transparent focus:border-emerald-500/50 bg-surfaceHighlight focus:bg-surface placeholder-textMuted text-textMain"
+                />
+              </div>
+
+              {/* New Chat Button */}
+              <button
+                onClick={onNewChat}
+                className="p-2 rounded-lg transition-colors border border-transparent bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/20"
+                title="Novo Chat"
+              >
+                <Plus size={20} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6 py-2">
           {renderContent()}
         </div>
 
-        {/* Settings Modal */}
+        {/* Footer: User & Settings */}
+        <div className="p-3 border-t border-borderLight bg-sidebar/50 backdrop-blur-md">
+          <button
+            onClick={() => onModeChange('settings')}
+            className={`
+                    w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
+                    ${activeMode === 'settings'
+                ? 'bg-surfaceHighlight text-textMain'
+                : 'text-textMuted hover:bg-surfaceHighlight hover:text-textMain'}
+                `}
+          >
+            <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold text-white shadow-sm ring-2 ring-transparent group-hover:ring-emerald-500/20">
+              {user?.email?.[0].toUpperCase() || 'U'}
+            </div>
+            <div className="flex-1 text-left overflow-hidden">
+              <p className="text-sm font-medium truncate">{user?.full_name || 'Usuário'}</p>
+              <p className="text-[10px] text-zinc-500 truncate">{user?.email}</p>
+            </div>
+            <Settings size={16} />
+          </button>
+        </div>
+
+        {/* Settings Modal - Kept for legacy if needed, but we are using 'settings' mode now mostly */}
         <SettingsModal
           isOpen={showSettingsModal}
           onClose={() => setShowSettingsModal(false)}
