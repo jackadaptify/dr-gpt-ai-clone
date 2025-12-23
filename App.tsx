@@ -903,18 +903,6 @@ function AppContent(): React.ReactElement {
                                 sidebarOpen={sidebarOpen}
                                 setSidebarOpen={setSidebarOpen}
                                 activeMode={activeMode}
-                                availableAndHealthyModels={availableAndHealthyModels}
-                                selectedModelId={selectedModelId}
-                                handleModelSelect={handleModelSelect}
-                                agents={agents}
-                                handleSelectAgent={(agentId) => {
-                                    const agent = agents.find(a => a.id === agentId);
-                                    if (agent) {
-                                        setSelectedAgentId(agent.id);
-                                        createNewChat(agent.id, agent.modelId || selectedModelId);
-                                    }
-                                }}
-                                selectedAgentId={selectedAgentId}
                                 user={user}
                                 handleMicClick={handleMicClick}
                                 isListening={isListening}
@@ -931,18 +919,6 @@ function AppContent(): React.ReactElement {
                         sidebarOpen={sidebarOpen}
                         setSidebarOpen={setSidebarOpen}
                         activeMode={activeMode}
-                        availableAndHealthyModels={availableAndHealthyModels}
-                        selectedModelId={selectedModelId}
-                        handleModelSelect={handleModelSelect}
-                        agents={agents}
-                        handleSelectAgent={(agentId) => {
-                            const agent = agents.find(a => a.id === agentId);
-                            if (agent) {
-                                setSelectedAgentId(agent.id);
-                                createNewChat(agent.id, agent.modelId || selectedModelId);
-                            }
-                        }}
-                        selectedAgentId={selectedAgentId}
                         user={user}
                         // inputs and messages handled by context
                         handleMicClick={handleMicClick}
