@@ -9,6 +9,7 @@ import AdminPage from './components/Admin/AdminPage';
 import { ChatProvider } from './src/contexts/ChatContext';
 import { Toaster } from 'react-hot-toast';
 import DashboardLayout from './src/layouts/DashboardLayout';
+import InstallPWA from './components/InstallPWA';
 
 // Pages
 import ChatPage from './src/pages/ChatPage';
@@ -157,6 +158,7 @@ export default function App() {
         <AuthProvider>
             <ChatProvider>
                 <Toaster />
+                <InstallPWA />
                 <BrowserRouter>
                     <Routes>
                         <Route path="/" element={<SmartEntry />} />
