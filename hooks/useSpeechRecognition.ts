@@ -14,9 +14,16 @@ export interface UseSpeechRecognitionProps {
 
 export const useSpeechRecognition = () => {
     const [isListening, setIsListening] = useState(false);
-    const [transcript, setTranscript] = useState('');
+    // historyTranscript: Text from previous sessions (before pause)
+    const [historyTranscript, setHistoryTranscript] = useState('');
+    // currentTranscript: Text from the current active session
+    const [currentTranscript, setCurrentTranscript] = useState('');
+
     const [recognition, setRecognition] = useState<any>(null);
     const [hasSupport, setHasSupport] = useState(false);
+
+    // Combined for the UI
+    const transcript = historyTranscript + (historyTranscript && currentTranscript ? ' ' : '') + currentTranscript;
 
     useEffect(() => {
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -26,27 +33,14 @@ export const useSpeechRecognition = () => {
 
             recognitionInstance.continuous = true;
             recognitionInstance.interimResults = true;
-            recognitionInstance.lang = 'pt-BR'; // Default to Portuguese
+            recognitionInstance.lang = 'pt-BR';
 
             recognitionInstance.onresult = (event: any) => {
-                let currentTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcriptChunk = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) {
-                        currentTranscript += transcriptChunk + ' ';
-                    } else {
-                        currentTranscript += transcriptChunk;
-                    }
-                }
-                // Note: This logic might need adjustment.
-                // event.results contains ALL results for the session if continuous=true.
-                // So we should iterate from 0?
-                // Actually, let's just rebuild the whole string from 0 to be safe.
-                let fullTranscript = '';
+                let sessionText = '';
                 for (let i = 0; i < event.results.length; i++) {
-                    fullTranscript += event.results[i][0].transcript;
+                    sessionText += event.results[i][0].transcript;
                 }
-                setTranscript(fullTranscript);
+                setCurrentTranscript(sessionText);
             };
 
             recognitionInstance.onend = () => {
@@ -66,10 +60,17 @@ export const useSpeechRecognition = () => {
         }
     }, []);
 
+    // When listening stops, we commit the current session text to history
+    useEffect(() => {
+        if (!isListening && currentTranscript) {
+            setHistoryTranscript(prev => prev + (prev ? ' ' : '') + currentTranscript);
+            setCurrentTranscript('');
+        }
+    }, [isListening]); // Depend on isListening flipping to false
+
     const startListening = useCallback(() => {
         if (recognition && !isListening) {
             try {
-                setTranscript(''); // Reset transcript on new session
                 recognition.start();
                 setIsListening(true);
             } catch (error) {
@@ -81,7 +82,11 @@ export const useSpeechRecognition = () => {
     const stopListening = useCallback(() => {
         if (recognition && isListening) {
             recognition.stop();
-            setIsListening(false);
+            // isListening will allow the Effect to trigger and commit text
+            // But we manually set it false here just in case, though onend usually does it.
+            // Actually relying on onend is safer, but trigger here for UI responsiveness?
+            // Let's rely on onend from the API or force it if API is slow?
+            // Native onend is reliable.
         }
     }, [recognition, isListening]);
 
@@ -94,7 +99,13 @@ export const useSpeechRecognition = () => {
     }, [isListening, startListening, stopListening]);
 
     const resetTranscript = useCallback(() => {
-        setTranscript('');
+        setHistoryTranscript('');
+        setCurrentTranscript('');
+    }, []);
+
+    const updateTranscript = useCallback((newText: string) => {
+        setHistoryTranscript(newText);
+        setCurrentTranscript('');
     }, []);
 
     return {
@@ -104,6 +115,7 @@ export const useSpeechRecognition = () => {
         stopListening,
         toggleListening,
         resetTranscript,
+        updateTranscript,
         hasSupport
     };
 };
