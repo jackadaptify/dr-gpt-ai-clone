@@ -4,7 +4,9 @@ import { IconMessage, IconSearch, IconBrain } from './Icons';
 import { User, CreditCard, Palette, LogOut, Shield, MoreHorizontal, FolderInput, X, Share, Users, Edit2, Archive, Trash2, ChevronRight, CornerUpLeft, Plus, Folder as LucideFolder, MessageCircle, BookOpen, Mic, Settings } from 'lucide-react';
 
 import { useAuth } from '../contexts/AuthContext';
+import { useSyncManager } from '../src/hooks/useSyncManager';
 import SettingsModal from './SettingsModal';
+import { RefreshCw } from 'lucide-react';
 
 interface SidebarProps {
   chats: ChatSession[];
@@ -53,6 +55,7 @@ export default function Sidebar({
   onDeleteProject
 }: SidebarProps) {
   const { user, signOut } = useAuth();
+  const { pendingCount, isSyncing, syncNow } = useSyncManager();
   const [searchTerm, setSearchTerm] = useState('');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
@@ -582,7 +585,21 @@ export default function Sidebar({
               <p className="text-[10px] text-zinc-500 truncate">{user?.email}</p>
             </div>
             <Settings size={16} />
+            <Settings size={16} />
           </button>
+
+          {/* Offline Sync Status Badge */}
+          {pendingCount > 0 && (
+            <button
+              onClick={syncNow}
+              className="mt-2 w-full flex items-center justify-between px-3 py-2 rounded-lg bg-orange-500/10 text-orange-500 text-xs font-medium border border-orange-500/20"
+            >
+              <div className="flex items-center gap-2">
+                <RefreshCw size={12} className={isSyncing ? "animate-spin" : ""} />
+                <span>{isSyncing ? "Sincronizando..." : `${pendingCount} gravação(ões) pendente(s)`}</span>
+              </div>
+            </button>
+          )}
         </div>
 
         {/* Settings Modal - Kept for legacy if needed, but we are using 'settings' mode now mostly */}
