@@ -214,14 +214,7 @@ export default function ChatPage({
                 {!activeChat || activeChat.messages.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center w-full max-w-4xl px-4 mt-20 md:mt-0">
                         <div className="text-center space-y-6 animate-in fade-in zoom-in duration-500">
-                            <div className="relative inline-block">
-                                <div className="w-24 h-24 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-3xl flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.3)] mb-4 mx-auto">
-                                    <div className="text-4xl">🩺</div>
-                                </div>
-                                <div className="absolute -bottom-2 -right-2 bg-slate-800 text-emerald-400 text-xs px-2 py-1 rounded-full border border-slate-700 font-mono">
-                                    v1.0
-                                </div>
-                            </div>
+
                             <h2 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-200">
                                 Olá, Doutor(a)
                             </h2>
