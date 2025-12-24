@@ -65,7 +65,7 @@ export default function InstallPWA() {
     return (
         <>
             {/* Mini Banner / Badge if not installed */}
-            {!showInstallModal && (
+            {!showInstallModal && !hasDismissed && (
                 <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 animate-fade-in-up">
                     <button
                         onClick={() => setShowInstallModal(true)}
@@ -167,7 +167,7 @@ export default function InstallPWA() {
                 </div>
             )}
             {/* Badge fixo no topo */}
-            {!isStandalone && (
+            {!isStandalone && !hasDismissed && (
                 <div className="fixed top-0 left-0 right-0 bg-emerald-500 text-white px-4 py-3 flex items-center justify-between z-50 shadow-lg">
                     <div className="flex items-center gap-3">
                         <Download className="w-5 h-5" />

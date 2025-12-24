@@ -48,6 +48,11 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
     const [seconds, setSeconds] = useState(0);
     const [autoScroll, setAutoScroll] = useState(true);
 
+    // Modal State
+    const [showGenerateModal, setShowGenerateModal] = useState(false);
+    const [consultationType, setConsultationType] = useState('Primeira Consulta');
+    const [observations, setObservations] = useState('');
+
     // Sync current recording with the correct state (Mic Only)
     useEffect(() => {
         // Only update from hook if we are NOT manually editing significantly differently?
@@ -165,17 +170,26 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
 
     const isRecording = mode === 'presential' ? isMicListening : isSysListening;
 
-    const handleGenerate = () => {
+    const handleInitialGenerateClick = () => {
         if (isRecording) handleToggleRecording();
+        setShowGenerateModal(true);
+    };
+
+    const confirmGenerate = () => {
+        setShowGenerateModal(false);
 
         // Pass generic defaults or captured name
         // We use the captured patientName or 'Sem Título'
         const finalName = patientName.trim() || "Paciente";
 
+        // Combine metadata into "thoughts" (which is used as Note/Observation context)
+        // Format: "Tipo Consulta: X | Obs: Y"
+        const finalThoughts = `Tipo de Consulta: ${consultationType}\nObservações: ${observations}`;
+
         if (mode === 'telemedicine' && consultationBlob) {
-            onGenerate("Arquivo de Áudio Telemedicina", "", finalName, patientGender, consultationBlob, selectedScenario);
+            onGenerate(finalThoughts, "", finalName, patientGender, consultationBlob, selectedScenario);
         } else {
-            onGenerate(consultationTranscript, "", finalName, patientGender, undefined, selectedScenario);
+            onGenerate(consultationTranscript, finalThoughts, finalName, patientGender, undefined, selectedScenario);
         }
     };
 
@@ -235,7 +249,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
 
             {/* --- LEFTSIDE: CONTROLS (Mobile: Flattened via contents) --- */}
             {/* On mobile, this wrapper 'disappears' allowing children to be reordered in the main flex container */}
-            <div className="contents md:flex md:flex-col md:w-[400px] lg:w-[420px] md:flex-none md:gap-4 md:h-full md:relative">
+            <div className="contents md:flex md:flex-col md:flex-1 md:gap-4 md:h-full md:relative">
 
                 {/* 1. Header & Selectors (Order 1 on Mobile) */}
                 <div className="order-1 md:order-none w-full flex flex-col gap-3 shrink-0 z-20 bg-background md:bg-transparent pb-2 md:pb-0">
@@ -256,22 +270,8 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                         </div>
                     </div>
 
-                    {/* Scenario & Mode */}
-                    {/* Scenario & Mode */}
+                    {/* Mode Only (Scenario removed from here) */}
                     <div className="flex gap-2 overflow-x-auto no-scrollbar md:grid md:grid-cols-1 md:gap-3">
-                        <div className="relative min-w-[160px] md:min-w-0 flex-1">
-                            <select
-                                value={selectedScenario}
-                                onChange={(e) => setSelectedScenario(e.target.value as Scenario)}
-                                className="w-full appearance-none bg-surface border border-borderLight rounded-xl py-3 md:py-3 px-3 md:px-4 text-sm md:text-sm font-medium text-textMain outline-none focus:border-emerald-500 cursor-pointer hover:bg-surfaceHighlight transition-all"
-                            >
-                                <option value="evolution">📝 Evolução</option>
-                                <option value="anamnesis">🩺 Anamnese</option>
-                                <option value="bedside">🏥 Visita</option>
-                                <option value="clinical_meeting">👥 Reunião</option>
-                            </select>
-                            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-textMuted pointer-events-none" />
-                        </div>
 
                         {/* Segmented Control for Mode */}
                         <div className="flex bg-surface border border-borderLight rounded-xl p-1 relative min-w-[150px] md:w-full">
@@ -375,7 +375,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                 {/* 4. Footer (Order 4 on Mobile) */}
                 <div className="order-4 md:order-none w-full shrink-0 md:absolute md:bottom-0 md:left-0 md:bg-gradient-to-t md:from-background md:via-background md:to-transparent md:pt-6">
                     <button
-                        onClick={handleGenerate}
+                        onClick={handleInitialGenerateClick}
                         disabled={!consultationTranscript && !consultationBlob}
                         className={`
                             w-full py-3 md:py-4 rounded-xl font-bold text-base md:text-lg flex items-center justify-center gap-2 transition-all shadow-lg
@@ -430,6 +430,89 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                     </div>
                 </div>
             </div>
+
+            {/* --- MODAL DE GERAÇÃO --- */}
+            {showGenerateModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-surface border border-borderLight rounded-2xl w-full max-w-md shadow-2xl p-6 relative animate-in zoom-in-95 duration-200">
+                        <button
+                            onClick={() => setShowGenerateModal(false)}
+                            className="absolute top-4 right-4 text-textMuted hover:text-textMain transition-colors"
+                        >
+                            <Trash2 className="rotate-45" size={20} /> {/* Using Trash2 rotated as close temporary or import X if possible (Trash2 is already imported) */}
+                        </button>
+
+                        <h3 className="text-xl font-bold text-textMain mb-1">Finalizar Consulta</h3>
+                        <p className="text-textMuted text-sm mb-6">Confirme os detalhes para gerar a documentação.</p>
+
+                        <div className="space-y-4">
+                            {/* Tipo de Consulta */}
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-textMain uppercase tracking-wider">Tipo de Consulta</label>
+                                <div className="relative">
+                                    <select
+                                        value={consultationType}
+                                        onChange={(e) => setConsultationType(e.target.value)}
+                                        className="w-full appearance-none bg-surface border border-borderLight rounded-xl py-3 px-4 text-base text-textMain outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer"
+                                    >
+                                        <option value="Primeira Consulta">Primeira Consulta</option>
+                                        <option value="Retorno">Retorno</option>
+                                        <option value="Rotina">Rotina</option>
+                                        <option value="Urgência">Urgência</option>
+                                        <option value="Teleconsulta">Teleconsulta</option>
+                                    </select>
+                                    <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-textMuted pointer-events-none" />
+                                </div>
+                            </div>
+
+                            {/* Tipo de Prontuário (Antigo Scenario) */}
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-textMain uppercase tracking-wider">Tipo de Prontuário</label>
+                                <div className="relative">
+                                    <select
+                                        value={selectedScenario}
+                                        onChange={(e) => setSelectedScenario(e.target.value as Scenario)}
+                                        className="w-full appearance-none bg-surface border border-borderLight rounded-xl py-3 px-4 text-base text-textMain outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer"
+                                    >
+                                        <option value="evolution">📝 Evolução (SOAP)</option>
+                                        <option value="anamnesis">🩺 Anamnese Completa</option>
+                                        <option value="bedside">🏥 Visita Beira-Leito</option>
+                                        <option value="clinical_meeting">👥 Reunião Clínica</option>
+                                    </select>
+                                    <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-textMuted pointer-events-none" />
+                                </div>
+                            </div>
+
+                            {/* Observações */}
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-textMain uppercase tracking-wider">Observações (Opcional)</label>
+                                <textarea
+                                    value={observations}
+                                    onChange={(e) => setObservations(e.target.value)}
+                                    placeholder="Ex: Focar na queixa principal de dor lombar..."
+                                    className="w-full bg-surface border border-borderLight rounded-xl py-3 px-4 text-base text-textMain outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all min-h-[100px] resize-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-8">
+                            <button
+                                onClick={() => setShowGenerateModal(false)}
+                                className="flex-1 py-3 rounded-xl border border-borderLight text-textMain font-semibold hover:bg-surfaceHighlight transition-all"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmGenerate}
+                                className="flex-1 py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                            >
+                                <FileText size={18} />
+                                Gerar Agora
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <style>{`
                 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
