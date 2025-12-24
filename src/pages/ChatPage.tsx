@@ -260,7 +260,7 @@ export default function ChatPage({
             </main>
 
             {/* Bottom Input Area */}
-            <footer className="absolute bottom-0 left-0 right-0 p-4 z-20 pointer-events-none flex justify-center">
+            <footer className="absolute bottom-0 left-0 right-0 px-4 pt-4 pb-8 md:pb-4 z-20 pointer-events-none flex justify-center">
                 <div className={`
                     w-full max-w-3xl pointer-events-auto transition-all duration-300
                     flex flex-col gap-2 p-2 rounded-[2rem] border shadow-2xl relative
