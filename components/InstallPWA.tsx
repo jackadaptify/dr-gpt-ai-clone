@@ -15,7 +15,7 @@ export default function InstallPWA() {
 
         // Check if iOS (including iPads with desktop site enabled)
         const userAgent = window.navigator.userAgent.toLowerCase();
-        const isIosDevice = /iphone|ipad|ipod/.test(userAgent) || (userAgent.includes("mac") && "ontouchend" in document);
+        const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
         setIsIOS(isIosDevice);
 
         // Check localStorage preference
@@ -60,7 +60,7 @@ export default function InstallPWA() {
         setShowInstallModal(false);
     };
 
-    if (isStandalone || hasDismissed) return null;
+    if (isStandalone) return null;
 
     return (
         <>
@@ -167,7 +167,7 @@ export default function InstallPWA() {
                 </div>
             )}
             {/* Badge fixo no topo */}
-            {!isStandalone && !hasDismissed && (
+            {!isStandalone && (
                 <div className="fixed top-0 left-0 right-0 bg-emerald-500 text-white px-4 py-3 flex items-center justify-between z-50 shadow-lg">
                     <div className="flex items-center gap-3">
                         <Download className="w-5 h-5" />
