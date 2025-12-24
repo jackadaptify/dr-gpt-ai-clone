@@ -18,16 +18,16 @@ export default function InstallPWA() {
         const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
         setIsIOS(isIosDevice);
 
-        // Check localStorage preference
-        const dismissed = localStorage.getItem('pwa-install-dismissed');
-        if (dismissed) setHasDismissed(true);
+        // Check localStorage preference REMOVED to ensure it always appears on reload
+        // const dismissed = localStorage.getItem('pwa-install-dismissed');
+        // if (dismissed) setHasDismissed(true);
 
         // Listen for beforeinstallprompt (Android/Chrome)
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault();
             setDeferredPrompt(e);
-            // Only auto-show if not dismissed and not standalone
-            if (!dismissed && !isStandaloneMode) {
+            // Only auto-show if not dismissed (session state) and not standalone
+            if (!isStandaloneMode) {
                 // We can show a banner or just wait for user user interaction
             }
         };
@@ -56,7 +56,7 @@ export default function InstallPWA() {
 
     const handleDismiss = () => {
         setHasDismissed(true);
-        localStorage.setItem('pwa-install-dismissed', 'true');
+        // localStorage.setItem('pwa-install-dismissed', 'true'); // Don't persist dismissal forever
         setShowInstallModal(false);
     };
 

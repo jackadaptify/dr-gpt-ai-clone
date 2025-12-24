@@ -12,7 +12,7 @@ interface ScribeViewProps {
 type Step = 'consultation' | 'thought';
 type Mode = 'presential' | 'telemedicine';
 type Gender = 'M' | 'F';
-type Scenario = 'evolution' | 'anamnesis' | 'bedside' | 'clinical_meeting';
+type Scenario = 'evolution' | 'anamnesis' | 'bedside' | 'clinical_meeting' | 'dar' | 'pie' | 'narrative' | 'hospital_evolution' | 'emergency_care' | 'psychiatric';
 
 export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOpenSettings }: ScribeViewProps) {
     const { isListening: isMicListening, transcript, toggleListening: toggleMic, resetTranscript, updateTranscript } = useSpeechRecognition();
@@ -405,12 +405,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                             <FileText size={14} className="md:hidden" />
                             <span className="font-semibold text-xs md:text-sm">Transcrição em Tempo Real</span>
                         </div>
-                        <button
-                            onClick={() => setAutoScroll(!autoScroll)}
-                            className={`text-[10px] md:text-xs font-medium px-2 py-1 md:px-3 md:py-1.5 rounded-lg border transition-all ${autoScroll ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-transparent border-transparent text-textMuted hover:bg-surfaceHighlight'}`}
-                        >
-                            {autoScroll ? 'Auto-scroll On' : 'Off'}
-                        </button>
+
                     </div>
 
                     <div className={`flex-1 relative transition-all duration-500 ${isRecording ? 'bg-emerald-500/5 ring-1 ring-emerald-500/20' : 'bg-surfaceHighlight/20'}`}>
@@ -456,10 +451,13 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                                         className="w-full appearance-none bg-surface border border-borderLight rounded-xl py-3 px-4 text-base text-textMain outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer"
                                     >
                                         <option value="Primeira Consulta">Primeira Consulta</option>
-                                        <option value="Retorno">Retorno</option>
-                                        <option value="Rotina">Rotina</option>
-                                        <option value="Urgência">Urgência</option>
-                                        <option value="Teleconsulta">Teleconsulta</option>
+                                        <option value="Retorno/Consulta de Revisão">Retorno/Consulta de Revisão</option>
+                                        <option value="Consulta de Urgência/Emergência">Consulta de Urgência/Emergência</option>
+                                        <option value="Consulta Pré-Operatória">Consulta Pré-Operatória</option>
+                                        <option value="Consulta Pós-Operatória">Consulta Pós-Operatória</option>
+                                        <option value="Acompanhamento de Doença Crônica">Acompanhamento de Doença Crônica</option>
+                                        <option value="Atestado/Receita">Atestado/Receita</option>
+                                        <option value="Exames de Rotina/Check-up">Exames de Rotina/Check-up</option>
                                     </select>
                                     <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-textMuted pointer-events-none" />
                                 </div>
@@ -475,6 +473,12 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                                         className="w-full appearance-none bg-surface border border-borderLight rounded-xl py-3 px-4 text-base text-textMain outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer"
                                     >
                                         <option value="evolution">📝 Evolução (SOAP)</option>
+                                        <option value="dar">📋 DAR (Dados, Ação, Resposta)</option>
+                                        <option value="pie">📋 PIE (Problema, Intervenção, Evolução)</option>
+                                        <option value="narrative">📋 Narrativo (Texto livre)</option>
+                                        <option value="hospital_evolution">📋 Evolução Hospitalar</option>
+                                        <option value="emergency_care">📋 Atendimento de Urgência</option>
+                                        <option value="psychiatric">📋 Psiquiátrico</option>
                                         <option value="anamnesis">🩺 Anamnese Completa</option>
                                         <option value="bedside">🏥 Visita Beira-Leito</option>
                                         <option value="clinical_meeting">👥 Reunião Clínica</option>
