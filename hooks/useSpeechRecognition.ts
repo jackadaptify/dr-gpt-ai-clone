@@ -33,6 +33,7 @@ export const useSpeechRecognition = () => {
     const startTimeRef = useRef<number>(0);
     const accumulatedTimeRef = useRef<number>(0);
     const finalizedIndices = useRef<Set<number>>(new Set());
+    const lastFinalizedChunk = useRef<string>('');
 
     // Combined for the UI
     const transcript = historyTranscript + (historyTranscript && currentTranscript ? ' ' : '') + currentTranscript;
@@ -73,6 +74,8 @@ export const useSpeechRecognition = () => {
                                     const separator = prev ? '\n\n' : ''; // Double newline for paragraph break
                                     return prev + separator + `${timestamp} ${text}`;
                                 });
+                                // Store for deduplication check
+                                lastFinalizedChunk.current = text;
                             }
                             finalizedIndices.current.add(i);
                         }
@@ -80,6 +83,12 @@ export const useSpeechRecognition = () => {
                         interimText += result[0].transcript;
                     }
                 }
+
+                // Deduplicate: If interim text is a phantom echo of the last finalized chunk, hide it.
+                if (lastFinalizedChunk.current && interimText.trim() === lastFinalizedChunk.current) {
+                    interimText = '';
+                }
+
                 setCurrentTranscript(interimText);
             };
 
@@ -190,6 +199,7 @@ export const useSpeechRecognition = () => {
         setCurrentTranscript('');
         accumulatedTimeRef.current = 0;
         finalizedIndices.current.clear();
+        lastFinalizedChunk.current = '';
     }, []);
 
     const updateTranscript = useCallback((newText: string) => {

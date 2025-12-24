@@ -13,9 +13,9 @@ export default function InstallPWA() {
         const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
         setIsStandalone(isStandaloneMode);
 
-        // Check if iOS
+        // Check if iOS (including iPads with desktop site enabled)
         const userAgent = window.navigator.userAgent.toLowerCase();
-        const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+        const isIosDevice = /iphone|ipad|ipod/.test(userAgent) || (userAgent.includes("mac") && "ontouchend" in document);
         setIsIOS(isIosDevice);
 
         // Check localStorage preference
@@ -112,7 +112,7 @@ export default function InstallPWA() {
                                                 1
                                             </span>
                                             <span>
-                                                Para instalar, abra este site no <strong>Safari</strong>
+                                                Se não estiver no Safari, abra este site no navegador <strong>Safari</strong>
                                             </span>
                                         </li>
                                         <li className="flex items-start gap-3">
