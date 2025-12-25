@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChatSession, Folder, Agent, AppMode } from '../types';
-import { IconMessage, IconSearch, IconBrain } from './Icons';
-import { User, CreditCard, Palette, LogOut, Shield, MoreHorizontal, FolderInput, X, Share, Users, Edit2, Archive, Trash2, ChevronRight, CornerUpLeft, Plus, Folder as LucideFolder, MessageCircle, BookOpen, Mic, Settings, PanelLeft } from 'lucide-react';
+import { IconMessage, IconBrain } from './Icons';
+import { User, CreditCard, Palette, LogOut, Shield, MoreHorizontal, FolderInput, X, Share, Users, Edit2, Archive, Trash2, ChevronRight, CornerUpLeft, Plus, Folder as LucideFolder, MessageCircle, BookOpen, Mic, Settings, PanelLeft, Search } from 'lucide-react';
 
 import { useAuth } from '../contexts/AuthContext';
 import { useSyncManager } from '../src/hooks/useSyncManager';
@@ -285,14 +285,17 @@ export default function Sidebar({
         )}
       </div>
     );
+  };
 
-    // Mode-Specific Content
-    const renderContent = () => {
-      switch (activeMode) {
-        case 'chat':
-          return (
-            <>
-              {/* Folders Section */}
+  // Mode-Specific Content
+  const renderContent = () => {
+    switch (activeMode) {
+      case 'chat':
+        return (
+          <>
+            {/* Folders Section */}
+            {/* Folders Section - Collapsed Logic: Hide header and simplified buttons */}
+            {!isCollapsed && (
               <div className="px-3 mt-6">
                 <div className="flex items-center justify-between px-2 mb-2">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-textMuted">Projetos</h3>
@@ -321,7 +324,6 @@ export default function Sidebar({
                     </div>
                   </form>
                 )}
-
                 <div className="space-y-1">
                   <button
                     onClick={() => setSelectedFolderId(null)}
@@ -358,284 +360,327 @@ export default function Sidebar({
                   ))}
                 </div>
               </div>
-
-              {renderChatList(selectedFolderId ? `Em: ${folders.find(f => f.id === selectedFolderId)?.name}` : 'Histórico', 'Nenhuma conversa encontrada.', <IconMessage />)}
-            </>
-          );
-
-        case 'scribe':
-          return (
-            <>
-              <div className="px-4 text-center mt-6 mb-4">
-                <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-2 text-emerald-500">
-                  <Edit2 />
-                </div>
-                <p className="text-sm font-medium text-emerald-500">AI Scribe</p>
-                <p className="text-xs text-textMuted">Suas consultas gravadas.</p>
+            )}
+            {/* Collapsed Mode: Just a centered 'All Chats' Icon or hidden? Let's hide folders for now to be clean as requested. */}
+            {isCollapsed && (
+              <div className="mt-4 px-2 flex justify-center">
+                <button
+                  onClick={() => setSelectedFolderId(null)}
+                  className={`p-2 rounded-lg transition-colors ${!selectedFolderId ? 'bg-surfaceHighlight text-emerald-500' : 'text-textMuted hover:text-textMain hover:bg-surfaceHighlight'}`}
+                  title="Todos os Chats"
+                >
+                  <LucideFolder size={20} />
+                </button>
               </div>
-              {renderChatList('Consultas Recentes', 'Nenhuma consulta gravada ainda.', <Edit2 size={16} />)}
-            </>
-          );
+            )}
 
-        case 'research':
-          return (
-            <div className="px-4 text-center mt-6 mb-4">
-              <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-2 text-emerald-500">
-                <BookOpen />
+            {renderChatList(selectedFolderId ? `Em: ${folders.find(f => f.id === selectedFolderId)?.name}` : 'Histórico', 'Nenhuma conversa encontrada.', <IconMessage />)}
+          </>
+        );
+
+      case 'scribe':
+        return (
+          renderChatList('Consultas Recentes', 'Nenhuma consulta gravada ainda.', <Edit2 size={16} />)
+        );
+
+      case 'research':
+        return (
+          <>
+            {/* Research Mode List - Currently placeholder as we don't have a specific list function yet, 
+                 but we remove the header as requested. We can add a list later or just leave empty. */}
+            {/* If we want chat list for research, handle filtering above and call renderChatList here */}
+            {renderChatList('Pesquisas Recentes', 'Nenhuma pesquisa recente.', <BookOpen size={16} />)}
+          </>
+        );
+
+      case 'settings':
+        return (
+          <div className="px-3 mt-4 space-y-6">
+
+            {/* User Profile Summary */}
+            <div className={`p-4 rounded-xl bg-white/5 border border-white/5 flex flex-col items-center text-center ${isCollapsed ? 'py-6' : ''}`}>
+              <div className="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-emerald-900/20 mb-3 shrink-0">
+                {user?.email?.[0].toUpperCase() || 'U'}
               </div>
-              <p className="text-sm font-medium text-emerald-500">Pesquisa Médica</p>
-              <p className="text-xs text-textMuted">Histórico de pesquisas.</p>
-            </div>
-            // If we want chat list for research, handle filtering above and call renderChatList here
-          );
-
-        case 'settings':
-          return (
-            <div className="px-3 mt-4 space-y-6">
-
-              {/* User Profile Summary */}
-              <div className="p-4 rounded-xl bg-white/5 border border-white/5 flex flex-col items-center text-center">
-                <div className="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-emerald-900/20 mb-3">
-                  {user?.email?.[0].toUpperCase() || 'U'}
-                </div>
-                <h3 className="font-semibold text-white">{user?.full_name || 'Usuário Dr. GPT'}</h3>
-                <p className="text-xs text-zinc-400">{user?.email}</p>
-                {user?.role === 'admin' && (
-                  <span className="mt-2 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full inline-block">
-                    Administrador
-                  </span>
-                )}
-              </div>
-
-              {/* Menu Options */}
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider mb-3 px-2 text-textMuted">Conta</h3>
-                <div className="space-y-1">
-                  <button
-                    onClick={() => {
-                      onModeChange('settings');
-                      onSettingsTabChange('profile');
-                      if (window.innerWidth < 768) setIsOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${activeMode === 'settings' && settingsTab === 'profile' ? 'bg-surfaceHighlight text-textMain' : 'text-textMain hover:bg-surfaceHighlight'}`}
-                  >
-                    <User size={18} className="text-zinc-500" />
-                    <span>Dados Pessoais</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      onModeChange('settings');
-                      onSettingsTabChange('subscription');
-                      if (window.innerWidth < 768) setIsOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${activeMode === 'settings' && settingsTab === 'subscription' ? 'bg-surfaceHighlight text-textMain' : 'text-textMain hover:bg-surfaceHighlight'}`}
-                  >
-                    <CreditCard size={18} className="text-zinc-500" />
-                    <span>Assinatura</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      onModeChange('settings');
-                      onSettingsTabChange('appearance');
-                      if (window.innerWidth < 768) setIsOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${activeMode === 'settings' && settingsTab === 'appearance' ? 'bg-surfaceHighlight text-textMain' : 'text-textMain hover:bg-surfaceHighlight'}`}
-                  >
-                    <Palette size={18} className="text-zinc-500" />
-                    <span>Aparência e Cores</span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      onModeChange('settings');
-                      onSettingsTabChange('security');
-                      if (window.innerWidth < 768) setIsOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${activeMode === 'settings' && settingsTab === 'security' ? 'bg-surfaceHighlight text-textMain' : 'text-textMain hover:bg-surfaceHighlight'}`}
-                  >
-                    <Shield size={18} className="text-zinc-500" />
-                    <span>Segurança</span>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider mb-3 px-2 text-textMuted">Sistema</h3>
-                <div className="space-y-1">
+              {!isCollapsed && (
+                <>
+                  <h3 className="font-semibold text-white">{user?.full_name || 'Usuário Dr. GPT'}</h3>
+                  <p className="text-xs text-zinc-400">{user?.email}</p>
                   {user?.role === 'admin' && (
-                    <button
-                      onClick={() => window.open('/admin', '_blank')}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-textMain hover:bg-surfaceHighlight"
-                    >
-                      <IconBrain className="w-4 h-4 text-emerald-500" />
-                      <span>Painel Admin</span>
-                    </button>
+                    <span className="mt-2 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full inline-block">
+                      Administrador
+                    </span>
                   )}
+                </>
+              )}
+            </div>
 
-                  <button
-                    onClick={() => signOut()}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-red-400 hover:bg-red-500/10"
-                  >
-                    <LogOut size={18} />
-                    <span>Sair da Conta</span>
-                  </button>
-                </div>
+            {/* Menu Options */}
+            <div>
+              {!isCollapsed && <h3 className="text-xs font-bold uppercase tracking-wider mb-3 px-2 text-textMuted">Conta</h3>}
+              <div className="space-y-1">
+                <button
+                  onClick={() => {
+                    onModeChange('settings');
+                    onSettingsTabChange('profile');
+                    if (window.innerWidth < 768) setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-sm transition-colors ${activeMode === 'settings' && settingsTab === 'profile' ? 'bg-surfaceHighlight text-textMain' : 'text-textMain hover:bg-surfaceHighlight'}`}
+                  title={isCollapsed ? 'Dados Pessoais' : ''}
+                >
+                  <User size={18} className="text-zinc-500" />
+                  {!isCollapsed && <span>Dados Pessoais</span>}
+                </button>
+
+                <button
+                  onClick={() => {
+                    onModeChange('settings');
+                    onSettingsTabChange('subscription');
+                    if (window.innerWidth < 768) setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-sm transition-colors ${activeMode === 'settings' && settingsTab === 'subscription' ? 'bg-surfaceHighlight text-textMain' : 'text-textMain hover:bg-surfaceHighlight'}`}
+                  title={isCollapsed ? 'Assinatura' : ''}
+                >
+                  <CreditCard size={18} className="text-zinc-500" />
+                  {!isCollapsed && <span>Assinatura</span>}
+                </button>
+
+                <button
+                  onClick={() => {
+                    onModeChange('settings');
+                    onSettingsTabChange('appearance');
+                    if (window.innerWidth < 768) setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-sm transition-colors ${activeMode === 'settings' && settingsTab === 'appearance' ? 'bg-surfaceHighlight text-textMain' : 'text-textMain hover:bg-surfaceHighlight'}`}
+                  title={isCollapsed ? 'Aparência e Cores' : ''}
+                >
+                  <Palette size={18} className="text-zinc-500" />
+                  {!isCollapsed && <span>Aparência e Cores</span>}
+                </button>
+
+                <button
+                  onClick={() => {
+                    onModeChange('settings');
+                    onSettingsTabChange('security');
+                    if (window.innerWidth < 768) setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-sm transition-colors ${activeMode === 'settings' && settingsTab === 'security' ? 'bg-surfaceHighlight text-textMain' : 'text-textMain hover:bg-surfaceHighlight'}`}
+                  title={isCollapsed ? 'Segurança' : ''}
+                >
+                  <Shield size={18} className="text-zinc-500" />
+                  {!isCollapsed && <span>Segurança</span>}
+                </button>
               </div>
             </div>
-          );
 
-        default:
-          // Use default if nothing matches, or maybe just 'chat'?
-          return null;
-      }
-    };
+            <div>
+              {!isCollapsed && <h3 className="text-xs font-bold uppercase tracking-wider mb-3 px-2 text-textMuted">Sistema</h3>}
+              <div className="space-y-1">
+                {user?.role === 'admin' && (
+                  <button
+                    onClick={() => window.open('/admin', '_blank')}
+                    className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-sm transition-colors text-textMain hover:bg-surfaceHighlight`}
+                    title={isCollapsed ? 'Painel Admin' : ''}
+                  >
+                    <IconBrain className="w-4 h-4 text-emerald-500" />
+                    {!isCollapsed && <span>Painel Admin</span>}
+                  </button>
+                )}
 
-    const navLinks = [
-      { mode: 'chat', label: 'Copiloto clínico', icon: MessageCircle },
-      { mode: 'research', label: 'Pesquisa avançada', icon: BookOpen },
-      { mode: 'scribe', label: 'Transcrição de consulta', icon: Mic },
-    ];
+                <button
+                  onClick={() => signOut()}
+                  className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2.5 rounded-lg text-sm transition-colors text-red-400 hover:bg-red-500/10`}
+                  title={isCollapsed ? 'Sair da Conta' : ''}
+                >
+                  <LogOut size={18} />
+                  {!isCollapsed && <span>Sair da Conta</span>}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
 
-    return (
-      <>
-        {/* Mobile Overlay */}
-        {isOpen && (
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden"
-            onClick={() => setIsOpen(false)}
-          />
-        )}
+      default:
+        // Use default if nothing matches, or maybe just 'chat'?
+        return null;
+    }
+  };
 
-        {/* Sidebar Container */}
-        <aside className={`
-        fixed inset-y-0 left-0 z-[70] w-[280px] text-textMain flex flex-col transition-transform duration-300 transform
+  const navLinks = [
+    { mode: 'chat', label: 'Copiloto clínico', icon: MessageCircle },
+    { mode: 'research', label: 'Pesquisa avançada', icon: BookOpen },
+    { mode: 'scribe', label: 'Transcrição de consulta', icon: Mic },
+  ];
+
+  return (
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Container */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-[70] ${isCollapsed ? 'w-[80px]' : 'w-[280px]'} text-textMain flex flex-col transition-all duration-300
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         md:relative md:translate-x-0
         bg-sidebar backdrop-blur-xl border-r border-borderLight
       `}>
-          {/* Header - Unified Navigation */}
-          <div className="p-3 space-y-2 border-b border-borderLight relative">
+        {/* Header - Unified Navigation */}
+        {/* Header - Unified Navigation */}
+        <div className="p-3 space-y-1 relative">
+          {/* Top Row: Logo & Toggle */}
+          {/* Top Row: Logo & Toggle */}
+          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-2 pb-4 pt-1 h-[40px] relative`}>
+            {/* Expanded: Logo on left */}
+            {!isCollapsed && (
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500 overflow-hidden flex items-center justify-center shrink-0">
+                  <span className="font-bold text-white text-xs">Dr</span>
+                </div>
+                <span className="font-bold text-lg whitespace-nowrap overflow-hidden animate-in fade-in duration-200">Dr. GPT</span>
+              </div>
+            )}
+
             {/* Collapsible Toggle (Desktop Only) */}
             <button
               onClick={toggleCollapse}
-              className="hidden md:flex absolute top-3 right-3 p-1.5 rounded-lg text-textMuted hover:text-textMain hover:bg-surfaceHighlight transition-colors"
+              className={`hidden md:flex p-1.5 rounded-lg text-textMuted hover:text-textMain hover:bg-surfaceHighlight transition-colors ${!isCollapsed ? '' : ''}`}
               title={isCollapsed ? "Expandir Sidebar" : "Recolher Sidebar"}
             >
               <PanelLeft size={18} />
             </button>
-
-            <div className="flex items-center gap-2 px-2 pb-2 pt-1 h-[40px]">
-              <div className="w-7 h-7 rounded-lg bg-emerald-500 overflow-hidden flex items-center justify-center shrink-0">
-                <span className="font-bold text-white text-xs">Dr</span>
-              </div>
-              {!isCollapsed && <span className="font-bold text-lg whitespace-nowrap overflow-hidden animate-in fade-in duration-200">Dr. GPT</span>}
-            </div>
-
-            <div className="space-y-1">
-              {navLinks.map((link) => {
-                const isActive = activeMode === link.mode;
-                const Icon = link.icon;
-                return (
-                  <button
-                    key={link.mode}
-                    onClick={() => onModeChange(link.mode as AppMode)}
-                    className={`
-                       w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
-                       ${isActive
-                        ? 'bg-emerald-500/10 text-emerald-500 shadow-sm'
-                        : 'text-textMuted hover:text-textMain hover:bg-surfaceHighlight'}
-                     `}
-                  >
-                    <Icon size={18} />
-                    <span>{link.label}</span>
-                  </button>
-                );
-              })}
-            </div>
           </div>
 
-          {/* Global Search & New Chat */}
-          {activeMode === 'chat' && (
-            <div className="px-3 pt-4 pb-2 space-y-2">
-              <div className="flex items-center gap-2">
-                {/* Search Input */}
-                <div className={`relative group flex-1`}>
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-textMuted group-focus-within:text-emerald-500 transition-colors">
-                    <IconSearch />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Search"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 rounded-lg text-sm transition-all outline-none border border-transparent focus:border-emerald-500/50 bg-surfaceHighlight focus:bg-surface placeholder-textMuted text-textMain"
-                  />
-                </div>
+          {/* New Chat & Search - Replicated ChatGPT Style */}
+          {/* New Chat & Search - Adaptive to Mode */}
+          {(() => {
+            let newLabel = "Novo chat";
+            let searchLabel = "Buscar em chats";
 
-                {/* New Chat Button */}
+            if (activeMode === 'scribe') {
+              newLabel = "Nova transcrição";
+              searchLabel = "Buscar transcrições";
+            } else if (activeMode === 'research') {
+              newLabel = "Nova pesquisa";
+              searchLabel = "Buscar pesquisas";
+            }
+
+            return (
+              <>
                 <button
                   onClick={onNewChat}
-                  className="p-2 rounded-lg transition-colors border border-transparent bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/20"
-                  title="Novo Chat"
+                  className={`
+                         w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                          text-textMain hover:bg-surfaceHighlight
+                       `}
+                  title={newLabel}
                 >
-                  <Plus size={20} />
+                  <Edit2 size={18} />
+                  {!isCollapsed && <span>{newLabel}</span>}
                 </button>
-              </div>
-            </div>
-          )}
 
-          {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6 py-2">
-            {renderContent()}
+                <div className={`relative group w-full`}>
+                  <button
+                    className={`
+                              w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                               text-textMuted hover:text-textMain hover:bg-surfaceHighlight
+                          `}
+                    onClick={() => {/* Trigger search focus logic */ }}
+                    title={searchLabel}
+                  >
+                    <Search size={18} />
+                    {!isCollapsed && <span>{searchLabel}</span>}
+                  </button>
+                  {/* Actual Input could be overlay or replace this button when active */}
+                </div>
+              </>
+            );
+          })()}
+
+          <div className="pt-2 space-y-1">
+            {navLinks.map((link) => {
+              const isActive = activeMode === link.mode;
+              const Icon = link.icon;
+              return (
+                <button
+                  key={link.mode}
+                  onClick={() => onModeChange(link.mode as AppMode)}
+                  className={`
+                       w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                       ${isActive
+                      ? 'bg-emerald-500/10 text-emerald-500 shadow-sm'
+                      : 'text-textMuted hover:text-textMain hover:bg-surfaceHighlight'}
+                     `}
+                  title={isCollapsed ? link.label : ''}
+                >
+                  <Icon size={18} />
+                  {!isCollapsed && <span>{link.label}</span>}
+                </button>
+              );
+            })}
           </div>
+        </div>
 
-          {/* Footer: User & Settings */}
-          <div className="p-3 border-t border-borderLight bg-sidebar/50 backdrop-blur-md">
-            <button
-              onClick={() => onModeChange('settings')}
-              className={`
-                    w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200
+
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6 py-2">
+          {renderContent()}
+        </div>
+
+        {/* Footer: User & Settings */}
+        <div className="p-3 border-t border-borderLight bg-sidebar/50 backdrop-blur-md">
+          <button
+            onClick={() => onModeChange('settings')}
+            className={`
+                    w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-3 rounded-xl transition-all duration-200
                     ${activeMode === 'settings'
-                  ? 'bg-surfaceHighlight text-textMain'
-                  : 'text-textMuted hover:bg-surfaceHighlight hover:text-textMain'}
+                ? 'bg-surfaceHighlight text-textMain'
+                : 'text-textMuted hover:bg-surfaceHighlight hover:text-textMain'}
                 `}
-            >
-              <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold text-white shadow-sm ring-2 ring-transparent group-hover:ring-emerald-500/20 shrink-0">
-                {user?.email?.[0].toUpperCase() || 'U'}
-              </div>
-              {!isCollapsed && (
+            title="Configurações (Perfil)"
+          >
+            <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-xs font-bold text-white shadow-sm ring-2 ring-transparent group-hover:ring-emerald-500/20 shrink-0">
+              {user?.email?.[0].toUpperCase() || 'U'}
+            </div>
+            {!isCollapsed && (
+              <>
                 <div className="flex-1 text-left overflow-hidden animate-in fade-in duration-200">
                   <p className="text-sm font-medium truncate">{user?.full_name || 'Usuário'}</p>
                   <p className="text-[10px] text-zinc-500 truncate">{user?.email}</p>
                 </div>
-              )}
-              <Settings size={16} />
-            </button>
-
-            {/* Offline Sync Status Badge */}
-            {pendingCount > 0 && (
-              <button
-                onClick={syncNow}
-                className="mt-2 w-full flex items-center justify-between px-3 py-2 rounded-lg bg-orange-500/10 text-orange-500 text-xs font-medium border border-orange-500/20"
-              >
-                <div className="flex items-center gap-2">
-                  <RefreshCw size={12} className={isSyncing ? "animate-spin" : ""} />
-                  <span>{isSyncing ? "Sincronizando..." : `${pendingCount} gravação(ões) pendente(s)`}</span>
-                </div>
-              </button>
+                <Settings size={16} />
+              </>
             )}
-          </div>
+          </button>
 
-          {/* Settings Modal - Kept for legacy if needed, but we are using 'settings' mode now mostly */}
-          <SettingsModal
-            isOpen={showSettingsModal}
-            onClose={() => setShowSettingsModal(false)}
-            isDarkMode={isDarkMode}
-            toggleTheme={toggleTheme}
-          />
-        </aside>
-      </>
-    );
-  }
+          {/* Offline Sync Status Badge */}
+          {pendingCount > 0 && (
+            <button
+              onClick={syncNow}
+              className={`mt-2 w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-between'} px-3 py-2 rounded-lg bg-orange-500/10 text-orange-500 text-xs font-medium border border-orange-500/20`}
+              title={isCollapsed ? `${pendingCount} gravação(ões) pendente(s)` : ''}
+            >
+              <div className="flex items-center gap-2">
+                <RefreshCw size={12} className={isSyncing ? "animate-spin" : ""} />
+                {!isCollapsed && <span>{isSyncing ? "Sincronizando..." : `${pendingCount} gravação(ões) pendente(s)`}</span>}
+              </div>
+            </button>
+          )}
+        </div>
+
+        {/* Settings Modal - Kept for legacy if needed, but we are using 'settings' mode now mostly */}
+        <SettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+          isDarkMode={isDarkMode}
+          toggleTheme={toggleTheme}
+        />
+      </aside>
+    </>
+  );
+}

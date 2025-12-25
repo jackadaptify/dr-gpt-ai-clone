@@ -175,8 +175,12 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
 
     // Unified Toggle
     const handleToggleRecording = () => {
-        // Sync edits back to hook before toggling (Important for Resume)
-        if (updateTranscript && consultationTranscript) {
+        // Sync edits back to hook ONLY when STARTING (Important for Resume)
+        // We do NOT sync on stop, because recognition.stop() will finalize the current chunk with timestamp.
+        // Syncing on stop would cause duplication (Raw + Timestamped).
+        const currentlyRecording = mode === 'presential' ? isMicListening : isSysListening;
+
+        if (!currentlyRecording && updateTranscript && consultationTranscript) {
             updateTranscript(consultationTranscript);
         }
 
