@@ -30,6 +30,7 @@ export default function DashboardLayout() {
 
     // Local UI State
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false); // Collapsed state for desktop
     const [folders, setFolders] = useState<Folder[]>([]);
     const [isDarkMode, setIsDarkMode] = useState(true);
     const [settingsTab, setSettingsTab] = useState<'profile' | 'subscription' | 'appearance' | 'security'>('profile');
@@ -326,6 +327,9 @@ export default function DashboardLayout() {
                     onDeleteProject={handleDeleteProject}
                     settingsTab={settingsTab}
                     onSettingsTabChange={setSettingsTab}
+
+                    isCollapsed={sidebarCollapsed}
+                    toggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
                 />
             )}
 

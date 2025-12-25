@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, FileText, ArrowRight, MonitorPlay, Lock, Menu, Users, Edit2, ChevronDown, Pause, Play, Trash2 } from 'lucide-react';
+import { Mic, Square, FileText, ArrowRight, MonitorPlay, Lock, Menu, Users, Edit2, ChevronDown, Pause, Play, Trash2, CheckSquare, Square as SquareIcon, UploadCloud, Settings } from 'lucide-react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 interface ScribeViewProps {
@@ -49,9 +49,28 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
     const [autoScroll, setAutoScroll] = useState(true);
 
     // Modal State
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showGenerateModal, setShowGenerateModal] = useState(false);
     const [consultationType, setConsultationType] = useState('Primeira Consulta');
     const [observations, setObservations] = useState('');
+    const [selectedModules, setSelectedModules] = useState<string[]>([]);
+
+    // Available Analysis Modules
+    const analysisModules = [
+        "Análise Laboratorial",
+        "Interpretação de Imagens",
+        "Sugestão de CID",
+        "Prescrição Guiada",
+        "Risco Cardiovascular"
+    ];
+
+    const toggleModule = (module: string) => {
+        setSelectedModules(prev =>
+            prev.includes(module)
+                ? prev.filter(m => m !== module)
+                : [...prev, module]
+        );
+    };
 
     // Sync current recording with the correct state (Mic Only)
     useEffect(() => {
@@ -184,7 +203,9 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
 
         // Combine metadata into "thoughts" (which is used as Note/Observation context)
         // Format: "Tipo Consulta: X | Obs: Y"
-        const finalThoughts = `Tipo de Consulta: ${consultationType}\nObservações: ${observations}`;
+        // Combine metadata into "thoughts" (which is used as Note/Observation context)
+        // Format: "Módulos: [A, B] | Tipo de Consulta: X | Obs: Y"
+        const finalThoughts = `Módulos: ${selectedModules.length > 0 ? selectedModules.join(', ') : 'Nenhum'}\nTipo de Consulta: ${consultationType}\nObservações: ${observations}`;
 
         if (mode === 'telemedicine' && consultationBlob) {
             onGenerate(finalThoughts, "", finalName, patientGender, consultationBlob, selectedScenario);
@@ -236,176 +257,126 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
     };
 
     const handleDiscard = () => {
-        if (confirm("Tem certeza que deseja descartar esta gravação?")) {
-            resetTranscript();
-            setConsultationBlob(null);
-            setSeconds(0);
-            if (isRecording) handleToggleRecording(); // Stop
-        }
+        setShowDeleteModal(true);
+    };
+
+    const confirmDiscard = () => {
+        resetTranscript();
+        setConsultationBlob(null);
+        setSeconds(0);
+        if (isRecording) handleToggleRecording(); // Stop
+        setShowDeleteModal(false);
     };
 
     return (
-        <div className="flex flex-col md:flex-row h-full w-full max-w-[98%] xl:max-w-[1600px] mx-auto gap-2 md:gap-6 p-2 md:p-6 animate-in fade-in duration-500 overflow-hidden text-textMain">
+        <div className="flex flex-col h-full w-full max-w-[98%] xl:max-w-[1600px] mx-auto gap-4 p-2 md:p-6 animate-in fade-in duration-500 overflow-hidden text-textMain">
 
-            {/* --- LEFTSIDE: CONTROLS (Mobile: Flattened via contents) --- */}
-            {/* On mobile, this wrapper 'disappears' allowing children to be reordered in the main flex container */}
-            <div className="contents md:flex md:flex-col md:flex-1 md:gap-4 md:h-full md:relative">
-
-                {/* 1. Header & Selectors (Order 1 on Mobile) */}
-                <div className="order-1 md:order-none w-full flex flex-col gap-3 shrink-0 z-20 bg-background md:bg-transparent pb-2 md:pb-0">
-                    {/* Header: Menu & Patient */}
-                    <div className="flex items-center gap-2 md:gap-3">
-                        <button onClick={toggleSidebar} className="p-3 md:p-2.5 rounded-xl bg-surface hover:bg-surfaceHighlight text-textMuted hover:text-textMain border border-borderLight transition-all">
-                            <Menu size={20} />
-                        </button>
-                        <div className="flex-1 relative">
-                            <label className="text-[10px] font-bold text-textMuted uppercase tracking-wider absolute -top-2 left-2 bg-background px-1 hidden md:block">Paciente</label>
-                            <input
-                                type="text"
-                                value={patientName}
-                                onChange={(e) => setPatientName(e.target.value)}
-                                placeholder="Nome do Paciente..."
-                                className="w-full bg-surface border border-borderLight rounded-xl py-3 md:py-3 px-4 md:px-4 text-base md:text-base font-semibold text-textMain outline-none focus:border-emerald-500 transition-all placeholder:text-textMuted/40"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Mode Only (Scenario removed from here) */}
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar md:grid md:grid-cols-1 md:gap-3">
-
-                        {/* Segmented Control for Mode */}
-                        <div className="flex bg-surface border border-borderLight rounded-xl p-1 relative min-w-[150px] md:w-full">
-                            {/* Sliding Indicator (Simplified via active classes since height is fixed) */}
-                            <button
-                                onClick={() => !isRecording && setMode('presential')}
-                                className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg text-xs font-bold py-2 md:py-2 transition-all z-10 ${mode === 'presential' ? 'bg-emerald-100 text-emerald-800 shadow-sm border border-emerald-200/50' : 'text-textMuted hover:bg-surfaceHighlight'}`}
-                            >
-                                <Users size={14} /> <span className="hidden sm:inline">Presencial</span>
-                            </button>
-                            <button
-                                onClick={() => !isRecording && setMode('telemedicine')}
-                                className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg text-xs font-bold py-2 md:py-2 transition-all z-10 ${mode === 'telemedicine' ? 'bg-blue-100 text-blue-800 shadow-sm border border-blue-200/50' : 'text-textMuted hover:bg-surfaceHighlight'}`}
-                            >
-                                <MonitorPlay size={14} /> <span className="hidden sm:inline">Telemed</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 3. Controls (Order 3 on Mobile) */}
-                <div className="order-3 md:order-none w-full shrink-0 z-20 pb-2 md:pb-0">
-
-                    {/* COMPACT RECORDING CARD */}
-                    {/* COMPACT RECORDING CARD */}
-                    {/* COMPACT RECORDING CARD */}
-                    <div className={`
-                        flex flex-row md:flex-col items-center justify-between md:justify-center p-3 md:p-6 rounded-2xl md:rounded-3xl transition-all duration-500 border relative overflow-hidden shadow-sm gap-4
-                        ${isRecording
-                            ? (mode === 'telemedicine' ? 'bg-blue-50/50 border-blue-200' : 'bg-red-50/50 border-red-200')
-                            : 'bg-surface/60 border-borderLight'
-                        }
-                    `}>
-                        {/* Status + Timer (Mobile: Inline Left) */}
-                        <div className="flex items-center gap-3 relative z-10">
-                            {/* Status Pill */}
-                            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] md:text-[11px] font-bold uppercase tracking-wider transition-all
-                                ${isRecording
-                                    ? 'bg-white text-red-600 shadow-sm border border-red-100'
-                                    : (seconds > 0 ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-surfaceHighlight text-emerald-600 border border-emerald-100/50')
-                                }`}>
-                                <div className={`w-2 h-2 rounded-full transition-all ${isRecording ? 'animate-pulse bg-red-500' : (seconds > 0 ? 'bg-amber-500' : 'bg-emerald-500')}`} />
-                                {isRecording ? "GRAVANDO" : (seconds > 0 ? "PAUSADO" : "PRONTO PARA GRAVAR")}
-                            </div>
-
-                            {/* Timer (Hidden if generic "Pronto" unless paused?) - Show always for consistency or only if > 0 */}
-                            {(isRecording || seconds > 0) && (
-                                <span className="font-mono text-xl md:text-2xl font-bold tracking-tight text-textMain tabular-nums">
-                                    {formatTime(seconds)}
-                                </span>
-                            )}
-                        </div>
-
-                        {/* Controls (Mobile: Inline Right, Desktop: Big Center) */}
-                        <div className="flex items-center gap-3 z-10">
-
-                            {/* Discard Button (Always visible if content exists) */}
-                            {(seconds > 0 || consultationTranscript) && (
-                                <button
-                                    onClick={handleDiscard}
-                                    className="p-3 md:p-4 text-textMuted hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all border border-transparent hover:border-red-100 active:scale-95"
-                                    title="Descartar e Limpar"
-                                >
-                                    <Trash2 size={20} strokeWidth={2} />
-                                </button>
-                            )}
-
-                            {/* MAIN FAB (Record / Pause) */}
-                            <button
-                                onClick={handleToggleRecording}
-                                className={`
-                                    relative w-14 h-14 md:w-24 md:h-24 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl group
-                                    ${isRecording
-                                        ? 'bg-white border-4 border-red-50 text-red-500 hover:scale-105 hover:bg-red-50'
-                                        : 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white hover:scale-105 hover:shadow-emerald-500/30'
-                                    }
-                                `}
-                            >
-                                {/* Ping Effect (Only when recording) */}
-                                {isRecording && (
-                                    <span className="absolute inset-0 rounded-full bg-red-400/20 animate-ping opacity-75" />
-                                )}
-
-                                <div className="relative z-10">
-                                    {isRecording ? (
-                                        <Pause size={mode === 'telemedicine' && window.innerWidth < 768 ? 24 : 32} fill="currentColor" className="opacity-90" />
-                                    ) : (
-                                        <Mic size={mode === 'telemedicine' && window.innerWidth < 768 ? 24 : 32} />
-                                    )}
-                                </div>
-                            </button>
-                        </div>
-
-                        {/* Desktop Ripple Only */}
-                        {isRecording && (
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-red-500/5 animate-pulse -z-10 pointer-events-none hidden md:block" />
-                        )}
-                    </div>
-                </div>
-
-                {/* 4. Footer (Order 4 on Mobile) */}
-                <div className="order-4 md:order-none w-full shrink-0 md:absolute md:bottom-0 md:left-0 md:bg-gradient-to-t md:from-background md:via-background md:to-transparent md:pt-6">
-                    <button
-                        onClick={handleInitialGenerateClick}
-                        disabled={!consultationTranscript && !consultationBlob}
-                        className={`
-                            w-full py-3 md:py-4 rounded-xl font-bold text-base md:text-lg flex items-center justify-center gap-2 transition-all shadow-lg
-                            ${(consultationTranscript || consultationBlob)
-                                ? 'bg-emerald-600 text-white hover:bg-emerald-700 hover:shadow-emerald-500/20 translate-y-0'
-                                : 'bg-surfaceHighlight text-textMuted cursor-not-allowed border border-borderLight'
-                            }
-                        `}
-                    >
-                        <FileText size={18} />
-                        Gerar Documentação
+            {/* --- TOP HEADER (Patient & Menu) --- */}
+            <div className="w-full flex items-center justify-between shrink-0 gap-4">
+                <div className="flex items-center gap-3 flex-1">
+                    <button onClick={toggleSidebar} className="md:hidden p-2.5 rounded-xl bg-surface hover:bg-surfaceHighlight text-textMuted hover:text-textMain border border-borderLight transition-all">
+                        <Menu size={20} />
                     </button>
-                    <div className="flex justify-center items-center gap-1.5 text-[10px] font-medium text-textMuted/60 uppercase tracking-wider mt-2 md:mt-3">
-                        <Lock size={10} />
-                        Dados protegidos
+
+                    <div className="flex-1 max-w-2xl relative group">
+                        <div className="absolute top-1/2 -translate-y-1/2 left-3 text-emerald-500 pointer-events-none transition-colors group-focus-within:text-emerald-400">
+                            <Edit2 size={16} />
+                        </div>
+                        <input
+                            type="text"
+                            value={patientName}
+                            onChange={(e) => setPatientName(e.target.value)}
+                            placeholder="Nova Consulta"
+                            className="w-full bg-transparent border-0 border-b border-transparent hover:border-borderLight focus:border-emerald-500 py-2 pl-9 pr-4 text-xl font-bold text-textMain placeholder-textMain/50 outline-none transition-all"
+                        />
                     </div>
+                </div>
+
+                {/* Header Actions & Mode Selector */}
+                <div className="flex items-center gap-3">
+                    {/* Mode Selector */}
+                    <div className="flex bg-surface border border-borderLight rounded-lg p-1">
+                        <button
+                            onClick={() => !isRecording && setMode('presential')}
+                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'presential' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'text-textMuted hover:text-textMain hover:bg-white/5'}`}
+                        >
+                            <Users size={14} /> <span className="hidden sm:inline">Presencial</span>
+                        </button>
+                        <button
+                            onClick={() => !isRecording && setMode('telemedicine')}
+                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'telemedicine' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' : 'text-textMuted hover:text-textMain hover:bg-white/5'}`}
+                        >
+
+                            <MonitorPlay size={14} /> <span className="hidden sm:inline">Telemed</span>
+                        </button>
+                    </div>
+
+                    <div className="hidden md:block w-px h-6 bg-borderLight/50 mx-1" />
+
+                    <button className="hidden md:flex px-3 py-2 rounded-lg border border-borderLight bg-surface hover:bg-surfaceHighlight text-xs font-bold text-textMuted hover:text-textMain transition-all items-center gap-2">
+                        <FileText size={14} /> <span>Imprimir</span>
+                    </button>
                 </div>
             </div>
 
-            {/* --- RIGHTSIDE: TRANSCRIPTION (Mobile: Order 2) --- */}
-            <div className="contents md:flex md:flex-col md:flex-1 md:h-full md:overflow-hidden">
-                <div className="order-2 md:order-none flex-1 flex flex-col bg-surface border border-borderLight rounded-2xl md:rounded-3xl p-1 shadow-sm overflow-hidden min-h-[30vh]">
+            {/* --- MAIN CONTENT (Two Columns) --- */}
+            <div className="flex flex-col md:flex-row flex-1 min-h-0 gap-4 md:gap-6 relative z-10">
 
-                    {/* Header Desktop Only (Hidden on Mobile to save space? Or Keep?) User said "Header Fixo", but this is Transcript Header. Keep simpler. */}
-                    <div className="flex items-center justify-between px-3 md:px-5 py-2 md:py-3 border-b border-borderLight/50">
-                        <div className="flex items-center gap-2 text-emerald-600">
-                            <FileText size={14} className="md:hidden" />
-                            <span className="font-semibold text-xs md:text-sm">Transcrição em Tempo Real</span>
+                {/* --- LEFTSIDE PANEL: CONTEXT --- */}
+                <div className="flex flex-col w-full md:w-1/2 h-full bg-[#141414] rounded-2xl md:rounded-3xl shadow-none overflow-hidden relative group">
+
+
+                    {/* Header */}
+                    <div className="px-4 py-3 bg-white/[0.02] flex items-center gap-2">
+                        <span className="text-xs font-bold text-textMuted uppercase tracking-wider">Contexto da Consulta</span>
+                    </div>
+
+
+                    <div className="flex-1 flex flex-col p-4 md:p-5 gap-4 overflow-y-auto custom-scrollbar">
+
+
+                        {/* File Upload Area */}
+                        <div className="w-full bg-white/[0.02] rounded-xl p-8 flex flex-col items-center justify-center text-center gap-3 hover:bg-white/[0.04] transition-colors cursor-pointer group">
+
+                            <div className="w-12 h-12 rounded-full bg-surfaceHighlight group-hover:bg-emerald-50 text-textMuted group-hover:text-emerald-600 flex items-center justify-center transition-colors">
+                                <UploadCloud size={24} />
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-textMain">Carregar arquivos</p>
+                                <p className="text-xs text-textMuted mt-1">Arraste exames ou documentos (PDF, Imagens)</p>
+                            </div>
                         </div>
 
+                        {/* Notes Area */}
+                        <div className="flex-1 flex flex-col min-h-[200px] bg-white/[0.02] rounded-xl p-4 mt-2">
+
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="w-6 h-6 rounded bg-amber-100/50 text-amber-600 flex items-center justify-center">
+                                    <FileText size={14} />
+                                </div>
+                                <span className="text-xs font-bold text-textMain uppercase tracking-wider">Anotações</span>
+                            </div>
+                            <textarea
+                                value={observations}
+                                onChange={(e) => setObservations(e.target.value)}
+                                placeholder="Digite informações relevantes sobre seu paciente, queixas ou lembretes..."
+                                className="w-full h-full resize-none bg-transparent outline-none text-textMain text-sm leading-relaxed placeholder-textMuted/40 custom-scrollbar"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* --- RIGHTSIDE PANEL: TRANSCRIPTION --- */}
+                <div className="flex flex-col w-full md:w-1/2 h-full bg-[#141414] rounded-2xl md:rounded-3xl shadow-none overflow-hidden relative">
+
+
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-3 md:px-5 py-2 md:py-3 bg-white/[0.02] shrink-0">
+                        <div className="flex items-center gap-2 text-emerald-600">
+
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="font-semibold text-xs md:text-sm">Transcrição da consulta</span>
+                        </div>
                     </div>
 
                     <div className={`flex-1 relative transition-all duration-500 ${isRecording ? 'bg-emerald-500/5 ring-1 ring-emerald-500/20' : 'bg-surfaceHighlight/20'}`}>
@@ -413,110 +384,238 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                             ref={textareaRef}
                             value={consultationTranscript}
                             onChange={(e) => setConsultationTranscript(e.target.value)}
-                            placeholder="A transcrição aparecerá aqui..."
+                            placeholder={isRecording ? "Ouvindo..." : "A transcrição da consulta aparecerá aqui..."}
                             className="w-full h-full resize-none bg-transparent p-6 md:p-8 outline-none text-textMain text-base md:text-lg leading-relaxed md:leading-8 font-normal placeholder-textMuted/30 custom-scrollbar"
                         />
-                        {/* Quick Floating Action (Insert Time) - Optional Polish */}
-                        {isRecording && (
-                            <div className="absolute bottom-6 right-6 pointer-events-none opacity-50">
-                                <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
-                            </div>
-                        )}
                     </div>
+
+
                 </div>
             </div>
 
+            {/* --- GLOBAL BOTTOM ACTION BAR (Footer) --- */}
+            <div className="w-full bg-[#09090b] p-4 md:px-8 md:py-5 shrink-0 flex items-center justify-end gap-3 z-50 rounded-2xl md:rounded-none mt-2 md:mt-0 shadow-2xl border-t border-white/5">
+
+                {/* Trash (Visible only when content exists) */}
+                {(seconds > 0 || consultationTranscript) && (
+                    <button
+                        onClick={handleDiscard}
+                        className="p-2.5 rounded-lg text-textMuted hover:text-red-500 hover:bg-red-500/10 transition-all mr-2"
+                        title="Descartar"
+                    >
+                        <Trash2 size={18} />
+                    </button>
+                )}
+
+                {/* Timer Status */}
+                <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-white/5 bg-white/[0.02] mr-2">
+                    {isRecording ? <Pause size={16} className="text-emerald-500 animate-pulse" /> : <Play size={16} className="text-textMuted" />}
+                    <span className="font-mono text-sm font-medium tracking-wider text-textMuted/80">
+                        {formatTime(seconds)}
+                    </span>
+                </div>
+
+                {/* Record Button */}
+                <button
+                    onClick={handleToggleRecording}
+                    className={`
+                        flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm transition-all border
+                        ${isRecording
+                            ? 'bg-[#1A1A1A] border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 hover:border-emerald-500'
+                            : 'bg-[#1A1A1A] border-borderLight text-textMain hover:bg-surfaceHighlight'
+                        }
+                    `}
+                >
+                    {isRecording ? (
+                        <>
+                            <Pause size={18} /> <span>Pausar gravação</span>
+                        </>
+                    ) : (
+                        <>
+                            <Mic size={18} /> <span>{seconds > 0 ? "Retomar gravação" : "Iniciar gravação"}</span>
+                        </>
+                    )}
+                </button>
+
+
+
+                {/* Generate Button */}
+                <button
+                    onClick={handleInitialGenerateClick}
+                    disabled={(!consultationTranscript && !consultationBlob)}
+                    className={`
+                        flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm transition-all ml-2
+                        ${(consultationTranscript || consultationBlob)
+                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 border border-emerald-500/20'
+                            : 'bg-white/5 text-textMuted cursor-not-allowed opacity-50 border border-white/5'
+                        }
+                    `}
+                >
+                    <FileText size={16} />
+                    <span>Gerar documento</span>
+                </button>
+            </div>
+
+
+
+
             {/* --- MODAL DE GERAÇÃO --- */}
-            {showGenerateModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-surface border border-borderLight rounded-2xl w-full max-w-md shadow-2xl p-6 relative animate-in zoom-in-95 duration-200">
-                        <button
-                            onClick={() => setShowGenerateModal(false)}
-                            className="absolute top-4 right-4 text-textMuted hover:text-textMain transition-colors"
-                        >
-                            <Trash2 className="rotate-45" size={20} /> {/* Using Trash2 rotated as close temporary or import X if possible (Trash2 is already imported) */}
-                        </button>
-
-                        <h3 className="text-xl font-bold text-textMain mb-1">Finalizar Consulta</h3>
-                        <p className="text-textMuted text-sm mb-6">Confirme os detalhes para gerar a documentação.</p>
-
-                        <div className="space-y-4">
-                            {/* Tipo de Consulta */}
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-textMain uppercase tracking-wider">Tipo de Consulta</label>
-                                <div className="relative">
-                                    <select
-                                        value={consultationType}
-                                        onChange={(e) => setConsultationType(e.target.value)}
-                                        className="w-full appearance-none bg-surface border border-borderLight rounded-xl py-3 px-4 text-base text-textMain outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer"
-                                    >
-                                        <option value="Primeira Consulta">Primeira Consulta</option>
-                                        <option value="Retorno/Consulta de Revisão">Retorno/Consulta de Revisão</option>
-                                        <option value="Consulta de Urgência/Emergência">Consulta de Urgência/Emergência</option>
-                                        <option value="Consulta Pré-Operatória">Consulta Pré-Operatória</option>
-                                        <option value="Consulta Pós-Operatória">Consulta Pós-Operatória</option>
-                                        <option value="Acompanhamento de Doença Crônica">Acompanhamento de Doença Crônica</option>
-                                        <option value="Atestado/Receita">Atestado/Receita</option>
-                                        <option value="Exames de Rotina/Check-up">Exames de Rotina/Check-up</option>
-                                    </select>
-                                    <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-textMuted pointer-events-none" />
-                                </div>
-                            </div>
-
-                            {/* Tipo de Prontuário (Antigo Scenario) */}
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-textMain uppercase tracking-wider">Tipo de Prontuário</label>
-                                <div className="relative">
-                                    <select
-                                        value={selectedScenario}
-                                        onChange={(e) => setSelectedScenario(e.target.value as Scenario)}
-                                        className="w-full appearance-none bg-surface border border-borderLight rounded-xl py-3 px-4 text-base text-textMain outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer"
-                                    >
-                                        <option value="evolution">📝 Evolução (SOAP)</option>
-                                        <option value="dar">📋 DAR (Dados, Ação, Resposta)</option>
-                                        <option value="pie">📋 PIE (Problema, Intervenção, Evolução)</option>
-                                        <option value="narrative">📋 Narrativo (Texto livre)</option>
-                                        <option value="hospital_evolution">📋 Evolução Hospitalar</option>
-                                        <option value="emergency_care">📋 Atendimento de Urgência</option>
-                                        <option value="psychiatric">📋 Psiquiátrico</option>
-                                        <option value="anamnesis">🩺 Anamnese Completa</option>
-                                        <option value="bedside">🏥 Visita Beira-Leito</option>
-                                        <option value="clinical_meeting">👥 Reunião Clínica</option>
-                                    </select>
-                                    <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-textMuted pointer-events-none" />
-                                </div>
-                            </div>
-
-                            {/* Observações */}
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-textMain uppercase tracking-wider">Observações (Opcional)</label>
-                                <textarea
-                                    value={observations}
-                                    onChange={(e) => setObservations(e.target.value)}
-                                    placeholder="Ex: Focar na queixa principal de dor lombar..."
-                                    className="w-full bg-surface border border-borderLight rounded-xl py-3 px-4 text-base text-textMain outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all min-h-[100px] resize-none"
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex gap-3 mt-8">
+            {
+                showGenerateModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-surface border border-borderLight rounded-2xl w-full max-w-md shadow-2xl p-6 relative animate-in zoom-in-95 duration-200">
                             <button
                                 onClick={() => setShowGenerateModal(false)}
-                                className="flex-1 py-3 rounded-xl border border-borderLight text-textMain font-semibold hover:bg-surfaceHighlight transition-all"
+                                className="absolute top-4 right-4 text-textMuted hover:text-textMain transition-colors"
                             >
-                                Cancelar
+                                <Trash2 className="rotate-45" size={20} /> {/* Using Trash2 rotated as close temporary or import X if possible (Trash2 is already imported) */}
                             </button>
-                            <button
-                                onClick={confirmGenerate}
-                                className="flex-1 py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
-                            >
-                                <FileText size={18} />
-                                Gerar Agora
-                            </button>
+
+                            <h3 className="text-xl font-bold text-textMain mb-1">Finalizar Consulta</h3>
+                            <p className="text-textMuted text-sm mb-6">Confirme os detalhes para gerar a documentação.</p>
+
+                            <div className="space-y-4">
+
+                                {/* Módulos de Análise */}
+                                <div className="space-y-2 bg-surfaceHighlight/30 p-4 rounded-xl border border-borderLight/50">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="w-5 h-5 rounded bg-amber-100 text-amber-600 flex items-center justify-center">
+                                            <Edit2 size={12} />
+                                        </div>
+                                        <label className="text-xs font-bold text-textMain uppercase tracking-wider">Módulos de Análise</label>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {analysisModules.map((module) => (
+                                            <div
+                                                key={module}
+                                                onClick={() => toggleModule(module)}
+                                                className={`
+                                                flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all border
+                                                ${selectedModules.includes(module)
+                                                        ? 'bg-emerald-50 border-emerald-200 shadow-sm'
+                                                        : 'hover:bg-surfaceHighlight border-transparent'
+                                                    }
+                                            `}
+                                            >
+                                                <div className={`
+                                                w-5 h-5 rounded flex items-center justify-center transition-all
+                                                ${selectedModules.includes(module)
+                                                        ? 'bg-emerald-500 text-white'
+                                                        : 'bg-surface border border-borderLight text-transparent'
+                                                    }
+                                            `}>
+                                                    <CheckSquare size={14} className={selectedModules.includes(module) ? 'opacity-100' : 'opacity-0'} />
+                                                </div>
+                                                <span className={`text-sm font-medium ${selectedModules.includes(module) ? 'text-emerald-900' : 'text-textMuted'}`}>
+                                                    {module}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Tipo de Consulta */}
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-textMain uppercase tracking-wider">Tipo de Consulta</label>
+                                    <div className="relative">
+                                        <select
+                                            value={consultationType}
+                                            onChange={(e) => setConsultationType(e.target.value)}
+                                            className="w-full appearance-none bg-surface border border-borderLight rounded-xl py-3 px-4 text-base text-textMain outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer"
+                                        >
+                                            <option value="Primeira Consulta">Primeira Consulta</option>
+                                            <option value="Retorno/Consulta de Revisão">Retorno/Consulta de Revisão</option>
+                                            <option value="Consulta de Urgência/Emergência">Consulta de Urgência/Emergência</option>
+                                            <option value="Consulta Pré-Operatória">Consulta Pré-Operatória</option>
+                                            <option value="Consulta Pós-Operatória">Consulta Pós-Operatória</option>
+                                            <option value="Acompanhamento de Doença Crônica">Acompanhamento de Doença Crônica</option>
+                                            <option value="Atestado/Receita">Atestado/Receita</option>
+                                            <option value="Exames de Rotina/Check-up">Exames de Rotina/Check-up</option>
+                                        </select>
+                                        <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-textMuted pointer-events-none" />
+                                    </div>
+                                </div>
+
+                                {/* Tipo de Prontuário (Antigo Scenario) */}
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-textMain uppercase tracking-wider">Tipo de Prontuário</label>
+                                    <div className="relative">
+                                        <select
+                                            value={selectedScenario}
+                                            onChange={(e) => setSelectedScenario(e.target.value as Scenario)}
+                                            className="w-full appearance-none bg-surface border border-borderLight rounded-xl py-3 px-4 text-base text-textMain outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer"
+                                        >
+                                            <option value="evolution">📝 Evolução (SOAP)</option>
+                                            <option value="dar">📋 DAR (Dados, Ação, Resposta)</option>
+                                            <option value="pie">📋 PIE (Problema, Intervenção, Evolução)</option>
+                                            <option value="narrative">📋 Narrativo (Texto livre)</option>
+                                            <option value="hospital_evolution">📋 Evolução Hospitalar</option>
+                                            <option value="emergency_care">📋 Atendimento de Urgência</option>
+                                            <option value="psychiatric">📋 Psiquiátrico</option>
+                                            <option value="anamnesis">🩺 Anamnese Completa</option>
+                                            <option value="bedside">🏥 Visita Beira-Leito</option>
+                                            <option value="clinical_meeting">👥 Reunião Clínica</option>
+                                        </select>
+                                        <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-textMuted pointer-events-none" />
+                                    </div>
+                                </div>
+
+                                {/* Observações - REMOVIDO DAQUI E MOVIDO PARA A ESQUERDA */}
+                                {/* <div className="space-y-1.5"> ... </div> */}
+                            </div>
+
+                            <div className="flex gap-3 mt-8">
+                                <button
+                                    onClick={() => setShowGenerateModal(false)}
+                                    className="flex-1 py-3 rounded-xl border border-borderLight text-textMain font-semibold hover:bg-surfaceHighlight transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmGenerate}
+                                    className="flex-1 py-3 rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700 shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <FileText size={18} />
+                                    Gerar Agora
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
+
+            {/* --- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO --- */}
+            {
+                showDeleteModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-surface border border-borderLight rounded-2xl w-full max-w-sm shadow-2xl p-6 relative animate-in zoom-in-95 duration-200 text-center">
+                            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-4">
+                                <Trash2 size={24} />
+                            </div>
+
+                            <h3 className="text-lg font-bold text-textMain mb-2">Descartar Gravação?</h3>
+                            <p className="text-textMuted text-sm mb-6">
+                                Você tem certeza que deseja apagar toda a transcrição e reiniciar? Esta ação não pode ser desfeita.
+                            </p>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowDeleteModal(false)}
+                                    className="flex-1 py-2.5 rounded-xl border border-borderLight text-textMain font-semibold hover:bg-surfaceHighlight transition-all"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmDiscard}
+                                    className="flex-1 py-2.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-lg hover:shadow-red-500/20 transition-all"
+                                >
+                                    Excluir Tudo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
 
             <style>{`
                 .custom-scrollbar::-webkit-scrollbar { width: 6px; }
@@ -524,6 +623,6 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                 .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.1); border-radius: 10px; }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(0,0,0,0.2); }
             `}</style>
-        </div>
+        </div >
     );
 }
