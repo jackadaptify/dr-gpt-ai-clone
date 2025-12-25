@@ -7,11 +7,17 @@ export default function InstallPWA() {
     const [isIOS, setIsIOS] = useState(false);
     const [isStandalone, setIsStandalone] = useState(false);
     const [hasDismissed, setHasDismissed] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
         // Check if already installed/standalone
         const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
         setIsStandalone(isStandaloneMode);
+
+        // Check if Mobile
+        const ua = window.navigator.userAgent.toLowerCase();
+        const mobile = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua);
+        setIsMobile(mobile);
 
         // Check if iOS (including iPads with desktop site enabled)
         const userAgent = window.navigator.userAgent.toLowerCase();
@@ -60,7 +66,7 @@ export default function InstallPWA() {
         setShowInstallModal(false);
     };
 
-    if (isStandalone) return null;
+    if (isStandalone || !isMobile) return null;
 
     return (
         <>

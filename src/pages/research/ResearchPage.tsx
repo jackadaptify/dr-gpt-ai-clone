@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Menu, Plus, User, Bot, Search } from 'lucide-react';
+import { Send, Menu, Plus, User, Bot, Search, Mic } from 'lucide-react';
 import ResearchMessageItem from './ResearchMessageItem';
 import ResearchResults from './ResearchResults';
 import { streamResearchChat, ResearchMessage as APIResearchMessage } from './services/researchService';
@@ -7,8 +7,8 @@ import { useChat } from '../../contexts/ChatContext'; // Import Context
 import { createChat, saveMessage, loadMessagesForChat } from '../../../services/chatService'; // Services
 import { ChatSession, Role, Message } from '../../../types'; // Global Types
 import { v4 as uuidv4 } from 'uuid';
-// import { useSupabaseClient } from '@supabase/auth-helpers-react'; // Removed
 import { supabase } from '../../../lib/supabase';
+import { useSpeechRecognition } from '../../../hooks/useSpeechRecognition';
 
 interface ResearchPageProps {
     isDarkMode: boolean;
@@ -29,6 +29,22 @@ export default function ResearchPage({ isDarkMode, user, toggleSidebar }: Resear
     const [messages, setMessages] = useState<ResearchMessage[]>([]);
     const [input, setInput] = useState('');
     const [isSearching, setIsSearching] = useState(false);
+
+    const { isListening, transcript, toggleListening, hasSupport: hasMicSupport } = useSpeechRecognition();
+    const [textBeforeRecording, setTextBeforeRecording] = useState('');
+
+    useEffect(() => {
+        if (isListening) {
+            setInput(textBeforeRecording + (textBeforeRecording && transcript ? ' ' : '') + transcript);
+        }
+    }, [transcript, isListening, textBeforeRecording]);
+
+    const handleLocalMicClick = () => {
+        if (!isListening) {
+            setTextBeforeRecording(input);
+        }
+        toggleListening();
+    };
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -69,12 +85,6 @@ export default function ResearchPage({ isDarkMode, user, toggleSidebar }: Resear
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
-
-
-
-    // ... (inside component)
-
-
 
     // Unified Handle Search
     const handleSearch = async () => {
@@ -165,10 +175,6 @@ export default function ResearchPage({ isDarkMode, user, toggleSidebar }: Resear
         }
     };
 
-
-    // Wire up to handleSearch - Already defined above as handleSearch
-    // const handleSearch = executeSearch;
-
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -186,13 +192,6 @@ export default function ResearchPage({ isDarkMode, user, toggleSidebar }: Resear
             {/* Header */}
             <header className="absolute top-0 left-0 right-0 h-20 flex items-center justify-between px-4 md:px-6 z-10 pointer-events-none">
                 <div className="flex items-center gap-3 pointer-events-auto">
-                    {/* Menu Button */}
-                    <button
-                        onClick={toggleSidebar}
-                        className={`p-2.5 rounded-xl transition-all border ${isDarkMode ? 'bg-surface/50 border-white/10 text-zinc-400 hover:text-white hover:bg-surface' : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 shadow-sm'}`}
-                    >
-                        <Menu size={20} />
-                    </button>
 
                     <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-md shadow-sm ${isDarkMode ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-white border-indigo-100'}`}>
                         <Search className={`w-4 h-4 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />
@@ -251,7 +250,7 @@ export default function ResearchPage({ isDarkMode, user, toggleSidebar }: Resear
             <footer className="absolute bottom-0 left-0 right-0 p-4 z-20 pointer-events-none flex justify-center">
                 <div className={`
                     w-full max-w-3xl pointer-events-auto transition-all duration-300
-                    flex items-end gap-2 p-2 rounded-[2rem] border shadow-2xl relative
+                    flex items-center gap-2 p-2 rounded-[2rem] border shadow-2xl relative
                     ${isDarkMode ? 'bg-surface/90 border-white/10 shadow-black/50' : 'bg-white/90 border-slate-200 shadow-xl'}
                     backdrop-blur-xl
                 `}>
@@ -269,7 +268,7 @@ export default function ResearchPage({ isDarkMode, user, toggleSidebar }: Resear
                         onKeyDown={handleKeyDown}
                         placeholder="Pesquise por condições, tratamentos ou protocolos..."
                         className={`
-                            flex-1 max-h-48 min-h-[50px] py-3.5 px-4 rounded-xl resize-none outline-none text-base leading-relaxed
+                            flex-1 max-h-48 min-h-[44px] py-3 px-4 rounded-xl resize-none outline-none text-base leading-relaxed
                             font-sans placeholder-textMuted bg-transparent
                             ${isDarkMode ? 'text-white' : 'text-slate-900'}
                             custom-scrollbar
@@ -277,18 +276,37 @@ export default function ResearchPage({ isDarkMode, user, toggleSidebar }: Resear
                         rows={1}
                     />
 
-                    <button
-                        onClick={handleSearch}
-                        disabled={isSearching || !input.trim()}
-                        className={`
-                            p-3 rounded-full transition-all duration-200
-                            ${(input.trim() && !isSearching)
-                                ? 'bg-indigo-600 text-white shadow-lg hover:bg-indigo-500'
-                                : isDarkMode ? 'bg-zinc-800 text-zinc-600' : 'bg-slate-100 text-slate-300'}
-                        `}
-                    >
-                        <Send size={20} />
-                    </button>
+                    <div className="flex items-center gap-1.5 pr-1">
+                        {!input.trim() && !isSearching && (
+                            <button
+                                onClick={handleLocalMicClick}
+                                className={`
+                                    p-3 rounded-full transition-all duration-200
+                                    ${isListening
+                                        ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/30'
+                                        : isDarkMode ? 'bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700' : 'bg-slate-100 text-slate-400 hover:text-slate-600 hover:bg-slate-200'}
+                                `}
+                                title="Gravar áudio"
+                            >
+                                <Mic size={20} />
+                            </button>
+                        )}
+
+                        {(input.trim() || isSearching) && (
+                            <button
+                                onClick={handleSearch}
+                                disabled={isSearching || !input.trim()}
+                                className={`
+                                    p-3 rounded-full transition-all duration-200
+                                    ${(input.trim() && !isSearching)
+                                        ? 'bg-indigo-600 text-white shadow-lg hover:bg-indigo-500'
+                                        : isDarkMode ? 'bg-zinc-800 text-zinc-600' : 'bg-slate-100 text-slate-300'}
+                                `}
+                            >
+                                <Send size={20} />
+                            </button>
+                        )}
+                    </div>
                 </div>
             </footer>
         </div>
