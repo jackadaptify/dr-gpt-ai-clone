@@ -4,15 +4,13 @@ import { IconCheck, IconCreditCard } from '../Icons';
 
 export default function PaywallPage() {
     const { user, signOut } = useAuth();
-    const [billingInterval, setBillingInterval] = useState<'monthly' | 'annually'>('monthly');
+    const [billingInterval, setBillingInterval] = useState<'monthly' | 'quarterly' | 'annually'>('monthly');
 
     const plans = [
         {
             name: 'ESSENCIAL',
-            // For annual, show monthly equivalent: 1670/12 ~= 139. 
-            // Actually user said "no preço do anual deve aperecer o valor total por mes".
-            // So if annual, show "139,00". If monthly, "197,00".
-            price: billingInterval === 'monthly' ? '197,00' : '139,00',
+            // Essencial prices (keeping existing logic for monthly/annual, using monthly for quarterly default)
+            price: billingInterval === 'monthly' ? '197,00' : billingInterval === 'quarterly' ? '197,00' : '139,00',
             currency: 'R$',
             frequency: '/mês', // Always /mês visually
             billedAs: billingInterval === 'annually' ? 'Cobrado anualmente (R$ 1.670)' : null,
@@ -29,43 +27,48 @@ export default function PaywallPage() {
             buttonText: 'Assinar Agora',
             link: billingInterval === 'monthly'
                 ? 'https://buy.stripe.com/3cI28j55t1FS5lKabU2sM04'
-                : 'https://buy.stripe.com/eVq9ALapNacocOcabU2sM05',
+                : 'https://buy.stripe.com/eVq9ALapNacocOcabU2sM05', // Keeping original links for Essencial
             highlight: false
         },
         {
             name: 'PRO',
-            // Annual: 2497/12 ~= 208. Let's round nicely or use exact? 2497/12 = 208.08
-            price: billingInterval === 'monthly' ? '297,00' : '208,00',
+            // Monthly: 299, Quarterly: 249, Annual: 199
+            price: billingInterval === 'monthly' ? '299,00' : billingInterval === 'quarterly' ? '249,00' : '199,00',
             currency: 'R$',
             frequency: '/mês',
-            billedAs: billingInterval === 'annually' ? 'Cobrado anualmente (R$ 2.497)' : null,
+            billedAs: billingInterval === 'annually'
+                ? 'Cobrado anualmente (R$ 2.388)'
+                : billingInterval === 'quarterly'
+                    ? 'Cobrado trimestralmente (R$ 747)'
+                    : null,
             slogan: 'Nunca mais leve trabalho pra casa',
             sloganColor: 'text-emerald-400',
             description: '',
             features: [
-                'Consultas ILIMITADAS',
-                'Prontuários em 30 segundos',
-                'Dúvidas clínicas ilimitadas',
-                'Pesquisa médica atualizada',
-                '5 assistentes especializados',
-                'Melhores IAs do mundo (GPT 5.2, Claude Sonnet 4.5, Gemini 3 Pro)',
-                'Suporte prioritário'
+                'Consultas ilimitadas',
+                'Transcrição em tempo real',
+                'Todos os formatos de prontuário',
+                'Debate com agente clínico',
+                'Projetos ilimitados',
+                'Pesquisa médica avançada ILIMITADA'
             ],
             buttonText: 'Assinar Agora',
-            link: billingInterval === 'monthly'
-                ? 'https://buy.stripe.com/aFa00bbtRckw4hG2Js2sM02'
-                : 'https://buy.stripe.com/6oU28jbtR2JWeWk4RA2sM03',
+            link: billingInterval === 'annually'
+                ? 'https://pay.cakto.com.br/8pg8xjb'
+                : 'https://pay.cakto.com.br/35r66np', // Same link for Monthly and Quarterly as per request
             highlight: true,
             badge: 'MAIS ESCOLHIDO ⭐'
         },
         {
             name: 'ENTERPRISE',
-            price: '997,00',
+            // Monthly: 999, Annual: 10000 (approx 833/mo)
+            price: billingInterval === 'monthly' || billingInterval === 'quarterly' ? '999,00' : '833,00',
             currency: 'R$',
             frequency: '/mês',
             slogan: 'Padronize e escale sua clínica',
             sloganColor: 'text-purple-400',
             description: 'Ideal para clínicas com 3-10 médicos',
+            billedAs: billingInterval === 'annually' ? 'Cobrado anualmente (R$ 10.000)' : null,
             features: [
                 'Até 5 médicos inclusos',
                 'Protocolos personalizados',
@@ -109,7 +112,7 @@ export default function PaywallPage() {
                     <div className="flex items-center gap-1 bg-zinc-900/80 p-1 rounded-full border border-white/5 shadow-2xl backdrop-blur-xl">
                         <button
                             onClick={() => setBillingInterval('monthly')}
-                            className={`px-8 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${billingInterval === 'monthly'
+                            className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${billingInterval === 'monthly'
                                 ? 'bg-zinc-800 text-white shadow-lg shadow-black/50'
                                 : 'text-zinc-400 hover:text-white'
                                 }`}
@@ -117,8 +120,17 @@ export default function PaywallPage() {
                             Mensal
                         </button>
                         <button
+                            onClick={() => setBillingInterval('quarterly')}
+                            className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${billingInterval === 'quarterly'
+                                ? 'bg-zinc-800 text-white shadow-lg shadow-black/50'
+                                : 'text-zinc-400 hover:text-white'
+                                }`}
+                        >
+                            Trimestral
+                        </button>
+                        <button
                             onClick={() => setBillingInterval('annually')}
-                            className={`flex items-center gap-2 px-8 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${billingInterval === 'annually'
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${billingInterval === 'annually'
                                 ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20'
                                 : 'text-zinc-400 hover:text-white'
                                 }`}
