@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { IconCheck, IconCreditCard } from '../Icons';
+import { IconCheck, IconCreditCard, IconLock, IconSparkles } from '../Icons';
 
 export default function PaywallPage() {
     const { user, signOut } = useAuth();
@@ -9,10 +9,9 @@ export default function PaywallPage() {
     const plans = [
         {
             name: 'ESSENCIAL',
-            // Essencial prices (keeping existing logic for monthly/annual, using monthly for quarterly default)
             price: billingInterval === 'monthly' ? '197,00' : billingInterval === 'quarterly' ? '197,00' : '139,00',
             currency: 'R$',
-            frequency: '/mês', // Always /mês visually
+            frequency: '/mês',
             billedAs: billingInterval === 'annually' ? 'Cobrado anualmente (R$ 1.670)' : null,
             slogan: 'Saia do consultório 2 horas mais cedo',
             sloganColor: 'text-blue-400',
@@ -27,12 +26,11 @@ export default function PaywallPage() {
             buttonText: 'Assinar Agora',
             link: billingInterval === 'monthly'
                 ? 'https://buy.stripe.com/3cI28j55t1FS5lKabU2sM04'
-                : 'https://buy.stripe.com/eVq9ALapNacocOcabU2sM05', // Keeping original links for Essencial
+                : 'https://buy.stripe.com/eVq9ALapNacocOcabU2sM05',
             highlight: false
         },
         {
             name: 'PRO',
-            // Monthly: 299, Quarterly: 249, Annual: 199
             price: billingInterval === 'monthly' ? '299,00' : billingInterval === 'quarterly' ? '249,00' : '199,00',
             currency: 'R$',
             frequency: '/mês',
@@ -52,16 +50,15 @@ export default function PaywallPage() {
                 'Projetos ilimitados',
                 'Pesquisa médica avançada ILIMITADA'
             ],
-            buttonText: 'Assinar Agora',
+            buttonText: 'Garantir Oferta Exclusiva',
             link: billingInterval === 'annually'
                 ? 'https://pay.cakto.com.br/8pg8xjb'
-                : 'https://pay.cakto.com.br/35r66np', // Same link for Monthly and Quarterly as per request
+                : 'https://pay.cakto.com.br/35r66np',
             highlight: true,
-            badge: 'MAIS ESCOLHIDO ⭐'
+            badge: 'OFERTA SECRETA 🔒'
         },
         {
             name: 'ENTERPRISE',
-            // Monthly: 999, Annual: 10000 (approx 833/mo)
             price: billingInterval === 'monthly' || billingInterval === 'quarterly' ? '999,00' : '833,00',
             currency: 'R$',
             frequency: '/mês',
@@ -83,172 +80,208 @@ export default function PaywallPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900 via-black to-black text-white p-4 md:p-8 font-sans">
-            {/* Background Effects */}
-            <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/5 rounded-full blur-[120px]" />
-                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-500/5 rounded-full blur-[120px]" />
+        <div className="min-h-screen bg-black text-white p-4 md:p-8 font-sans overflow-x-hidden">
+            {/* Ambient Background */}
+            <div className="fixed inset-0 pointer-events-none">
+                <div className="absolute top-[-20%] left-[20%] w-[60%] h-[60%] bg-emerald-900/10 rounded-full blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '4s' }} />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/10 rounded-full blur-[120px] mix-blend-screen" />
             </div>
 
             <div className="max-w-7xl mx-auto relative z-10">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-16 gap-4">
-                    <div>
-                        <h1 className="text-4xl font-extrabold mb-3 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-zinc-500 tracking-tight">
-                            Assinatura e Planos
-                        </h1>
-                        <p className="text-zinc-400 text-lg">Escolha o plano ideal para transformar sua prática médica.</p>
+                {/* Exclusive Banner */}
+                <div className="mx-auto max-w-3xl mb-12 text-center transform hover:scale-[1.01] transition-transform duration-500">
+                    <div className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent border border-amber-500/20 shadow-[0_0_30px_-5px_rgba(245,158,11,0.15)] mb-6 backdrop-blur-md">
+                        <IconLock className="w-4 h-4 text-amber-400" />
+                        <span className="text-amber-200 text-sm font-semibold tracking-wide uppercase">
+                            Acesso Exclusivo Liberado
+                        </span>
+                        <div className="h-1 w-1 bg-amber-400 rounded-full animate-ping" />
                     </div>
+
+                    <h1 className="text-5xl md:text-6xl font-extrabold mb-6 tracking-tight leading-[1.1]">
+                        Desbloqueie seu <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-emerald-200 to-emerald-400">
+                            Potencial Médico Máximo
+                        </span>
+                    </h1>
+
+                    <div className="flex flex-col items-center gap-2">
+                        <p className="text-zinc-400 text-lg max-w-2xl mx-auto leading-relaxed">
+                            Você foi selecionado para acessar condições especiais de lançamento.
+                            <strong className="text-zinc-200 font-semibold block mt-1">
+                                Estes valores são válidos apenas para participantes do grupo Beta.
+                            </strong>
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex justify-between items-center max-w-5xl mx-auto mb-8 px-4">
                     <button
                         onClick={() => signOut()}
-                        className="text-sm text-zinc-500 hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-white/5 border border-transparent hover:border-white/10"
+                        className="text-xs text-zinc-600 hover:text-red-400 transition-colors flex items-center gap-2 group"
                     >
-                        Sair da Conta ({user?.email})
+                        <span>Sair da conta ({user?.email})</span>
                     </button>
+                    <div className="text-xs text-emerald-500/80 font-mono flex items-center gap-2 bg-emerald-500/5 px-3 py-1.5 rounded-lg border border-emerald-500/10">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                        OFERTA ATIVA
+                    </div>
                 </div>
 
                 {/* Billing Toggle */}
-                <div className="flex justify-center mb-16">
-                    <div className="flex items-center gap-1 bg-zinc-900/80 p-1 rounded-full border border-white/5 shadow-2xl backdrop-blur-xl">
-                        <button
-                            onClick={() => setBillingInterval('monthly')}
-                            className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${billingInterval === 'monthly'
-                                ? 'bg-zinc-800 text-white shadow-lg shadow-black/50'
-                                : 'text-zinc-400 hover:text-white'
-                                }`}
-                        >
-                            Mensal
-                        </button>
-                        <button
-                            onClick={() => setBillingInterval('quarterly')}
-                            className={`px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${billingInterval === 'quarterly'
-                                ? 'bg-zinc-800 text-white shadow-lg shadow-black/50'
-                                : 'text-zinc-400 hover:text-white'
-                                }`}
-                        >
-                            Trimestral
-                        </button>
-                        <button
-                            onClick={() => setBillingInterval('annually')}
-                            className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${billingInterval === 'annually'
-                                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20'
-                                : 'text-zinc-400 hover:text-white'
-                                }`}
-                        >
-                            Anual
-                            <span className="text-[10px] bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/30 font-bold tracking-wide">
-                                30% OFF
-                            </span>
-                        </button>
+                <div className="flex justify-center mb-16 relative">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-emerald-500/20 via-blue-500/20 to-purple-500/20 rounded-full blur-xl opacity-50" />
+                    <div className="flex items-center gap-1 bg-zinc-900/90 p-1.5 rounded-full border border-white/10 shadow-2xl backdrop-blur-xl relative z-10">
+                        {['monthly', 'quarterly', 'annually'].map((interval) => {
+                            const labels: Record<string, string> = { monthly: 'Mensal', quarterly: 'Trimestral', annually: 'Anual' };
+                            const isActive = billingInterval === interval;
+                            return (
+                                <button
+                                    key={interval}
+                                    onClick={() => setBillingInterval(interval as any)}
+                                    className={`
+                                        relative px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300
+                                        ${isActive
+                                            ? 'text-white shadow-lg scale-105'
+                                            : 'text-zinc-500 hover:text-zinc-300 hover:bg-white/5'
+                                        }
+                                    `}
+                                >
+                                    {isActive && (
+                                        <div className="absolute inset-0 bg-gradient-to-b from-zinc-700 to-zinc-800 rounded-full -z-10 shadow-inner border-t border-white/10" />
+                                    )}
+                                    <span className="flex items-center gap-2">
+                                        {labels[interval]}
+                                        {interval === 'annually' && (
+                                            <span className="text-[9px] bg-emerald-500 text-black px-1.5 py-0.5 rounded shadow-sm font-extrabold tracking-tight transform -translate-y-0.5">
+                                                -30%
+                                            </span>
+                                        )}
+                                        {interval === 'quarterly' && (
+                                            <span className="text-[9px] bg-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded shadow-sm font-bold tracking-tight transform -translate-y-0.5">
+                                                -15%
+                                            </span>
+                                        )}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 
                 {/* Plans Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch max-w-6xl mx-auto">
                     {plans.map((plan) => {
                         const isPro = plan.name.includes('PRO');
                         const isEnterprise = plan.name.includes('ENTERPRISE');
 
-                        let borderColor = 'border-white/5';
-                        let glowColor = '';
-                        let buttonStyle = 'bg-white/5 hover:bg-white/10 text-white border border-white/10';
-                        let badgeStyle = '';
-                        let cardBg = 'bg-zinc-900/40';
+                        let borderColor = 'border-zinc-800';
+                        let buttonStyle = 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200';
+                        let cardBg = 'bg-zinc-900/50';
+                        let glowEffect = '';
 
                         if (isPro) {
-                            borderColor = 'border-emerald-500/50';
-                            glowColor = 'shadow-[0_0_50px_rgba(16,185,129,0.1)]';
-                            buttonStyle = 'bg-emerald-500 hover:bg-emerald-400 text-black font-bold shadow-lg shadow-emerald-500/20 border-0';
-                            badgeStyle = 'bg-emerald-500 text-black';
-                            cardBg = 'bg-zinc-900/60';
+                            borderColor = 'border-amber-500/30';
+                            buttonStyle = 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white shadow-lg shadow-amber-500/25 border-t border-white/20';
+                            cardBg = 'bg-zinc-900/80';
+                            glowEffect = 'shadow-[0_0_40px_-10px_rgba(245,158,11,0.15)]';
                         } else if (isEnterprise) {
-                            borderColor = 'border-purple-500/30';
-                            buttonStyle = 'bg-purple-600 hover:bg-purple-500 text-white font-semibold shadow-lg shadow-purple-900/20 border-0';
-                            cardBg = 'bg-zinc-900/40';
+                            borderColor = 'border-purple-500/20';
+                            buttonStyle = 'bg-zinc-800 hover:bg-zinc-700 text-purple-200 border border-purple-500/20';
                         }
 
                         return (
                             <div
                                 key={plan.name}
                                 className={`
-                                    relative rounded-3xl p-8 flex flex-col transition-all duration-500 group
-                                    backdrop-blur-xl border ${borderColor} ${glowColor} ${cardBg}
-                                    ${isPro ? 'transform md:-translate-y-6 z-10 scale-105' : 'hover:border-white/10 hover:bg-zinc-900/60'}
+                                    relative rounded-3xl p-1 flex flex-col transition-all duration-500 group
+                                    ${isPro ? 'md:-translate-y-8 z-10' : 'hover:bg-zinc-900/80'}
                                 `}
                             >
-                                {plan.highlight && (
-                                    <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                                        <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-xl ${badgeStyle}`}>
-                                            {plan.badge}
-                                        </span>
-                                    </div>
+                                {/* Gradient Border for Pro */}
+                                {isPro && (
+                                    <div className="absolute inset-0 bg-gradient-to-b from-amber-500/40 via-transparent to-transparent rounded-3xl opacity-100 pointer-events-none" />
                                 )}
 
-                                <div className="mb-8">
-                                    <h3 className={`text-xl font-bold mb-3 ${isPro ? 'text-emerald-400' : isEnterprise ? 'text-purple-400' : 'text-zinc-200'}`}>
-                                        {plan.name}
-                                    </h3>
+                                <div className={`
+                                    relative h-full rounded-[22px] p-8 flex flex-col overflow-hidden backdrop-blur-xl border
+                                    ${borderColor} ${cardBg} ${glowEffect}
+                                `}>
 
-                                    <div className="flex items-baseline gap-1 mb-1">
-                                        <span className="text-sm text-zinc-500 font-semibold mb-auto mt-2">{plan.currency}</span>
-                                        <span className="text-5xl font-extrabold text-white tracking-tighter">{plan.price}</span>
-                                        <span className="text-zinc-500 font-medium">{plan.frequency}</span>
+                                    {plan.highlight && (
+                                        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent opacity-50" />
+                                    )}
+
+                                    {plan.highlight && (
+                                        <div className="absolute top-6 right-6">
+                                            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[10px] font-bold uppercase tracking-wider text-amber-400 shadow-sm">
+                                                <IconSparkles className="w-3 h-3" />
+                                                {plan.badge}
+                                            </span>
+                                        </div>
+                                    )}
+
+                                    <div className="mb-8 relative">
+                                        <h3 className={`text-lg font-bold mb-4 tracking-wide ${isPro ? 'text-white' : 'text-zinc-400'}`}>
+                                            {plan.name}
+                                        </h3>
+
+                                        <div className="flex items-end gap-1.5 mb-2">
+                                            <span className="text-zinc-500 font-semibold mb-1.5 text-lg">{plan.currency}</span>
+                                            <span className={`text-5xl font-extrabold tracking-tighter ${isPro ? 'text-white' : 'text-zinc-200'}`}>{plan.price}</span>
+                                            <span className="text-zinc-500 font-medium mb-1.5">{plan.frequency}</span>
+                                        </div>
+
+                                        {plan.billedAs && (
+                                            <p className="text-xs text-zinc-500 font-medium">
+                                                {plan.billedAs}
+                                            </p>
+                                        )}
+
+                                        {!plan.billedAs && <div className="h-4" />} {/* Spacer */}
+
+                                        <div className="mt-6 pt-6 border-t border-dashed border-white/5">
+                                            <p className={`text-sm font-medium leading-relaxed ${isPro ? 'text-amber-100' : 'text-zinc-400'}`}>
+                                                "{plan.slogan}"
+                                            </p>
+                                        </div>
                                     </div>
 
-                                    {plan.billedAs && (
-                                        <p className="text-xs text-zinc-500 font-medium mb-4">
-                                            {plan.billedAs}
-                                        </p>
-                                    )}
-
-                                    {plan.slogan && (
-                                        <p className={`text-sm font-medium border-l-2 pl-3 py-1 mt-4 ${isPro ? 'border-emerald-500/50' : isEnterprise ? 'border-purple-500/50' : 'border-zinc-700'} ${plan.sloganColor || 'text-zinc-400'}`}>
-                                            {plan.slogan}
-                                        </p>
-                                    )}
-                                </div>
-
-                                {/* Divider */}
-                                <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent mb-8" />
-
-                                <div className="space-y-4 mb-8 flex-1">
-                                    {plan.features.map((feature, i) => (
-                                        <div key={i} className="flex items-start gap-3 group/feature">
-                                            <div className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors ${isPro ? 'bg-emerald-500/20 text-emerald-500 group-hover/feature:bg-emerald-500 group-hover/feature:text-black' : isEnterprise ? 'bg-purple-500/20 text-purple-500' : 'bg-zinc-800 text-zinc-400'}`}>
-                                                <IconCheck className="w-3 h-3" />
+                                    <div className="space-y-4 mb-10 flex-1">
+                                        {plan.features.map((feature, i) => (
+                                            <div key={i} className="flex items-start gap-3">
+                                                <div className={`mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isPro ? 'bg-amber-500 text-black' : 'bg-zinc-800 text-zinc-500'}`}>
+                                                    <IconCheck className="w-3 h-3" />
+                                                </div>
+                                                <span className={`text-sm ${isPro ? 'text-zinc-200' : 'text-zinc-400'}`}>{feature}</span>
                                             </div>
-                                            <span className="text-sm text-zinc-300 group-hover/feature:text-white transition-colors text-left">{feature}</span>
-                                        </div>
-                                    ))}
-                                </div>
+                                        ))}
+                                    </div>
 
-                                {plan.link !== '#' ? (
                                     <a
                                         href={plan.link}
-                                        target="_blank"
+                                        target={plan.link !== '#' ? "_blank" : undefined}
                                         rel="noopener noreferrer"
-                                        className={`w-full py-4 px-4 rounded-xl transition-all duration-300 active:scale-95 flex justify-center items-center ${buttonStyle}`}
+                                        className={`w-full py-4 rounded-xl font-bold tracking-wide transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] flex justify-center items-center shadow-xl ${buttonStyle}`}
                                     >
                                         {plan.buttonText}
                                     </a>
-                                ) : (
-                                    <button className={`w-full py-4 px-4 rounded-xl transition-all duration-300 active:scale-95 ${buttonStyle}`}>
-                                        {plan.buttonText}
-                                    </button>
-                                )}
-
-                                <p className="text-center text-[10px] text-zinc-600 mt-4 font-medium uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity">
-                                    Cancela quando quiser
-                                </p>
+                                </div>
                             </div>
                         );
                     })}
                 </div>
 
-                {/* Footer Security */}
-                <div className="mt-20 text-center flex items-center justify-center gap-3 text-zinc-600 text-xs">
-                    <IconCreditCard className="w-4 h-4 opacity-50" />
-                    <span className="opacity-50">Pagamento 100% Seguro via Stripe · Criptografia SSL de 256 bits</span>
+                {/* Secure Footer */}
+                <div className="mt-24 pb-8 flex flex-col items-center justify-center gap-4">
+                    <div className="flex items-center gap-2 text-zinc-500/60 mix-blend-plus-lighter">
+                        <IconLock className="w-3 h-3" />
+                        <span className="text-[10px] font-medium uppercase tracking-widest">Ambiente Seguro</span>
+                    </div>
+                    <p className="text-zinc-600 text-xs max-w-md text-center">
+                        Cancele a qualquer momento. Suporte humano 24/7. <br />
+                        Ao assinar, você concorda com nossos Termos de Uso Exclusivos para membros Beta.
+                    </p>
                 </div>
             </div>
         </div>
