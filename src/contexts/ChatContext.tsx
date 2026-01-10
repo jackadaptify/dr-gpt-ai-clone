@@ -30,9 +30,9 @@ interface ChatContextType {
     toggleTool: (tool: keyof ActiveTools) => void;
 
     // Actions
-    sendMessage: (content: string, modelId: string) => Promise<void>;
+    sendMessage: (content: string, modelId: string, options?: { reviewMode?: boolean; currentContent?: string, agentId?: string }) => Promise<void>;
     createNewChat: (agentId?: string, initialModelId?: string) => string;
-    selectChat: (chatId: string) => void;
+    selectChat: (chatId: string | null) => void;
     deleteChatSession: (chatId: string) => Promise<void>;
     updateChatTitle: (chatId: string, title: string) => void;
 
@@ -95,7 +95,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         return newChatId;
     }, []);
 
-    const selectChat = useCallback((chatId: string) => {
+    const selectChat = useCallback((chatId: string | null) => {
         setCurrentChatId(chatId);
         // Reset input/attachments when switching? Maybe not appropriate if user is multitasking.
         // For now, let's keep input state global but maybe clear it if switching context?
@@ -133,17 +133,21 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         setPendingAttachments(prev => [...prev, att]);
     }, []);
 
-    const sendMessage = useCallback(async (content: string, modelId: string) => {
+    const sendMessage = useCallback(async (content: string, modelId: string, options?: { reviewMode?: boolean; currentContent?: string, agentId?: string }) => {
+        console.log('ChatContext: sendMessage called', { content, modelId, options, currentChatId, isGenerating });
         if ((!content.trim() && pendingAttachments.length === 0) || isGenerating) return;
 
         let chatId = currentChatId;
         if (!chatId) {
-            chatId = createNewChat(undefined, modelId);
+            console.log('ChatContext: Creating new chat for sendMessage');
+            chatId = createNewChat(options?.agentId, modelId);
+            console.log('ChatContext: New chat created', chatId);
         }
 
         // Get fresh reference to chat
         // We need to use functional updates for robust state changes
         const currentChat = activeChatRef.current || chats.find(c => c.id === chatId);
+        console.log('ChatContext: Current chat found', !!currentChat);
 
         const newUserMessage: Message = {
             id: uuidv4(),
@@ -160,6 +164,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         };
 
         // Optimistic UI Update
+        console.log('ChatContext: Applying optimistic update');
         setChats(prev => prev.map(c => c.id === chatId ? {
             ...c,
             messages: [...c.messages, newUserMessage],
@@ -270,7 +275,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
                     imageGeneration: activeTools.image
                 },
                 chatId,
-                undefined // User Profile (handled by service fallback)
+                undefined, // User Profile (handled by service fallback)
+                options?.reviewMode,
+                options?.currentContent
             );
 
             // Finalize Message

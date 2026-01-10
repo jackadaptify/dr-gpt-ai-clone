@@ -6,6 +6,7 @@ import { User, CreditCard, Palette, LogOut, Shield, MoreHorizontal, FolderInput,
 import { useAuth } from '../contexts/AuthContext';
 import { useSyncManager } from '../src/hooks/useSyncManager';
 import SettingsModal from './SettingsModal';
+import SearchModal from './SearchModal'; // Import
 import { RefreshCw } from 'lucide-react';
 
 interface SidebarProps {
@@ -66,6 +67,7 @@ export default function Sidebar({
   const { pendingCount, isSyncing, syncNow } = useSyncManager();
   const [searchTerm, setSearchTerm] = useState('');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false); // New State
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
@@ -590,7 +592,7 @@ export default function Sidebar({
                               w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
                                text-textMuted hover:text-textMain hover:bg-surfaceHighlight
                           `}
-                    onClick={() => {/* Trigger search focus logic */ }}
+                    onClick={() => setIsSearchOpen(true)} // Updated trigger
                     title={searchLabel}
                   >
                     <Search size={18} />
@@ -680,6 +682,16 @@ export default function Sidebar({
           onClose={() => setShowSettingsModal(false)}
           isDarkMode={isDarkMode}
           toggleTheme={toggleTheme}
+        />
+
+        {/* Search Modal */}
+        <SearchModal
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          chats={chats}
+          onSelectChat={onSelectChat}
+          onNewChat={onNewChat}
+          isDarkMode={isDarkMode}
         />
       </aside>
     </>

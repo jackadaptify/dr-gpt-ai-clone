@@ -72,6 +72,9 @@ const ScribePageWrapper = () => {
                     handleMicClick={ctx.handleMicClick}
                     isListening={ctx.isListening}
                     hasMicSupport={ctx.hasMicSupport}
+                    scribeContent={ctx.scribeContent}
+                    setScribeContent={ctx.setScribeContent}
+                    handleScribeUpdate={ctx.handleScribeUpdate}
                 />
             )}
         </ScribePage>

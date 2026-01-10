@@ -88,6 +88,16 @@ export const IconTrash = (props: React.SVGProps<SVGSVGElement>) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
 );
 
+
+// Fallback if SVG fails, we can use Image component in MessageItem.
+
+export const IconDrGPT = (props: React.SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
+    <rect width="40" height="40" rx="10" fill="#10B981" />
+    <text x="20" y="26" fontSize="18" fontWeight="bold" fill="white" textAnchor="middle" fontFamily="sans-serif">Dr</text>
+  </svg>
+);
+
 export const IconRobot = IconBot;
 
 export const IconArrowLeft = ({ className = "w-6 h-6", ...props }: React.SVGProps<SVGSVGElement>) => (

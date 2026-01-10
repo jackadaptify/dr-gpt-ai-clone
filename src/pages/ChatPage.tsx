@@ -6,7 +6,7 @@ import AttachmentMenu from '../../components/AttachmentMenu';
 import PromptsModal from '../../components/PromptsModal';
 import { useChat } from '../contexts/ChatContext';
 import {
-    IconMenu, IconSend, IconAttachment, IconGlobe, IconImage, IconBrain, IconPlus, IconCreditCard, IconFile, IconCheck, IconAlertTriangle
+    IconMenu, IconSend, IconAttachment, IconGlobe, IconImage, IconBrain, IconPlus, IconCreditCard, IconFile, IconCheck, IconAlertTriangle, IconDrGPT
 } from '../../components/Icons';
 import { Menu, Check, Mic, Plus, Globe, Image, Send, Edit, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -21,10 +21,14 @@ interface ChatPageProps {
 
 
 
-    // Mic Props
     handleMicClick: () => void;
     isListening: boolean;
     hasMicSupport: boolean;
+
+    // Scribe Review Props
+    scribeContent?: string;
+    setScribeContent?: (content: string) => void;
+    handleScribeUpdate?: (content: string) => void;
 }
 
 export default function ChatPage({
@@ -37,7 +41,12 @@ export default function ChatPage({
 
     handleMicClick,
     isListening,
-    hasMicSupport
+    hasMicSupport,
+
+    // Scribe Review Props
+    scribeContent,
+    setScribeContent,
+    handleScribeUpdate
 }: ChatPageProps) {
     const {
         activeChat,
@@ -70,9 +79,41 @@ export default function ChatPage({
         }
     };
 
+    // Handle Scribe Review Updates
+    useEffect(() => {
+        if (activeMode !== 'scribe-review' || !activeChat) return;
+
+        const lastMessage = activeChat.messages[activeChat.messages.length - 1];
+        if (lastMessage && lastMessage.role === Role.MODEL && !lastMessage.isStreaming) {
+            // Check for <UPDATE_ACTION>
+            const updateMatch = lastMessage.content.match(/<UPDATE_ACTION>([\s\S]*?)<\/UPDATE_ACTION>/);
+            if (updateMatch && updateMatch[1]) {
+                try {
+                    const jsonContent = JSON.parse(updateMatch[1]);
+                    if (jsonContent.new_content) {
+                        if (handleScribeUpdate) {
+                            handleScribeUpdate(jsonContent.new_content);
+                            // Avoid double toast if handleScribeUpdate/ScribeReview handles it, but currently ScribeReview handles success toast when typing done
+                        } else if (setScribeContent) {
+                            setScribeContent(jsonContent.new_content);
+                            toast.success('Prontuário atualizado pela IA', { icon: '✨' });
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to parse update action', e);
+                }
+            }
+        }
+    }, [activeChat, activeMode, setScribeContent, handleScribeUpdate]);
+
     const handleSend = () => {
+        console.log('ChatPage: handleSend called', { input, pendingAttachments: pendingAttachments.length, activeMode });
         if (input.trim() || pendingAttachments.length > 0) {
-            sendMessage(input, 'medpilot-1');
+            sendMessage(input, activeChat?.modelId || 'medpilot-1', {
+                reviewMode: activeMode === 'scribe-review',
+                currentContent: activeMode === 'scribe-review' ? scribeContent : undefined,
+                agentId: activeMode === 'scribe-review' ? 'scribe-mode' : undefined
+            }).catch(err => console.error('ChatPage: sendMessage failed', err));
         }
     };
 
@@ -147,8 +188,8 @@ export default function ChatPage({
             )}
 
             {/* Top Floating Header */}
-            <header className="absolute top-0 left-0 right-0 h-20 flex items-center justify-between px-6 z-10 pointer-events-none">
-                <div className="flex items-center gap-3 pointer-events-auto">
+            <header className="absolute top-0 left-0 right-0 h-auto min-h-[5rem] pt-[env(safe-area-inset-top)] flex items-center justify-between px-6 z-10 pointer-events-none">
+                <div className="flex items-center gap-3 pointer-events-auto py-4">
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
                         className="md:hidden p-2 rounded-xl bg-surface/50 backdrop-blur-md text-textMuted hover:text-textMain border border-borderLight shadow-lg"
@@ -156,34 +197,18 @@ export default function ChatPage({
                         <IconMenu />
                     </button>
                     <div className="relative group shadow-2xl rounded-xl">
-                        {/* Model Selector or Clinical Badge */}
-                        {(activeMode === 'scribe' || activeMode === 'scribe-review') ? (
-                            <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-md shadow-sm ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-white border-emerald-100'}`}>
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                </span>
-                                <span className={`font-semibold text-xs md:text-sm tracking-wide ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
-                                    ⚡ AI Model: Clinical-Pro v1.0
-                                </span>
-                            </div>
-
-                        ) : (
-                            <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-md shadow-sm ${isDarkMode ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-white border-indigo-100'}`}>
-                                <span className="relative flex h-2 w-2">
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-                                </span>
-                                <span className={`font-semibold text-xs md:text-sm tracking-wide ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                                    Medpilot 1
-                                </span>
-                            </div>
-                        )}
+                        {/* Dr. GPT Brand Badge */}
+                        <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-md shadow-sm ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-white border-emerald-100'}`}>
+                            <span className={`font-semibold text-xs md:text-sm tracking-wide ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                                Medpilot v1
+                            </span>
+                        </div>
                     </div>
                 </div>
             </header>
 
             {/* Chat Area */}
-            <main className="flex-1 overflow-y-auto scroll-smooth relative flex flex-col items-center custom-scrollbar z-0">
+            <main className={`flex-1 overflow-y-auto scroll-smooth relative flex flex-col custom-scrollbar z-0 ${activeMode === 'scribe-review' ? 'w-full px-0' : 'items-center'}`}>
                 {/* TRIAL BANNER - ACTIVE */}
                 {user?.trial_status === 'active' && user?.trial_ends_at && new Date(user.trial_ends_at) > new Date() && (
                     <div className="absolute top-20 left-0 right-0 z-10 px-4 pointer-events-none">
@@ -213,25 +238,37 @@ export default function ChatPage({
 
                 {!activeChat || activeChat.messages.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center w-full max-w-4xl px-4 mt-20 md:mt-0">
-                        <div className="text-center space-y-6 animate-in fade-in zoom-in duration-500">
-
-                            <h2 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-200">
-                                Olá, Doutor(a)
-                            </h2>
-                            <p className="text-textMuted max-w-lg mx-auto text-lg">
-                                Como posso auxiliar você hoje?
-                            </p>
-                        </div>
-
-
+                        {activeMode === 'scribe-review' ? (
+                            <div className="text-center space-y-4 animate-in fade-in zoom-in duration-500 opacity-80">
+                                <div className="w-16 h-16 mx-auto bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-4">
+                                    <IconBrain className="w-8 h-8 text-emerald-500" />
+                                </div>
+                                <h2 className="text-xl font-semibold text-textMain">
+                                    Revisão Assistida
+                                </h2>
+                                <p className="text-sm text-textMuted max-w-xs mx-auto leading-relaxed">
+                                    Estou analisando o prontuário. Peça ajustes, correções ou adições conforme necessário.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="text-center space-y-6 animate-in fade-in zoom-in duration-500">
+                                <h2 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-200">
+                                    Olá, Doutor(a)
+                                </h2>
+                                <p className="text-textMuted max-w-lg mx-auto text-lg">
+                                    Como posso auxiliar você hoje?
+                                </p>
+                            </div>
+                        )}
                     </div>
                 ) : (
-                    <div className="w-full max-w-3xl px-2 md:px-0 pt-24 pb-48 space-y-6">
+                    <div className={`w-full ${activeMode === 'scribe-review' ? 'px-4 pt-4 pb-32 space-y-4' : 'max-w-3xl px-2 md:px-0 pt-24 pb-48 space-y-6'}`}>
                         {messages.map((message) => (
                             <MessageItem
                                 key={message.id}
                                 message={message}
                                 isDarkMode={isDarkMode}
+                                compact={activeMode === 'scribe-review'}
                             />
                         ))}
                         <div ref={messagesEndRef} />
@@ -253,13 +290,19 @@ export default function ChatPage({
             </main>
 
             {/* Bottom Input Area */}
-            <footer className="absolute bottom-0 left-0 right-0 px-4 pt-4 pb-8 md:pb-4 z-20 pointer-events-none flex justify-center">
+            <footer className={`absolute bottom-0 left-0 right-0 z-20 pointer-events-none flex justify-center 
+                ${activeMode === 'scribe-review'
+                    ? 'px-2 pt-2 bg-background border-t border-borderLight pb-[calc(1rem+env(safe-area-inset-bottom))]'
+                    : 'px-4 pt-4 pb-[calc(2rem+env(safe-area-inset-bottom))] md:pb-[calc(1rem+env(safe-area-inset-bottom))]'
+                }
+            `}>
                 <div className={`
-                    w-full max-w-3xl pointer-events-auto transition-all duration-300
+                    w-full pointer-events-auto transition-all duration-300
                     flex flex-col gap-2 p-2 rounded-[2rem] border relative
+                    ${activeMode === 'scribe-review' ? 'max-w-full' : 'max-w-3xl'}
                     ${isDragging ? 'border-emerald-500 bg-emerald-500/10 scale-105' : isDarkMode ? 'bg-[#18181b]/90 border-white/10' : 'bg-white/90 border-slate-200'}
                     backdrop-blur-xl
-                    shadow-[var(--shadow-depth-3)] /* Strong Lift */
+                    ${activeMode === 'scribe-review' ? 'shadow-none' : 'shadow-[var(--shadow-depth-3)]'}
                 `}
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
@@ -311,7 +354,7 @@ export default function ChatPage({
                         </div>
                     )}
 
-                    <div className="flex items-end gap-2 pl-2 pr-2">
+                    <div className="flex items-center gap-2 pl-2 pr-2">
                         {/* Attach Button */}
                         <div className="relative">
                             <button
@@ -354,7 +397,7 @@ export default function ChatPage({
                             onPaste={handlePaste}
                             placeholder={isListening ? "Ouvindo..." : activeMode === 'scribe' ? "Modo Transcrição (Use o microfone)..." : "Mensagem Dr. GPT..."}
                             className={`
-                                flex-1 max-h-48 min-h-[50px] py-3.5 px-4 rounded-xl resize-none outline-none text-base leading-relaxed
+                                flex-1 max-h-48 min-h-[50px] py-3 px-4 rounded-xl resize-none outline-none text-base leading-relaxed
                                 font-sans placeholder-textMuted bg-transparent
                                 ${isDarkMode ? 'text-white' : 'text-slate-900'}
                                 custom-scrollbar
@@ -364,7 +407,7 @@ export default function ChatPage({
                         />
 
                         {/* Right Actions */}
-                        <div className="flex items-center gap-2 pb-1.5">
+                        <div className="flex items-center gap-2">
                             {!input.trim() && pendingAttachments.length === 0 && (
                                 <button
                                     onClick={handleMicClick}

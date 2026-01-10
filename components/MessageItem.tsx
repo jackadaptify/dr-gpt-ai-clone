@@ -2,12 +2,13 @@ import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Message, Role, AVAILABLE_MODELS, Agent } from '../types';
-import { IconBot, IconUser, getProviderIcon, IconStethoscope, IconActivity, IconBaby, IconSkin, IconBrain } from './Icons';
+import { IconBot, IconUser, getProviderIcon, IconStethoscope, IconActivity, IconBaby, IconSkin, IconBrain, IconDrGPT } from './Icons';
 
 interface MessageItemProps {
   message: Message;
   isDarkMode: boolean;
   agent?: Agent; // Optional agent context
+  compact?: boolean;
 }
 
 const AGENT_ICONS: Record<string, React.ElementType> = {
@@ -19,11 +20,12 @@ const AGENT_ICONS: Record<string, React.ElementType> = {
 };
 
 // 🔧 FIX: Memoize to prevent re-renders of unchanged messages
-const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMode, agent }) => {
+const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMode, agent, compact }) => {
   const isUser = message.role === Role.USER;
 
   // Download image handler
   const handleDownloadImage = (src: string, alt?: string) => {
+    // ... (logic unchanged) ...
     if (src.startsWith('data:image')) {
       const link = document.createElement('a');
       link.href = src;
@@ -57,14 +59,15 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
   );
 
   return (
-    <div className={`group w-full text-textMain py-2 ${isUser ? '' : (isDarkMode ? 'bg-transparent' : 'bg-transparent')}`}>
-      <div className={`m-auto w-full max-w-3xl p-4 md:p-6 flex gap-6 ${isUser ? 'flex-row-reverse' : ''}`}>
+    <div className={`group w-full text-textMain ${compact ? 'py-1' : 'py-2'} ${isUser ? '' : (isDarkMode ? 'bg-transparent' : 'bg-transparent')}`}>
+      <div className={`m-auto w-full flex ${compact ? 'max-w-full p-2 gap-3' : 'max-w-3xl p-4 md:p-6 gap-6'} ${isUser ? 'flex-row-reverse' : ''}`}>
 
         {/* Avatar 3D - Only for AI */}
         {!isUser && (
           <div className="flex-shrink-0 flex flex-col relative">
             <div className={`
-            w-10 h-10 rounded-xl flex items-center justify-center border-t border-white/10
+            rounded-xl flex items-center justify-center border-t border-white/10
+            ${compact ? 'w-8 h-8' : 'w-10 h-10'}
             ${isDarkMode ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 shadow-[var(--shadow-depth-1)]' : 'bg-white border border-gray-200 shadow-sm'}
           `}>
               <div className="animate-in fade-in zoom-in duration-300 scale-90">
@@ -75,13 +78,10 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
                   /* 2. Specific Agent Icon */
                   React.createElement(AGENT_ICONS[agent.icon], { className: `w-6 h-6 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}` })
                 ) : message.modelId ? (
-                  /* 3. Provider/Model Icon (Fallback) */
-                  getProviderIcon(
-                    AVAILABLE_MODELS.find(m => m.id === message.modelId)?.provider ||
-                    (message.modelId.includes('gpt') ? 'OpenAI' :
-                      message.modelId.includes('claude') ? 'Anthropic' :
-                        message.modelId.includes('gemini') ? 'Google' : 'DrPro')
-                  )
+                  /* 3. Provider/Model Icon (Dr. GPT Brand Override) */
+                  <div className="w-full h-full p-0.5">
+                    <IconDrGPT className="w-full h-full rounded-lg" />
+                  </div>
                 ) : (
                   <IconBot className="text-emerald-500" />
                 )}
@@ -94,7 +94,7 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
         <div className={`relative flex-1 overflow-hidden ${isUser ? 'flex justify-end' : 'pt-1.5'}`}>
           <div className={`
             ${isUser
-              ? 'bg-surfaceHighlight text-textMain border border-borderLight rounded-3xl rounded-tr-sm px-5 py-2.5 max-w-[85%] shadow-md'
+              ? `bg-surfaceHighlight text-textMain border border-borderLight rounded-3xl rounded-tr-sm shadow-md ${compact ? 'px-4 py-2 max-w-[95%]' : 'px-5 py-2.5 max-w-[85%]'}`
               : ''}
           `}>
             {!isUser && (
@@ -111,7 +111,7 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
                 {/* Smart Copy for EMR */}
                 <button
                   onClick={() => {
-                    const text = message.content.split(':::HIDDEN:::')[0].replace(/<UPDATE_ACTION>[\s\S]*?<\/UPDATE_ACTION>/g, '').trim();
+                    const text = (message.displayContent || message.content).replace(/<UPDATE_ACTION>[\s\S]*?<\/UPDATE_ACTION>/g, '').trim();
                     // Strip Markdown
                     const cleanText = text
                       .replace(/\*\*/g, '') // Bold
@@ -315,7 +315,7 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
                     }
                   }}
                 >
-                  {(message.displayContent || message.content.split(':::HIDDEN:::')[0].replace(/<UPDATE_ACTION>[\s\S]*?<\/UPDATE_ACTION>/g, '').trim()) + (message.isStreaming ? ' ▍' : '')}
+                  {((message.displayContent || message.content).replace(/<UPDATE_ACTION>[\s\S]*?<\/UPDATE_ACTION>/g, '').trim()) + (message.isStreaming ? ' ▍' : '')}
                 </ReactMarkdown>
               </div>
             </div>

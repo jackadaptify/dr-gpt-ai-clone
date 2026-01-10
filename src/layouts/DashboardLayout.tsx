@@ -4,7 +4,7 @@ import Sidebar from '../../components/Sidebar';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../contexts/ChatContext';
 import { projectService } from '../../services/projectService';
-import { streamChatResponse, saveMessage, updateChat, createChat } from '../../services/chatService';
+import { streamChatResponse, saveMessage, updateChat, createChat, loadMessagesForChat } from '../../services/chatService';
 import { Folder, AppMode, Message, Role, ChatSession, AVAILABLE_MODELS } from '../../types';
 import { Toaster, toast } from 'react-hot-toast';
 import SettingsModal from '../../components/SettingsModal';
@@ -269,10 +269,13 @@ export default function DashboardLayout() {
         if (activeMode === 'chat') {
             contextCreateNewChat(undefined, selectedModelId);
             navigate('/copilot');
-        } else if (activeMode === 'scribe') {
+        } else if (activeMode === 'scribe' || activeMode === 'scribe-review') {
             setIsScribeReview(false);
             setScribeContent('');
             navigate('/transcribe');
+        } else if (activeMode === 'research') {
+            selectChat(null); // Reset to empty state
+            navigate('/research');
         }
         if (window.innerWidth < 768) setSidebarOpen(false);
     };
@@ -286,33 +289,85 @@ export default function DashboardLayout() {
                     currentChatId={currentChatId}
                     activeMode={activeMode}
                     onModeChange={handleModeChange}
-                    onSelectChat={(id) => {
+                    onSelectChat={async (id) => {
                         selectChat(id);
                         const chat = chats.find(c => c.id === id);
                         if (chat?.agentId === 'scribe-mode') {
                             setIsScribeReview(true);
                             navigate('/transcribe');
+                            setScribeContent('Carregando prontuário...');
 
-                            // Restoration Logic
-                            const lastDocMessage = [...chat.messages]
-                                .reverse()
-                                .find(m => m.role === Role.MODEL && m.content.length > 50 && !m.content.includes("Precisa de algum ajuste"));
+                            // Restoration Logic with Explicit Fetch
+                            try {
+                                const messages = await loadMessagesForChat(id);
 
-                            if (lastDocMessage) {
-                                const cleanContent = lastDocMessage.content.replace(/<UPDATE_ACTION>[\s\S]*?<\/UPDATE_ACTION>/g, '').trim();
-                                const updateMatch = lastDocMessage.content.match(/<UPDATE_ACTION>\s*(\{[\s\S]*?\})\s*<\/UPDATE_ACTION>/);
-                                if (updateMatch && updateMatch[1]) {
-                                    try {
-                                        const json = JSON.parse(updateMatch[1]);
-                                        setScribeContent(json.new_content);
-                                    } catch (e) {
-                                        setScribeContent(lastDocMessage.content);
+                                // Priority 1: Last message with <UPDATE_ACTION>
+                                // We reverse the array to find the *latest* occurrence comfortably or just findLast if available (but simpler to iterate)
+                                // loadMessagesForChat returns latest-first? No, let's verify. 
+                                // "return messages.reverse().map..." in service. 
+                                // Service: supabase order desc -> .reverse() -> Ascending (Oldest first).
+                                // So last element is latest.
+
+                                let contentFound = '';
+
+                                // Scan from newest to oldest
+                                for (let i = messages.length - 1; i >= 0; i--) {
+                                    const msg = messages[i];
+                                    if (msg.role !== Role.MODEL) continue;
+
+                                    // Check for <UPDATE_ACTION>
+                                    const updateMatch = msg.content.match(/<UPDATE_ACTION>([\s\S]*?)<\/UPDATE_ACTION>/);
+                                    if (updateMatch && updateMatch[1]) {
+                                        try {
+                                            const json = JSON.parse(updateMatch[1]);
+                                            if (json.new_content) {
+                                                contentFound = json.new_content;
+                                                break; // Found latest update, stop.
+                                            }
+                                        } catch (e) {
+                                            console.error("Failed to parse restoration JSON", e);
+                                        }
                                     }
-                                } else {
-                                    setScribeContent(cleanContent);
+
+                                    // Check for Initial Document (Heuristic: Long text + Headers + No "Please adjust")
+                                    // Only if we haven't found an update yet.
+                                    // AND it's NOT just a conversational reply.
+                                    const isLikelyDoc = msg.content.length > 100 &&
+                                        (msg.content.includes('#') || msg.content.includes('**') || msg.content.includes('S -') || msg.content.includes('Subjectivo'));
+
+                                    const isConversational = msg.content.includes("Precisa de algum ajuste") || msg.content.length < 100;
+
+                                    if (isLikelyDoc && !isConversational && !contentFound) {
+                                        // Potential candidate, but keep searching for a NEWER <UPDATE_ACTION> if we are iterating backwards?
+                                        // No, we are iterating backwards (Newest -> Oldest). 
+                                        // If we found a regular doc message here, and we haven't found an UPDATE_ACTION yet (which would be newer),
+                                        // then THIS is likely the latest state (e.g. initial generation was the last thing, or AI just outputted text).
+                                        // BUT, AI chat replies can be long.
+                                        // Let's rely strictly on <UPDATE_ACTION> for *updates*.
+                                        // And only fallback to "IsLikelyDoc" if it looks like the *initial* generation (which shouldn't happen *after* a conversation ideally without an action).
+
+                                        // Safe bet: If it has structured markers, use it.
+                                        contentFound = msg.content;
+                                        break;
+                                    }
                                 }
-                            } else {
-                                setScribeContent('Carregando prontuário...');
+
+                                if (contentFound) {
+                                    setScribeContent(contentFound);
+                                } else {
+                                    // Fallback: Try to find ANY model message that isn't the welcome one
+                                    const fallback = messages.find(m => m.role === Role.MODEL && m.content.length > 50 && !m.content.includes("Precisa de algum ajuste"));
+                                    if (fallback) {
+                                        // Clean potential tags if they exist but failed match above?
+                                        setScribeContent(fallback.content.replace(/<UPDATE_ACTION>[\s\S]*?<\/UPDATE_ACTION>/g, '').trim());
+                                    } else {
+                                        setScribeContent('');
+                                    }
+                                }
+
+                            } catch (error) {
+                                console.error('Failed to load messages for restoration', error);
+                                setScribeContent('Erro ao carregar prontuário.');
                             }
                         }
                     }}
@@ -348,6 +403,10 @@ export default function DashboardLayout() {
                     setScribeContent,
                     typewriterTrigger,
                     setTypewriterTrigger,
+                    handleScribeUpdate: (newContent: string) => {
+                        setScribeContent(newContent);
+                        setTypewriterTrigger({ content: newContent, timestamp: Date.now() });
+                    },
                     reviewTitle,
                     setReviewTitle,
                     isScribeReview,
