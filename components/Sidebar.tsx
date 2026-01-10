@@ -528,6 +528,7 @@ export default function Sidebar({
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         md:relative md:translate-x-0
         bg-sidebar backdrop-blur-xl border-r border-borderLight
+        shadow-[var(--shadow-depth-2)] /* Added Depth Shadow */
       `}>
         {/* Header - Unified Navigation */}
         {/* Header - Unified Navigation */}

@@ -50,6 +50,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(null);
             }
             setLoading(false);
+        }).catch((err) => {
+            console.error('AuthContext: Error getting session:', err);
+            setLoading(false);
         });
 
         // Listen for changes

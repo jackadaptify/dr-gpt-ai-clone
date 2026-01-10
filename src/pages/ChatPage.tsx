@@ -256,9 +256,10 @@ export default function ChatPage({
             <footer className="absolute bottom-0 left-0 right-0 px-4 pt-4 pb-8 md:pb-4 z-20 pointer-events-none flex justify-center">
                 <div className={`
                     w-full max-w-3xl pointer-events-auto transition-all duration-300
-                    flex flex-col gap-2 p-2 rounded-[2rem] border shadow-2xl relative
-                    ${isDragging ? 'border-emerald-500 bg-emerald-500/10 scale-105' : isDarkMode ? 'bg-surface/90 border-white/10 shadow-black/50' : 'bg-white/90 border-slate-200 shadow-xl'}
+                    flex flex-col gap-2 p-2 rounded-[2rem] border relative
+                    ${isDragging ? 'border-emerald-500 bg-emerald-500/10 scale-105' : isDarkMode ? 'bg-[#18181b]/90 border-white/10' : 'bg-white/90 border-slate-200'}
                     backdrop-blur-xl
+                    shadow-[var(--shadow-depth-3)] /* Strong Lift */
                 `}
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}

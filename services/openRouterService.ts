@@ -18,6 +18,12 @@ export const createOpenRouterChatStream = async (
     onMessageUpdate?: (msg: Message) => void,
     onComplete?: (msg: Message) => void
 ): Promise<string> => {
+    // 🛡️ Config Validation
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+    if (supabaseUrl.includes('your-project.supabase.co')) {
+        throw new Error('Ambiente não configurado: Atualize VITE_SUPABASE_URL no arquivo .env');
+    }
+
     try {
         // Mandatory System Message for Dr. GPT
         let systemContent = systemPrompt || `Você é o Dr. GPT, um assistente de IA focado em medicina e saúde.

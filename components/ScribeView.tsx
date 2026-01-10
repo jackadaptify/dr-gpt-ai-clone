@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, FileText, ArrowRight, MonitorPlay, Lock, Menu, Users, Edit2, ChevronDown, Pause, Play, Trash2, CheckSquare, Square as SquareIcon, UploadCloud, Settings } from 'lucide-react';
+import { Mic, Square, Trash2, FileText, UploadCloud, ChevronRight, Menu, Edit2, Users, MonitorPlay, ArrowRight, ChevronDown, Pause, Play, CheckSquare, Square as SquareIcon, Settings } from 'lucide-react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 interface ScribeViewProps {
@@ -71,6 +71,9 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                 : [...prev, module]
         );
     };
+
+    // Mobile Tab State
+    const [mobileTab, setMobileTab] = useState<'context' | 'transcript'>('transcript');
 
     // Sync current recording with the correct state (Mic Only)
     useEffect(() => {
@@ -209,10 +212,12 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
         // Format: "Tipo Consulta: X | Obs: Y"
         // Combine metadata into "thoughts" (which is used as Note/Observation context)
         // Format: "Módulos: [A, B] | Tipo de Consulta: X | Obs: Y"
-        const finalThoughts = `Módulos: ${selectedModules.length > 0 ? selectedModules.join(', ') : 'Nenhum'}\nTipo de Consulta: ${consultationType}\nObservações: ${observations}`;
+        const modulesStr = selectedModules.length > 0 ? selectedModules.join(', ') : 'Nenhum';
+        const finalThoughts = `Módulos: ${modulesStr} \nTipo de Consulta: ${consultationType} \nObservações: ${observations} `;
+
 
         if (mode === 'telemedicine' && consultationBlob) {
-            onGenerate(finalThoughts, "", finalName, patientGender, consultationBlob, selectedScenario);
+            onGenerate("", finalThoughts, finalName, patientGender, consultationBlob, selectedScenario);
         } else {
             onGenerate(consultationTranscript, finalThoughts, finalName, patientGender, undefined, selectedScenario);
         }
@@ -257,7 +262,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
     const formatTime = (secs: number) => {
         const mins = Math.floor(secs / 60);
         const s = secs % 60;
-        return `${mins.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        return `${mins.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')} `;
     };
 
     const handleDiscard = () => {
@@ -273,7 +278,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
     };
 
     return (
-        <div className="flex flex-col h-full w-full max-w-[98%] xl:max-w-[1600px] mx-auto gap-4 p-2 md:p-6 animate-in fade-in duration-500 overflow-hidden text-textMain">
+        <div className="flex flex-col h-full w-full max-w-[98%] xl:max-w-[1600px] mx-auto gap-2 p-2 md:p-4 animate-in fade-in duration-500 overflow-hidden text-textMain">
 
             {/* --- TOP HEADER (Patient & Menu) --- */}
             <div className="w-full flex items-center justify-between shrink-0 gap-4">
@@ -302,15 +307,14 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                     <div className="flex bg-surface border border-borderLight rounded-lg p-1">
                         <button
                             onClick={() => !isRecording && setMode('presential')}
-                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'presential' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'text-textMuted hover:text-textMain hover:bg-white/5'}`}
+                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'presential' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'text-textMuted hover:text-textMain hover:bg-white/5'} `}
                         >
                             <Users size={14} /> <span className="hidden sm:inline">Presencial</span>
                         </button>
                         <button
                             onClick={() => !isRecording && setMode('telemedicine')}
-                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'telemedicine' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' : 'text-textMuted hover:text-textMain hover:bg-white/5'}`}
+                            className={`flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${mode === 'telemedicine' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' : 'text-textMuted hover:text-textMain hover:bg-white/5'} `}
                         >
-
                             <MonitorPlay size={14} /> <span className="hidden sm:inline">Telemed</span>
                         </button>
                     </div>
@@ -323,25 +327,42 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                 </div>
             </div>
 
+            {/* --- MOBILE TABS (NEW) --- */}
+            <div className="md:hidden flex w-full bg-surface border border-borderLight rounded-xl p-1 mb-2 shrink-0">
+                <button
+                    onClick={() => setMobileTab('transcript')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all ${mobileTab === 'transcript' ? 'bg-emerald-500 text-white shadow-md' : 'text-textMuted hover:bg-surfaceHighlight'} `}
+                >
+                    <Mic size={16} />
+                    Transcrição
+                </button>
+                <button
+                    onClick={() => setMobileTab('context')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all ${mobileTab === 'context' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'text-textMuted hover:bg-surfaceHighlight'} `}
+                >
+                    <FileText size={16} />
+                    Contexto
+                </button>
+            </div>
+
             {/* --- MAIN CONTENT (Two Columns) --- */}
             <div className="flex flex-col md:flex-row flex-1 min-h-0 gap-4 md:gap-6 relative z-10">
 
                 {/* --- LEFTSIDE PANEL: CONTEXT --- */}
-                <div className="flex flex-col w-full md:w-1/2 h-full bg-[#141414] rounded-2xl md:rounded-3xl shadow-none overflow-hidden relative group">
-
+                <div className={`
+                    ${mobileTab === 'context' ? 'flex' : 'hidden'}
+md:flex flex-col w-full md:w-1/2 h-full bg-[#141414] rounded-2xl md:rounded-3xl shadow-none overflow-hidden relative group
+    `}>
 
                     {/* Header */}
                     <div className="px-4 py-3 bg-white/[0.02] flex items-center gap-2">
                         <span className="text-xs font-bold text-textMuted uppercase tracking-wider">Contexto da Consulta</span>
                     </div>
 
-
                     <div className="flex-1 flex flex-col p-4 md:p-5 gap-4 overflow-y-auto custom-scrollbar">
-
 
                         {/* File Upload Area */}
                         <div className="w-full bg-white/[0.02] rounded-xl p-8 flex flex-col items-center justify-center text-center gap-3 hover:bg-white/[0.04] transition-colors cursor-pointer group">
-
                             <div className="w-12 h-12 rounded-full bg-surfaceHighlight group-hover:bg-emerald-50 text-textMuted group-hover:text-emerald-600 flex items-center justify-center transition-colors">
                                 <UploadCloud size={24} />
                             </div>
@@ -353,7 +374,6 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
 
                         {/* Notes Area */}
                         <div className="flex-1 flex flex-col min-h-[200px] bg-white/[0.02] rounded-xl p-4 mt-2">
-
                             <div className="flex items-center gap-2 mb-3">
                                 <div className="w-6 h-6 rounded bg-amber-100/50 text-amber-600 flex items-center justify-center">
                                     <FileText size={14} />
@@ -371,7 +391,10 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                 </div>
 
                 {/* --- RIGHTSIDE PANEL: TRANSCRIPTION --- */}
-                <div className="flex flex-col w-full md:w-1/2 h-full bg-[#141414] rounded-2xl md:rounded-3xl shadow-none overflow-hidden relative">
+                <div className={`
+                     ${mobileTab === 'transcript' ? 'flex' : 'hidden'}
+md:flex flex-col w-full md:w-1/2 h-full bg-[#141414] rounded-2xl md:rounded-3xl shadow-none overflow-hidden relative
+                `}>
 
 
                     {/* Header */}
@@ -383,7 +406,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                         </div>
                     </div>
 
-                    <div className={`flex-1 relative transition-all duration-500 ${isRecording ? 'bg-emerald-500/5 ring-1 ring-emerald-500/20' : 'bg-surfaceHighlight/20'}`}>
+                    <div className={`flex-1 relative transition-all duration-500 ${isRecording ? 'bg-emerald-500/5 ring-1 ring-emerald-500/20' : 'bg-surfaceHighlight/20'} `}>
                         <textarea
                             ref={textareaRef}
                             value={consultationTranscript}
@@ -398,7 +421,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
             </div>
 
             {/* --- GLOBAL BOTTOM ACTION BAR (Footer) --- */}
-            <div className="w-full bg-[#09090b] p-4 md:px-8 md:py-5 shrink-0 flex items-center justify-end gap-3 z-50 rounded-2xl md:rounded-none mt-2 md:mt-0 shadow-2xl border-t border-white/5">
+            <div className="w-full bg-[#09090b] p-1 md:px-4 md:py-1 shrink-0 flex items-center justify-end gap-3 z-50 rounded-2xl md:rounded-none mt-2 md:mt-0 shadow-2xl border-t border-white/5">
 
                 {/* Trash (Visible only when content exists) */}
                 {(seconds > 0 || consultationTranscript) && (
@@ -412,52 +435,60 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                 )}
 
                 {/* Timer Status */}
-                <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-white/5 bg-white/[0.02] mr-2">
+                <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg border border-white/5 bg-white/[0.02] mr-2">
                     {isRecording ? <Pause size={16} className="text-emerald-500 animate-pulse" /> : <Play size={16} className="text-textMuted" />}
-                    <span className="font-mono text-sm font-medium tracking-wider text-textMuted/80">
-                        {formatTime(seconds)}
-                    </span>
+                    {/* Main Action Button (Mic) */}
+                    <div className="relative group">
+                        <button
+                            onClick={handleToggleRecording}
+                            className={`
+w-10 h-10 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all duration-300 shadow-lg relative z-10
+                            ${isRecording
+                                    ? 'bg-red-500 text-white scale-110 shadow-red-500/30'
+                                    : 'bg-emerald-500 text-white hover:bg-emerald-600 hover:scale-105 shadow-emerald-500/30'
+                                }
+`}
+                        >
+                            {isRecording ? (
+                                <Square size={24} fill="currentColor" />
+                            ) : (
+                                <Mic size={28} />
+                            )}
+                        </button>
+
+                        {/* Pulsing Rings when Recording */}
+                        {isRecording && (
+                            <>
+                                <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-20 duration-1000"></div>
+                                <div className="absolute -inset-2 bg-red-500 rounded-full animate-pulse opacity-10"></div>
+                            </>
+                        )}
+                    </div>
+
+                    <div className="flex flex-col items-center justify-center w-24">
+                        <span className={`text-sm font-mono font-bold tracking-wider ${isRecording ? 'text-red-500' : 'text-textMuted'} `}>
+                            {formatTime(seconds)}
+                        </span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-textMuted/60 mt-1">
+                            {isRecording ? 'Gravando' : seconds > 0 ? 'Pausado' : 'Pronto'}
+                        </span>
+                    </div>
+
+                    <button
+                        onClick={handleInitialGenerateClick}
+                        disabled={!consultationTranscript && !consultationBlob}
+                        className={`
+h-8 px-4 rounded-full font-bold text-xs tracking-wide transition-all shadow-lg flex items-center gap-2
+                        ${(!consultationTranscript && !consultationBlob)
+                                ? 'bg-surfaceHighlight text-textMuted cursor-not-allowed opacity-50'
+                                : 'bg-textMain text-background hover:scale-105'
+                            }
+`}
+                    >
+                        <span>Gerar Prontuário</span>
+                        <ArrowRight size={18} />
+                    </button>
                 </div>
-
-                {/* Record Button */}
-                <button
-                    onClick={handleToggleRecording}
-                    className={`
-                        flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm transition-all border
-                        ${isRecording
-                            ? 'bg-[#1A1A1A] border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 hover:border-emerald-500'
-                            : 'bg-[#1A1A1A] border-borderLight text-textMain hover:bg-surfaceHighlight'
-                        }
-                    `}
-                >
-                    {isRecording ? (
-                        <>
-                            <Pause size={18} /> <span>Pausar gravação</span>
-                        </>
-                    ) : (
-                        <>
-                            <Mic size={18} /> <span>{seconds > 0 ? "Retomar gravação" : "Iniciar gravação"}</span>
-                        </>
-                    )}
-                </button>
-
-
-
-                {/* Generate Button */}
-                <button
-                    onClick={handleInitialGenerateClick}
-                    disabled={(!consultationTranscript && !consultationBlob)}
-                    className={`
-                        flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm transition-all ml-2
-                        ${(consultationTranscript || consultationBlob)
-                            ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 border border-emerald-500/20'
-                            : 'bg-white/5 text-textMuted cursor-not-allowed opacity-50 border border-white/5'
-                        }
-                    `}
-                >
-                    <FileText size={16} />
-                    <span>Gerar documento</span>
-                </button>
             </div>
 
 
@@ -499,18 +530,18 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                                                         ? 'bg-emerald-50 border-emerald-200 shadow-sm'
                                                         : 'hover:bg-surfaceHighlight border-transparent'
                                                     }
-                                            `}
+`}
                                             >
                                                 <div className={`
-                                                w-5 h-5 rounded flex items-center justify-center transition-all
+w-5 h-5 rounded flex items-center justify-center transition-all
                                                 ${selectedModules.includes(module)
                                                         ? 'bg-emerald-500 text-white'
                                                         : 'bg-surface border border-borderLight text-transparent'
                                                     }
-                                            `}>
+`}>
                                                     <CheckSquare size={14} className={selectedModules.includes(module) ? 'opacity-100' : 'opacity-0'} />
                                                 </div>
-                                                <span className={`text-sm font-medium ${selectedModules.includes(module) ? 'text-emerald-900' : 'text-textMuted'}`}>
+                                                <span className={`text-sm font-medium ${selectedModules.includes(module) ? 'text-emerald-900' : 'text-textMuted'} `}>
                                                     {module}
                                                 </span>
                                             </div>
@@ -622,11 +653,12 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
             }
 
             <style>{`
-                .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
                 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.1); border-radius: 10px; }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(0,0,0,0.2); }
-            `}</style>
-        </div >
+                .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(0, 0, 0, 0.1); border-radius: 10px; }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover { background-color: rgba(0, 0, 0, 0.2); }
+`}</style>
+
+        </div>
     );
 }

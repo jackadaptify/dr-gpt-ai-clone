@@ -94,7 +94,7 @@ export default function DashboardLayout() {
     // Scribe Generation Logic
     const handleScribeGenerate = async (consultation: string, thoughts: string, patientName: string, patientGender: string, audioBlob: Blob | undefined, scenario = 'evolution') => {
         const newChatId = uuidv4();
-        const scribeModelId = 'openai/gpt-4o-mini';
+        const scribeModelId = 'gpt-4o'; // Direct OpenAI ID
 
         const newChat: ChatSession = {
             id: newChatId,
@@ -201,9 +201,10 @@ export default function DashboardLayout() {
             };
             await saveMessage(newChatId, docMessage);
 
-        } catch (e) {
-            setScribeContent('Erro ao gerar prontuário.');
+        } catch (e: any) {
+            setScribeContent('Erro ao gerar prontuário: ' + (e.message || 'Erro desconhecido.'));
             console.error(e);
+            toast.error(`Erro: ${e.message}`);
         }
     };
 

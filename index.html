@@ -94,61 +94,69 @@
     :root {
       /* Light Mode – Premium Neutral (ChatGPT-like) */
       --bg-background: #f7f7f8;
-      /* base off-white do app (ChatGPT vibes) */
       --bg-sidebar: #ffffff;
-      /* sidebar limpa */
       --bg-surface: #ffffff;
-      /* superfícies principais */
       --bg-surface-highlight: #fbfbfc;
-      /* highlight quase invisível */
+      --bg-depth: #f1f1f4; /* Sunken areas */
 
-      --border-light: rgba(15, 23, 42, 0.10);
-      /* borda “quase nada” */
+      --border-light: rgba(15, 23, 42, 0.08); /* Mais sutil ainda */
       --text-main: #0f172a;
-      --text-muted: #334155;
-      /* secundário legível */
+      --text-muted: #475569;
       --text-subtle: #64748b;
-      /* terciário (hints) */
-      --text-placeholder: #64748b;
+      --text-placeholder: #94a3b8;
       --text-strong: #020617;
 
-      /* Shadows: micro (o segredo do premium no light) */
-      --shadow-card-3d: 0 1px 2px rgba(15, 23, 42, 0.06);
-      --shadow-card-3d-hover: 0 8px 24px rgba(15, 23, 42, 0.10);
+      /* Shadows: Hierarquia de Profundidade (Light) */
+      --shadow-depth-1: 0 1px 2px -1px rgba(0,0,0,0.05); /* Card simples */
+      --shadow-depth-2: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); /* Hover / Dropdown */
+      --shadow-depth-3: 0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -2px rgba(0,0,0,0.04); /* Floating / Modal */
 
-      --shadow-inner-depth: none;
-      --shadow-convex: none;
-      --shadow-concave: none;
+      --shadow-card-3d: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+      --shadow-card-3d-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
 
-      --glass-panel-bg: rgba(255, 255, 255, 0.72);
-      --glass-panel-border: rgba(15, 23, 42, 0.10);
+      --shadow-inner-depth: inset 0 2px 4px 0 rgba(0, 0, 0, 0.03);
+      --shadow-convex: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-concave: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
 
-      --scrollbar-thumb: rgba(15, 23, 42, 0.18);
-      --scrollbar-thumb-hover: rgba(15, 23, 42, 0.28);
+      --glass-panel-bg: rgba(255, 255, 255, 0.85);
+      --glass-panel-border: rgba(255, 255, 255, 0.5);
+
+      --scrollbar-thumb: #cbd5e1;
+      --scrollbar-thumb-hover: #94a3b8;
     }
 
     .dark {
       /* Dark Mode Overrides - Premium & Depth */
-      --bg-background: #09090b;
-      --bg-sidebar: #000000;
-      --bg-surface: #18181b;
+      /* Fundo ultra-escuro (Zinc 950) vs Superfície (Zinc 900) vs Highlight (Zinc 800) */
+      --bg-background: #09090b; 
+      --bg-sidebar: #0c0c0e; /* Levemente mais claro que o fundo pra destacar */
+      --bg-surface: #18181b; 
       --bg-surface-highlight: #27272a;
-      --border-light: transparent;
+      --bg-depth: #000000; /* Preto absoluto para inputs/terminais */
+
+      --border-light: rgba(255, 255, 255, 0.06);
 
       --text-main: #E4E4E7;
       --text-muted: #a1a1aa;
-      --text-subtle: #a1a1aa;
-      --text-placeholder: #a1a1aa;
+      --text-subtle: #71717a;
+      --text-placeholder: #52525b;
       --text-strong: #ffffff;
 
-      --shadow-card-3d: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      --shadow-card-3d-hover: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
-      --shadow-inner-depth: inset 0 2px 4px 0 rgba(0, 0, 0, 0.6);
-      --shadow-convex: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-      --shadow-concave: inset 0 2px 4px 0 rgba(0, 0, 0, 0.3);
+      /* Shadows: Hierarquia de Profundidade (Dark - Mais fortes e espalhadas) */
+      /* O segredo do Dark Mode não é tanto a sombra, mas a Borda Sutil + Sombra preta */
+      --shadow-depth-1: 0 1px 2px 0 rgba(0,0,0,0.5); 
+      --shadow-depth-2: 0 4px 6px -1px rgba(0,0,0,0.6), 0 2px 4px -2px rgba(0,0,0,0.4); 
+      --shadow-depth-3: 0 20px 25px -5px rgba(0,0,0,0.7), 0 8px 10px -6px rgba(0,0,0,0.5); 
 
-      --glass-panel-bg: rgba(9, 9, 11, 0.6);
-      --glass-panel-border: transparent;
+      --shadow-card-3d: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-card-3d-hover: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+      
+      --shadow-inner-depth: inset 0 2px 4px 0 rgba(0, 0, 0, 0.8);
+      --shadow-convex: 0 2px 4px 0 rgba(0, 0, 0, 0.5);
+      --shadow-concave: inset 0 2px 5px 0 rgba(0, 0, 0, 0.7);
+
+      --glass-panel-bg: rgba(9, 9, 11, 0.7);
+      --glass-panel-border: rgba(255, 255, 255, 0.05);
 
       /* Scrollbar (Dark) */
       --scrollbar-thumb: #3f3f46;

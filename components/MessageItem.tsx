@@ -64,8 +64,8 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
         {!isUser && (
           <div className="flex-shrink-0 flex flex-col relative">
             <div className={`
-            w-10 h-10 rounded-xl flex items-center justify-center shadow-lg border-t border-white/10
-            ${isDarkMode ? 'bg-gradient-to-br from-surfaceHighlight to-surface shadow-convex' : 'bg-white border border-gray-200'}
+            w-10 h-10 rounded-xl flex items-center justify-center border-t border-white/10
+            ${isDarkMode ? 'bg-gradient-to-br from-zinc-800 to-zinc-900 shadow-[var(--shadow-depth-1)]' : 'bg-white border border-gray-200 shadow-sm'}
           `}>
               <div className="animate-in fade-in zoom-in duration-300 scale-90">
                 {/* 1. Custom Agent Avatar URL */}
@@ -98,13 +98,42 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
               : ''}
           `}>
             {!isUser && (
-              <div className="font-bold text-sm mb-3 flex items-center gap-2">
-                <span className={`bg-clip-text text-transparent drop-shadow-sm tracking-wide ${isDarkMode ? 'bg-gradient-to-r from-emerald-400 to-teal-300' : 'bg-gradient-to-r from-emerald-600 to-teal-600'}`}>
-                  {agent ? agent.name : 'Dr. GPT'}
-                </span>
-                <span className="text-[10px] text-textMuted font-normal ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
+              <div className="flex items-center justify-between mb-3">
+                <div className="font-bold text-sm flex items-center gap-2">
+                  <span className={`bg-clip-text text-transparent drop-shadow-sm tracking-wide ${isDarkMode ? 'bg-gradient-to-r from-emerald-400 to-teal-300' : 'bg-gradient-to-r from-emerald-600 to-teal-600'}`}>
+                    {agent ? agent.name : 'Dr. GPT'}
+                  </span>
+                  <span className="text-[10px] text-textMuted font-normal ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+
+                {/* Smart Copy for EMR */}
+                <button
+                  onClick={() => {
+                    const text = message.content.split(':::HIDDEN:::')[0].replace(/<UPDATE_ACTION>[\s\S]*?<\/UPDATE_ACTION>/g, '').trim();
+                    // Strip Markdown
+                    const cleanText = text
+                      .replace(/\*\*/g, '') // Bold
+                      .replace(/#/g, '') // Headers
+                      .replace(/`/g, '') // Code
+                      .replace(/\[(.*?)\]\(.*?\)/g, '$1') // Links
+                      .replace(/^\s*-\s/gm, '• '); // Bullets
+
+                    navigator.clipboard.writeText(cleanText);
+                    // Minimal toast or visual feedback could go here, relying on standard UI behavior
+                    alert("Texto copiado para prontuário (sem formatação)!");
+                  }}
+                  className={`
+                    flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all
+                    ${isDarkMode ? 'bg-white/5 hover:bg-emerald-500/20 text-textMuted hover:text-emerald-400' : 'bg-black/5 hover:bg-emerald-500/10 text-textMuted hover:text-emerald-600'}
+                    opacity-0 group-hover:opacity-100
+                  `}
+                  title="Copiar texto limpo para colagem em Prontuário Eletrônico (Remove negrito/títulos)"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  Copiar P/ EMR
+                </button>
               </div>
             )}
 

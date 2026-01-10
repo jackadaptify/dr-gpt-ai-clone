@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import AuthPage from './components/Auth/AuthPage';
 import InviteSignupPage from './components/Auth/InviteSignupPage';
 import SignupPaymentPage from './components/Auth/SignupPaymentPage';
+import UpdatePasswordPage from './components/Auth/UpdatePasswordPage';
 import PaywallPage from './components/Auth/PaywallPage';
 import AdminPage from './components/Admin/AdminPage';
 import { ChatProvider } from './src/contexts/ChatContext';
@@ -180,6 +181,7 @@ export default function App() {
                         <Route path="/login" element={<PublicRoute><AuthPage initialMode="login" /></PublicRoute>} />
                         <Route path="/signup/invite" element={<PublicRoute><InviteSignupPage /></PublicRoute>} />
                         <Route path="/signup/payment" element={<PublicRoute><SignupPaymentPage /></PublicRoute>} />
+                        <Route path="/reset-password" element={<UpdatePasswordPage />} />
                         <Route path="/paywall" element={<PaywallPage />} />
 
                         {/* Dashboard Routes with Layout */}

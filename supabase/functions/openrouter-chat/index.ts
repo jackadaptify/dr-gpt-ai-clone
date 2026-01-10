@@ -36,7 +36,10 @@ function corsHeaders(req: Request) {
 /**
  * ================== MODEL LOCK ==================
  */
-const LOCKED_MODEL = "google/gemini-2.5-flash";
+/**
+ * ================== MODEL LOCK ==================
+ */
+const LOCKED_MODEL = "gpt-4o";
 
 serve(async (req) => {
     const cors = corsHeaders(req);
@@ -67,11 +70,11 @@ serve(async (req) => {
 
         const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
         const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
-        const OPENROUTER_KEY = Deno.env.get("OPENROUTER_API_KEY");
+        const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
-        if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !OPENROUTER_KEY) {
+        if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !OPENAI_API_KEY) {
             return new Response(
-                JSON.stringify({ error: "Server misconfigured" }),
+                JSON.stringify({ error: "Server misconfigured: Missing Keys" }),
                 { status: 500, headers: cors }
             );
         }
@@ -108,22 +111,21 @@ serve(async (req) => {
             : messages;
 
         /**
-         * ================== OPENROUTER ==================
+         * ================== OPENAI ==================
          */
         const response = await fetch(
-            "https://openrouter.ai/api/v1/chat/completions",
+            "https://api.openai.com/v1/chat/completions",
             {
                 method: "POST",
                 headers: {
-                    "Authorization": `Bearer ${OPENROUTER_KEY}`,
+                    "Authorization": `Bearer ${OPENAI_API_KEY}`,
                     "Content-Type": "application/json",
-                    "HTTP-Referer": "https://app.doutorgpt.com",
-                    "X-Title": "Dr. GPT",
                 },
                 body: JSON.stringify({
                     model: LOCKED_MODEL,
                     messages: finalMessages,
                     stream,
+                    // No max_tokens needed for OpenAI usually, but can be added if cost control is desired
                 }),
             }
         );

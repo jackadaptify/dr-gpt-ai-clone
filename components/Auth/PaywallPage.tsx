@@ -80,7 +80,7 @@ export default function PaywallPage() {
     ];
 
     return (
-        <div className="min-h-screen bg-black text-white p-4 md:p-8 font-sans overflow-x-hidden">
+        <div className="h-full bg-black text-white p-4 md:p-8 font-sans overflow-y-auto overflow-x-hidden">
             {/* Ambient Background */}
             <div className="fixed inset-0 pointer-events-none">
                 <div className="absolute top-[-20%] left-[20%] w-[60%] h-[60%] bg-emerald-900/10 rounded-full blur-[150px] mix-blend-screen animate-pulse" style={{ animationDuration: '4s' }} />
