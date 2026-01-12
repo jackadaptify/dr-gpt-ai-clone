@@ -26,7 +26,16 @@ export const streamResearchChat = async (
         });
 
         if (!response.ok) {
-            throw new Error(`Research API Error: ${response.statusText}`);
+            let errorMessage = `Research API Error: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                if (errorData.error) {
+                    errorMessage = errorData.details || errorData.error;
+                }
+            } catch (e) {
+                // If response is not JSON, use statusText
+            }
+            throw new Error(errorMessage);
         }
 
         const reader = response.body?.getReader();

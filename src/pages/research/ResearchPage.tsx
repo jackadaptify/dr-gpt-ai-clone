@@ -33,6 +33,7 @@ export default function ResearchPage({ isDarkMode, user, toggleSidebar }: Resear
 
     const { isListening, transcript, toggleListening, hasSupport: hasMicSupport } = useSpeechRecognition();
     const [textBeforeRecording, setTextBeforeRecording] = useState('');
+    const justCreatedChatId = useRef<string | null>(null);
 
     useEffect(() => {
         if (isListening) {
@@ -66,6 +67,12 @@ export default function ResearchPage({ isDarkMode, user, toggleSidebar }: Resear
     useEffect(() => {
         const loadHistory = async () => {
             if (currentChatId) {
+                // If we just created this chat locally, skip loading history (it's empty in DB but full in local state)
+                if (justCreatedChatId.current === currentChatId) {
+                    justCreatedChatId.current = null; // Reset for next time
+                    return;
+                }
+
                 // Check if it's a research chat
                 const chat = chats.find(c => c.id === currentChatId);
                 // We permit loading if it exists (Sidebar handles filtering)
@@ -89,7 +96,7 @@ export default function ResearchPage({ isDarkMode, user, toggleSidebar }: Resear
             }
         };
         loadHistory();
-    }, [currentChatId, chats]); // Depend on chats to ensure we have the list
+    }, [currentChatId, chats]); // Added chats back to deps for correctness, logic handled by ref
 
     useEffect(() => {
         scrollToBottom();
@@ -107,7 +114,8 @@ export default function ResearchPage({ isDarkMode, user, toggleSidebar }: Resear
         // Create Chat if new using Context to ensure Sidebar updates
         if (!activeId) {
             // 1. Create with correct agentId and model
-            activeId = createNewChat('research-mode', 'perplexity/sonar-reasoning-pro');
+            activeId = createNewChat('research-mode', 'gpt-4o-mini');
+            justCreatedChatId.current = activeId; // Mark as just created to skip loadHistory
 
             // 2. Update title immediately to match query
             updateChatTitle(activeId, userContent.slice(0, 40) + '...');
@@ -168,7 +176,7 @@ export default function ResearchPage({ isDarkMode, user, toggleSidebar }: Resear
                 role: Role.MODEL,
                 content: fullContent,
                 timestamp: Date.now(),
-                modelId: 'perplexity/sonar-reasoning-pro',
+                modelId: 'gpt-4o-mini',
                 metadata: { results: [] } // Add results here if available later
             });
 
@@ -176,7 +184,7 @@ export default function ResearchPage({ isDarkMode, user, toggleSidebar }: Resear
             console.error(error);
             setMessages(prev => prev.map(msg =>
                 msg.id === aiMsgId
-                    ? { ...msg, content: "Erro ao conectar com o serviço de pesquisa. Tente novamente." }
+                    ? { ...msg, content: error instanceof Error ? error.message : "Erro ao conectar com o serviço de pesquisa. Tente novamente." }
                     : msg
             ));
         } finally {
@@ -250,10 +258,27 @@ export default function ResearchPage({ isDarkMode, user, toggleSidebar }: Resear
                             </div>
                         ))}
                         {isSearching && (
-                            <div className="flex justify-start w-full max-w-3xl mx-auto px-4 py-2">
-                                <div className="flex items-center gap-2 text-indigo-500 animate-pulse bg-indigo-500/10 px-4 py-2 rounded-xl">
-                                    <Search className="w-4 h-4 animate-spin" />
-                                    <span className="text-xs font-medium">Pesquisando nas bases de dados...</span>
+                            <div className="flex justify-start w-full max-w-3xl mx-auto px-4 py-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div className={`
+                                    flex items-center gap-3 px-5 py-3 rounded-2xl border shadow-sm backdrop-blur-sm
+                                    ${isDarkMode
+                                        ? 'bg-zinc-900/50 border-zinc-800/50 shadow-black/20'
+                                        : 'bg-white/80 border-indigo-100 shadow-indigo-100/50'}
+                                `}>
+                                    <div className="relative flex items-center justify-center">
+                                        <div className={`absolute inset-0 rounded-full animate-ping opacity-20 ${isDarkMode ? 'bg-indigo-400' : 'bg-indigo-600'}`}></div>
+                                        <div className={`relative p-2 rounded-full ${isDarkMode ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-50 text-indigo-600'}`}>
+                                            <Search className="w-4 h-4 animate-spin-slow" />
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className={`text-sm font-medium ${isDarkMode ? 'text-zinc-200' : 'text-slate-700'}`}>
+                                            Analisando bases científicas...
+                                        </span>
+                                        <span className={`text-xs ${isDarkMode ? 'text-zinc-500' : 'text-slate-400'}`}>
+                                            Buscando em DuckDuckGo & PubMed
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         )}

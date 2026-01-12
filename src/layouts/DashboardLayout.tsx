@@ -4,7 +4,7 @@ import Sidebar from '../../components/Sidebar';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChat } from '../contexts/ChatContext';
 import { projectService } from '../../services/projectService';
-import { streamChatResponse, saveMessage, updateChat, createChat } from '../../services/chatService';
+import { streamChatResponse, saveMessage, updateChat, createChat, loadMessagesForChat } from '../../services/chatService';
 import { Folder, AppMode, Message, Role, ChatSession, AVAILABLE_MODELS } from '../../types';
 import { Toaster, toast } from 'react-hot-toast';
 import SettingsModal from '../../components/SettingsModal';
@@ -285,15 +285,29 @@ export default function DashboardLayout() {
                     currentChatId={currentChatId}
                     activeMode={activeMode}
                     onModeChange={handleModeChange}
-                    onSelectChat={(id) => {
+                    onSelectChat={async (id) => {
                         selectChat(id);
                         const chat = chats.find(c => c.id === id);
                         if (chat?.agentId === 'scribe-mode') {
                             setIsScribeReview(true);
                             navigate('/transcribe');
+                            setScribeContent('Carregando prontuário...');
+
+                            let messages = chat.messages || [];
+
+                            // 🚀 Fix: Lazy Load Messages if empty
+                            if (messages.length === 0) {
+                                try {
+                                    messages = await loadMessagesForChat(id);
+                                } catch (e) {
+                                    console.error("Failed to load messages", e);
+                                    setScribeContent('Erro ao carregar prontuário.');
+                                    return;
+                                }
+                            }
 
                             // Restoration Logic
-                            const lastDocMessage = [...chat.messages]
+                            const lastDocMessage = [...messages]
                                 .reverse()
                                 .find(m => m.role === Role.MODEL && m.content.length > 50 && !m.content.includes("Precisa de algum ajuste"));
 
@@ -311,7 +325,13 @@ export default function DashboardLayout() {
                                     setScribeContent(cleanContent);
                                 }
                             } else {
-                                setScribeContent('Carregando prontuário...');
+                                // If still no valid doc message found, try to show the very last AI message as fallback
+                                const fallbackMessage = [...messages].reverse().find(m => m.role === Role.MODEL);
+                                if (fallbackMessage) {
+                                    setScribeContent(fallbackMessage.content);
+                                } else {
+                                    setScribeContent('Prontuário vazio ou não encontrado.');
+                                }
                             }
                         }
                     }}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Square, FileText, ArrowRight, MonitorPlay, Lock, Menu, Users, Edit2, ChevronDown, Pause, Play, Trash2, CheckSquare, Square as SquareIcon, UploadCloud, Settings } from 'lucide-react';
+import { Mic, Square, FileText, ArrowRight, MonitorPlay, Lock, Menu, Users, Edit2, ChevronDown, Pause, Play, Trash2, CheckSquare, Square as SquareIcon, UploadCloud, Settings, Wand2 } from 'lucide-react';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 
 interface ScribeViewProps {
@@ -345,7 +345,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
 
                 {/* --- LEFTSIDE PANEL: CONTEXT --- */}
                 <div className={`
-                    flex flex-col w-full md:w-1/2 h-full bg-[#121212] rounded-2xl md:rounded-3xl shadow-2xl shadow-black/40 overflow-hidden relative group border border-white/[0.06]
+                    flex flex-col w-full md:w-1/2 h-full bg-[#0A0A0A]/60 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/50 overflow-hidden relative group border border-white/[0.08] transition-all hover:border-white/10
                     ${mobileTab === 'context' ? 'flex' : 'hidden md:flex'}
                 `}>
 
@@ -357,21 +357,21 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
 
                     <div className="flex-1 flex flex-col p-4 md:p-5 gap-4 overflow-hidden">
                         {/* File Upload Area */}
-                        <div className="w-full bg-white/[0.02] hover:bg-white/[0.04] rounded-2xl p-4 flex flex-col items-center justify-center text-center gap-2 transition-all cursor-pointer group border-2 border-dashed border-white/10 hover:border-indigo-500/30 shrink-0">
-                            <div className="w-10 h-10 rounded-full bg-surfaceHighlight group-hover:bg-indigo-500/20 text-textMuted group-hover:text-indigo-400 flex items-center justify-center transition-colors shadow-sm">
-                                <UploadCloud size={20} />
+                        <div className="w-full bg-gradient-to-br from-white/[0.03] to-white/[0.01] hover:from-white/[0.06] hover:to-white/[0.02] rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-3 transition-all duration-300 cursor-pointer group border border-dashed border-white/10 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10 shrink-0">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500/20 to-purple-500/10 group-hover:from-indigo-500 group-hover:to-purple-500 text-indigo-400 group-hover:text-white flex items-center justify-center transition-all duration-300 shadow-inner group-hover:shadow-[0_0_20px_rgba(99,102,241,0.5)]">
+                                <UploadCloud size={22} />
                             </div>
                             <div>
-                                <p className="text-sm font-bold text-textMain group-hover:text-indigo-200 transition-colors">Carregar arquivos</p>
-                                <p className="text-[10px] text-textMuted/70 uppercase tracking-widest mt-0.5">PDF • Imagens • Áudio</p>
+                                <p className="text-sm font-semibold text-indigo-100/90 group-hover:text-white transition-colors tracking-wide">Carregar arquivos</p>
+                                <p className="text-[10px] text-zinc-500 group-hover:text-zinc-400 uppercase tracking-widest mt-1 font-medium">PDF • Imagens • Áudio</p>
                             </div>
                         </div>
 
                         {/* Notes Area */}
-                        <div className="flex-1 flex flex-col bg-white/[0.02] focus-within:bg-white/[0.04] rounded-2xl p-1 transition-all border border-white/[0.06] focus-within:border-indigo-500/30 shadow-inner overflow-hidden relative">
-                            <div className="px-4 py-3 flex items-center gap-2 border-b border-white/[0.04]">
-                                <Edit2 size={12} className="text-indigo-400" />
-                                <span className="text-[10px] font-bold text-indigo-200/70 uppercase tracking-widest">Anotações & Observações</span>
+                        <div className="flex-1 flex flex-col bg-gradient-to-b from-white/[0.02] to-transparent focus-within:bg-white/[0.04] rounded-2xl p-0.5 transition-all duration-300 border border-white/[0.06] focus-within:border-indigo-500/40 focus-within:shadow-[0_0_30px_rgba(99,102,241,0.1)] overflow-hidden relative group/notes">
+                            <div className="px-5 py-3.5 flex items-center gap-2 border-b border-white/[0.04]">
+                                <Edit2 size={12} className="text-indigo-400 opacity-70" />
+                                <span className="text-[10px] font-bold text-indigo-200/60 uppercase tracking-widest">Anotações & Observações</span>
                             </div>
 
                             <textarea
@@ -386,101 +386,109 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
 
                 {/* --- RIGHTSIDE PANEL: TRANSCRIPTION --- */}
                 <div className={`
-                    flex flex-col w-full md:w-1/2 h-full bg-[#141414] rounded-2xl md:rounded-3xl shadow-none overflow-hidden relative
+                    flex flex-col w-full md:w-1/2 h-full bg-[#0A0A0A]/60 backdrop-blur-xl rounded-3xl shadow-2xl shadow-black/50 overflow-hidden relative border border-white/[0.08] transition-all hover:border-white/10
                     ${mobileTab === 'transcription' ? 'flex' : 'hidden md:flex'}
                 `}>
 
-
                     {/* Header */}
-                    <div className="flex items-center justify-between px-3 md:px-5 py-2 md:py-3 bg-white/[0.02] shrink-0">
-                        <div className="flex items-center gap-2 text-emerald-600">
-
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="font-semibold text-xs md:text-sm">Transcrição da consulta</span>
+                    <div className="flex items-center justify-between px-5 py-4 bg-white/[0.02] shrink-0 border-b border-white/[0.06]">
+                        <div className="flex items-center gap-2.5">
+                            <div className={`w-2 h-2 rounded-full ${isRecording ? 'bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.6)]' : 'bg-emerald-500/80'}`} />
+                            <span className="font-medium text-xs md:text-sm text-zinc-300 tracking-wide">
+                                {isRecording ? 'Gravando Áudio...' : 'Transcrição em tempo real'}
+                            </span>
                         </div>
+                        {isRecording && (
+                            <div className="hidden md:flex items-center gap-2 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20">
+                                <div className="w-1 h-3 bg-red-500/50 rounded-full animate-[music-bar_1s_ease-in-out_infinite]" style={{ animationDelay: '0ms' }} />
+                                <div className="w-1 h-2 bg-red-500/50 rounded-full animate-[music-bar_1s_ease-in-out_infinite]" style={{ animationDelay: '100ms' }} />
+                                <div className="w-1 h-4 bg-red-500/50 rounded-full animate-[music-bar_1s_ease-in-out_infinite]" style={{ animationDelay: '200ms' }} />
+                                <div className="w-1 h-2 bg-red-500/50 rounded-full animate-[music-bar_1s_ease-in-out_infinite]" style={{ animationDelay: '300ms' }} />
+                            </div>
+                        )}
                     </div>
 
-                    <div className={`flex-1 relative transition-all duration-500 ${isRecording ? 'bg-emerald-500/5 ring-1 ring-emerald-500/20' : 'bg-surfaceHighlight/20'}`}>
+                    <div className={`flex-1 relative transition-all duration-500 ${isRecording ? 'bg-gradient-to-b from-emerald-950/5 to-transparent' : 'bg-transparent'}`}>
                         <textarea
                             ref={textareaRef}
                             value={consultationTranscript}
-                            onChange={(e) => setConsultationTranscript(e.target.value)}
+                            readOnly
                             placeholder={isRecording ? "Ouvindo..." : "A transcrição da consulta aparecerá aqui..."}
                             className="w-full h-full resize-none bg-transparent p-6 md:p-8 outline-none text-textMain text-base md:text-lg leading-relaxed md:leading-8 font-normal placeholder-textMuted/30 custom-scrollbar"
                         />
                     </div>
 
+                    {/* --- TRANSCRIPTION ACTIONS (Compact Footer "Floating") --- */}
+                    <div className="shrink-0 p-4 bg-black/40 backdrop-blur-md border-t border-white/[0.08] flex items-center justify-between gap-3 relative z-20">
 
-                </div>
-            </div>
+                        {/* Timer (Capsule) */}
+                        <div className={`flex items-center gap-2.5 px-3.5 py-2 rounded-full border transition-all duration-500 ${isRecording ? 'bg-red-500/10 border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.15)]' : 'bg-white/5 border-white/5'}`}>
+                            <span className={`font-mono text-sm font-medium tabular-nums tracking-wider ${isRecording ? 'text-red-400' : 'text-zinc-500'}`}>
+                                {formatTime(seconds)}
+                            </span>
+                        </div>
 
-            {/* --- GLOBAL BOTTOM ACTION BAR (Footer) --- */}
-            <div className="w-full bg-[#09090b] p-3 md:px-8 md:py-5 shrink-0 flex items-center gap-2 z-50 rounded-2xl md:rounded-none mt-2 md:mt-0 shadow-2xl border-t border-white/5 overflow-x-auto custom-scrollbar">
+                        {/* Controls Group */}
+                        <div className="flex items-center gap-2.5 flex-1 justify-end">
 
-                {/* Left Side: Trash (Push Others Right) */}
-                <div className="shrink-0">
-                    {(seconds > 0 || consultationTranscript) && (
-                        <button
-                            onClick={handleDiscard}
-                            className="p-3 rounded-xl text-textMuted hover:text-red-500 hover:bg-red-500/10 transition-all duration-200 border border-transparent hover:border-red-500/20 active:scale-95"
-                            title="Descartar"
-                        >
-                            <Trash2 size={20} />
-                        </button>
-                    )}
-                </div>
+                            {/* Trash (Ghost Button) */}
+                            {(seconds > 0 || consultationTranscript) && (
+                                <button
+                                    onClick={handleDiscard}
+                                    className="p-2.5 rounded-full text-zinc-500 hover:text-red-400 hover:bg-white/5 transition-all active:scale-95"
+                                    title="Descartar"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            )}
 
-                {/* Right Side: Actions Group */}
-                <div className="flex items-center gap-2 flex-1">
-                    {/* Timer Status */}
-                    <div className="flex items-center justify-center gap-2 md:gap-3 px-3 md:px-4 py-3 rounded-xl border border-white/5 bg-white/[0.02] min-h-[58px] h-auto flex-1">
-                        {isRecording ? <Pause size={20} className="text-emerald-500 animate-pulse shrink-0" /> : <Play size={20} className="text-textMuted shrink-0" />}
-                        <span className="font-mono text-sm md:text-base font-medium tracking-wider text-textMuted/80 whitespace-nowrap">
-                            {formatTime(seconds)}
-                        </span>
+                            {/* Record Button (Premium Pill) */}
+                            <button
+                                onClick={handleToggleRecording}
+                                className={`
+                                flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-xs md:text-sm transition-all duration-300 border active:scale-95 active:duration-100 group
+                                ${isRecording
+                                        ? 'bg-transparent border-red-500/30 text-red-500 hover:bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.1)]'
+                                        : 'bg-emerald-500 hover:bg-emerald-400 text-white border-transparent shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.4)]'
+                                    }
+                            `}
+                            >
+                                {isRecording ? (
+                                    <>
+                                        <div className="w-2 h-2 rounded-[2px] bg-current" />
+                                        <span>Pausar</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Mic size={16} className="text-current group-hover:scale-110 transition-transform" />
+                                        <span>Gravar</span>
+                                    </>
+                                )}
+                            </button>
+
+                            {/* Generate Button (Gradient Glow) */}
+                            <button
+                                onClick={handleInitialGenerateClick}
+                                disabled={(!consultationTranscript && !consultationBlob)}
+                                className={`
+                                flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-xs md:text-sm transition-all duration-300 border active:scale-95 active:duration-100
+                                ${(consultationTranscript || consultationBlob)
+                                        ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white border-transparent shadow-[0_4px_20px_rgba(16,185,129,0.3)] hover:shadow-[0_4px_25px_rgba(16,185,129,0.4)] hover:-translate-y-0.5'
+                                        : 'bg-white/5 text-zinc-600 border-white/5 cursor-not-allowed'
+                                    }
+                            `}
+                            >
+                                <Wand2 size={16} />
+                                <span className="whitespace-nowrap">Gerar Prontuário</span>
+                            </button>
+                        </div>
                     </div>
 
-                    {/* Record Button */}
-                    <button
-                        onClick={handleToggleRecording}
-                        className={`
-                        flex items-center justify-center gap-2 md:gap-3 px-3 md:px-5 py-3.5 rounded-xl font-bold text-sm md:text-base transition-all duration-200 border min-h-[58px] h-auto flex-1 active:scale-[0.98]
-                        ${isRecording
-                                ? 'bg-[#1A1A1A] border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 hover:border-emerald-500'
-                                : 'bg-[#1A1A1A] border-borderLight text-textMain hover:bg-surfaceHighlight'
-                            }
-                    `}
-                    >
-                        {isRecording ? (
-                            <>
-                                <Pause size={20} className="shrink-0" />
-                                <span className="leading-tight text-center md:text-left whitespace-nowrap">Pausar <span className="hidden sm:inline">gravação</span></span>
-                            </>
-                        ) : (
-                            <>
-                                <Mic size={20} className="shrink-0" />
-                                <span className="leading-tight text-center md:text-left whitespace-nowrap">{seconds > 0 ? "Retomar" : "Iniciar"} <span className="hidden sm:inline">gravação</span></span>
-                            </>
-                        )}
-                    </button>
 
-                    {/* Generate Button */}
-                    <button
-                        onClick={handleInitialGenerateClick}
-                        disabled={(!consultationTranscript && !consultationBlob)}
-                        className={`
-                        flex items-center justify-center gap-2 md:gap-3 px-3 md:px-5 py-3.5 rounded-xl font-bold text-sm md:text-base transition-all duration-200 border min-h-[58px] h-auto ml-0 flex-1 active:scale-[0.98]
-                        ${(consultationTranscript || consultationBlob)
-                                ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 border border-emerald-500/20'
-                                : 'bg-white/5 text-textMuted cursor-not-allowed opacity-50 border border-white/5'
-                            }
-                    `}
-                    >
-                        <FileText size={20} className="shrink-0" />
-                        <span className="leading-tight text-center md:text-left whitespace-nowrap">Gerar <span className="hidden sm:inline">documento</span></span>
-                    </button>
                 </div>
             </div>
+
+
 
 
 

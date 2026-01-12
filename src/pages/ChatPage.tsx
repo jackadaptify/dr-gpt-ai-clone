@@ -146,41 +146,43 @@ export default function ChatPage({
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900/40 via-background to-background pointer-events-none z-0" />
             )}
 
-            {/* Top Floating Header */}
-            <header className="absolute top-0 left-0 right-0 h-20 flex items-center justify-between px-6 z-10 pointer-events-none">
-                <div className="flex items-center gap-3 pointer-events-auto">
-                    <button
-                        onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="md:hidden p-2 rounded-xl bg-surface/50 backdrop-blur-md text-textMuted hover:text-textMain border border-borderLight shadow-lg"
-                    >
-                        <IconMenu />
-                    </button>
-                    <div className="relative group shadow-2xl rounded-xl">
-                        {/* Model Selector or Clinical Badge */}
-                        {(activeMode === 'scribe' || activeMode === 'scribe-review') ? (
-                            <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-md shadow-sm ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-white border-emerald-100'}`}>
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                </span>
-                                <span className={`font-semibold text-xs md:text-sm tracking-wide ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
-                                    ⚡ AI Model: Clinical-Pro v1.0
-                                </span>
-                            </div>
+            {/* Top Floating Header - Hidden in Scribe/Scribe-Review */}
+            {activeMode !== 'scribe' && activeMode !== 'scribe-review' && (
+                <header className="absolute top-0 left-0 right-0 h-20 flex items-center justify-between px-6 z-10 pointer-events-none">
+                    <div className="flex items-center gap-3 pointer-events-auto">
+                        <button
+                            onClick={() => setSidebarOpen(!sidebarOpen)}
+                            className="md:hidden p-2 rounded-xl bg-surface/50 backdrop-blur-md text-textMuted hover:text-textMain border border-borderLight shadow-lg"
+                        >
+                            <IconMenu />
+                        </button>
+                        <div className="relative group shadow-2xl rounded-xl">
+                            {/* Model Selector or Clinical Badge */}
+                            {(activeMode === 'scribe' || activeMode === 'scribe-review') ? (
+                                <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-md shadow-sm ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-white border-emerald-100'}`}>
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                    </span>
+                                    <span className={`font-semibold text-xs md:text-sm tracking-wide ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                                        ⚡ AI Model: Clinical-Pro v1.0
+                                    </span>
+                                </div>
 
-                        ) : (
-                            <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-md shadow-sm ${isDarkMode ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-white border-indigo-100'}`}>
-                                <span className="relative flex h-2 w-2">
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-                                </span>
-                                <span className={`font-semibold text-xs md:text-sm tracking-wide ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                                    Medpilot 1
-                                </span>
-                            </div>
-                        )}
+                            ) : (
+                                <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-md shadow-sm ${isDarkMode ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-white border-indigo-100'}`}>
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                                    </span>
+                                    <span className={`font-semibold text-xs md:text-sm tracking-wide ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                                        Medpilot 1
+                                    </span>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
-            </header>
+                </header>
+            )}
 
             {/* Chat Area */}
             <main className="flex-1 overflow-y-auto scroll-smooth relative flex flex-col items-center custom-scrollbar z-0">
@@ -213,16 +215,27 @@ export default function ChatPage({
 
                 {!activeChat || activeChat.messages.length === 0 ? (
                     <div className="flex-1 flex flex-col items-center justify-center w-full max-w-4xl px-4 mt-20 md:mt-0">
-                        <div className="text-center space-y-6 animate-in fade-in zoom-in duration-500">
-
-                            <h2 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-200">
-                                Olá, Doutor(a)
-                            </h2>
-                            <p className="text-textMuted max-w-lg mx-auto text-lg">
-                                Como posso auxiliar você hoje?
-                            </p>
-                        </div>
-
+                        {/* Hide greeting in scribe-review */}
+                        {activeMode !== 'scribe' && activeMode !== 'scribe-review' && (
+                            <div className="text-center space-y-6 animate-in fade-in zoom-in duration-500">
+                                <h2 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-200">
+                                    Olá, Doutor(a)
+                                </h2>
+                                <p className="text-textMuted max-w-lg mx-auto text-lg">
+                                    Como posso auxiliar você hoje?
+                                </p>
+                            </div>
+                        )}
+                        {(activeMode === 'scribe' || activeMode === 'scribe-review') && (
+                            <div className="text-center space-y-4 animate-in fade-in zoom-in duration-500 opacity-50">
+                                <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-4">
+                                    <IconBrain className="w-8 h-8 text-white/50" />
+                                </div>
+                                <p className="text-textMuted text-sm">
+                                    Converse com o assistente sobre o prontuário ao lado.
+                                </p>
+                            </div>
+                        )}
 
                     </div>
                 ) : (
