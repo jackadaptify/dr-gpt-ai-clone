@@ -164,6 +164,7 @@ export default function App() {
                         <Route path="/" element={<SmartEntry />} />
                         <Route path="/login" element={<PublicRoute><AuthPage initialMode="login" /></PublicRoute>} />
                         <Route path="/signup/invite" element={<PublicRoute><InviteSignupPage /></PublicRoute>} />
+                        <Route path="/teste-gratis" element={<PublicRoute><InviteSignupPage defaultToken="UNIVERSAL_TRIAL" /></PublicRoute>} />
                         <Route path="/signup/payment" element={<PublicRoute><SignupPaymentPage /></PublicRoute>} />
                         <Route path="/paywall" element={<PaywallPage />} />
 

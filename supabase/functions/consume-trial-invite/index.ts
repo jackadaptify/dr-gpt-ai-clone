@@ -45,32 +45,46 @@ serve(async (req: Request) => {
             });
         }
 
+        let trialDays = 3;
+        let isTest = true;
+        let inviteId = null;
+
         // 1. Validate Token
-        const { data: invite, error: inviteError } = await supabaseAdmin
-            .from('trial_invites')
-            .select('*')
-            .eq('token', token)
-            .single();
+        if (token === 'UNIVERSAL_TRIAL') {
+            trialDays = 5;
+            isTest = true;
+            // Skip database check for invite
+        } else {
+            const { data: invite, error: inviteError } = await supabaseAdmin
+                .from('trial_invites')
+                .select('*')
+                .eq('token', token)
+                .single();
 
-        if (inviteError || !invite) {
-            return new Response(JSON.stringify({ error: 'Convite inválido ou não encontrado.' }), {
-                status: 400,
-                headers: { ...headers, 'Content-Type': 'application/json' },
-            });
-        }
+            if (inviteError || !invite) {
+                return new Response(JSON.stringify({ error: 'Convite inválido ou não encontrado.' }), {
+                    status: 400,
+                    headers: { ...headers, 'Content-Type': 'application/json' },
+                });
+            }
 
-        if (invite.status !== 'active') {
-            return new Response(JSON.stringify({ error: 'Este convite já foi utilizado ou revogado.' }), {
-                status: 400,
-                headers: { ...headers, 'Content-Type': 'application/json' },
-            });
-        }
+            if (invite.status !== 'active') {
+                return new Response(JSON.stringify({ error: 'Este convite já foi utilizado ou revogado.' }), {
+                    status: 400,
+                    headers: { ...headers, 'Content-Type': 'application/json' },
+                });
+            }
 
-        if (new Date(invite.expires_at) < new Date()) {
-            return new Response(JSON.stringify({ error: 'Este convite expirou.' }), {
-                status: 400,
-                headers: { ...headers, 'Content-Type': 'application/json' },
-            });
+            if (new Date(invite.expires_at) < new Date()) {
+                return new Response(JSON.stringify({ error: 'Este convite expirou.' }), {
+                    status: 400,
+                    headers: { ...headers, 'Content-Type': 'application/json' },
+                });
+            }
+
+            trialDays = invite.trial_days || 3;
+            isTest = invite.is_test ?? true;
+            inviteId = invite.id;
         }
 
         // 2. Create User
@@ -97,16 +111,14 @@ serve(async (req: Request) => {
         if (!user) throw new Error('User creation failed');
 
         // 3. Setup Trial Profile
-        const trialDays = invite.trial_days || 3;
+        // trialDays and isTest are already set above
         const now = new Date();
         const endsAt = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
-
-
 
         const profileUpdates = {
             trial_status: 'active',
             trial_ends_at: endsAt.toISOString(),
-            is_test: invite.is_test ?? true,
+            is_test: isTest,
             full_name: full_name
         };
 
@@ -117,22 +129,22 @@ serve(async (req: Request) => {
 
         if (updateError) {
             console.error("Profile update failed", updateError);
-            // Should we rollback user creation? Hard to do cleanly. 
-            // We'll proceed but log error. Ideally we'd rollback.
         }
 
-        // 4. Mark Invite Used
-        const { error: inviteUpdateError } = await supabaseAdmin
-            .from('trial_invites')
-            .update({
-                status: 'used',
-                used_at: new Date().toISOString(),
-                used_by: user.id
-            })
-            .eq('id', invite.id);
+        // 4. Mark Invite Used (if applicable)
+        if (inviteId) {
+            const { error: inviteUpdateError } = await supabaseAdmin
+                .from('trial_invites')
+                .update({
+                    status: 'used',
+                    used_at: new Date().toISOString(),
+                    used_by: user.id
+                })
+                .eq('id', inviteId);
 
-        if (inviteUpdateError) {
-            console.error("Invite consumption failed to record", inviteUpdateError);
+            if (inviteUpdateError) {
+                console.error("Invite consumption failed to record", inviteUpdateError);
+            }
         }
 
         return new Response(JSON.stringify({ success: true, userId: user.id }), {

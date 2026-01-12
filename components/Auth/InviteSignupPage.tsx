@@ -3,7 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { IconBrain, IconCheck, IconAlertTriangle } from '../Icons';
 import { Toaster, toast } from 'react-hot-toast';
 
-export default function InviteSignupPage() {
+export default function InviteSignupPage({ defaultToken }: { defaultToken?: string }) {
     const [token, setToken] = useState<string | null>(null);
     const [status, setStatus] = useState<'validating' | 'valid' | 'invalid' | 'expired'>('validating');
     const [loading, setLoading] = useState(false);
@@ -18,6 +18,12 @@ export default function InviteSignupPage() {
     useEffect(() => {
         // Extract token from URL
         const params = new URLSearchParams(window.location.search);
+        if (defaultToken) {
+            setToken(defaultToken);
+            setStatus('valid');
+            return;
+        }
+
         const t = params.get('token');
         setToken(t);
 
@@ -138,10 +144,13 @@ export default function InviteSignupPage() {
                     </h1>
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-2">
                         <IconCheck className="w-3 h-3" />
-                        Convite Especial
+                        {defaultToken ? 'Teste Grátis' : 'Convite Especial'}
                     </div>
                     <p className="text-textMuted text-sm">
-                        Crie sua conta para ativar seu período de teste.
+                        {defaultToken
+                            ? 'Crie sua conta para iniciar seus 5 dias de acesso total.'
+                            : 'Crie sua conta para ativar seu período de teste.'
+                        }
                     </p>
                 </div>
 
