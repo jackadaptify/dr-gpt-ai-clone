@@ -58,55 +58,16 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
 
   return (
     <div className={`group w-full text-textMain py-2 ${isUser ? '' : (isDarkMode ? 'bg-transparent' : 'bg-transparent')}`}>
-      <div className={`m-auto w-full max-w-3xl p-4 md:p-6 flex gap-6 ${isUser ? 'flex-row-reverse' : ''}`}>
+      <div className={`m-auto w-full max-w-3xl px-4 py-2 md:py-4 flex gap-4 md:gap-6 ${isUser ? 'flex-row-reverse' : ''}`}>
 
-        {/* Avatar 3D - Only for AI */}
-        {!isUser && (
-          <div className="flex-shrink-0 flex flex-col relative">
-            <div className={`
-            w-10 h-10 rounded-xl flex items-center justify-center shadow-lg border-t border-white/10
-            ${isDarkMode ? 'bg-gradient-to-br from-surfaceHighlight to-surface shadow-convex' : 'bg-white border border-gray-200'}
-          `}>
-              <div className="animate-in fade-in zoom-in duration-300 scale-90">
-                {/* 1. Custom Agent Avatar URL */}
-                {agent?.avatarUrl ? (
-                  <img src={agent.avatarUrl} alt={agent.name} className="w-full h-full object-cover rounded-xl" />
-                ) : agent?.icon && AGENT_ICONS[agent.icon] ? (
-                  /* 2. Specific Agent Icon */
-                  React.createElement(AGENT_ICONS[agent.icon], { className: `w-6 h-6 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}` })
-                ) : message.modelId ? (
-                  /* 3. Provider/Model Icon (Fallback) */
-                  getProviderIcon(
-                    AVAILABLE_MODELS.find(m => m.id === message.modelId)?.provider ||
-                    (message.modelId.includes('gpt') ? 'OpenAI' :
-                      message.modelId.includes('claude') ? 'Anthropic' :
-                        message.modelId.includes('gemini') ? 'Google' : 'DrPro')
-                  )
-                ) : (
-                  <IconBot className="text-emerald-500" />
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Content */}
-        <div className={`relative flex-1 overflow-hidden ${isUser ? 'flex justify-end' : 'pt-1.5'}`}>
+        {/* Content - Full Width Minimalist */}
+        <div className={`relative flex-1 overflow-hidden ${isUser ? 'flex justify-end' : 'pt-0.5'}`}>
           <div className={`
+            text-[16px] leading-relaxed relative
             ${isUser
-              ? 'bg-surfaceHighlight text-textMain border border-borderLight rounded-3xl rounded-tr-sm px-5 py-2.5 max-w-[85%] shadow-md'
-              : ''}
+              ? 'px-0 py-0 max-w-[90%] md:max-w-[85%] text-right'
+              : 'bg-transparent text-textMain px-0 py-0 max-w-none w-full'}
           `}>
-            {!isUser && (
-              <div className="font-bold text-sm mb-3 flex items-center gap-2">
-                <span className={`bg-clip-text text-transparent drop-shadow-sm tracking-wide ${isDarkMode ? 'bg-gradient-to-r from-emerald-400 to-teal-300' : 'bg-gradient-to-r from-emerald-600 to-teal-600'}`}>
-                  {agent ? agent.name : 'Dr. GPT'}
-                </span>
-                <span className="text-[10px] text-textMuted font-normal ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-            )}
 
             {/* Attachments */}
             {message.attachments && message.attachments.length > 0 && (
@@ -128,7 +89,12 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
               </div>
             )}
 
-            <div className={`prose ${isDarkMode ? 'prose-invert text-gray-300' : 'prose-slate text-textMain'} ${isUser ? 'prose-p:my-0' : 'prose-sm ai-response'} leading-relaxed prose-p:leading-relaxed prose-li:leading-relaxed prose-pre:bg-surface prose-pre:shadow-inner-depth prose-pre:border prose-pre:border-borderLight prose-pre:rounded-xl max-w-none font-normal tracking-wide select-text`}>
+            <div className={`prose ${isUser ? 'prose-invert text-textMain prose-p:text-textMain' : (isDarkMode ? 'prose-invert text-gray-300' : 'prose-slate text-slate-800')} 
+                ${isUser ? 'prose-p:my-0' : 'prose-sm ai-response'} 
+                leading-relaxed prose-p:leading-relaxed prose-li:leading-relaxed 
+                prose-pre:bg-black/50 prose-pre:shadow-inner prose-pre:border prose-pre:border-white/10 prose-pre:rounded-xl 
+                max-w-none font-normal tracking-wide select-text
+            `}>
               {/* Thinking State */}
               {message.isStreaming && !message.content && (
                 <div className="flex items-center gap-2 text-textMuted animate-pulse">
@@ -196,20 +162,16 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
                     code({ node, className, children, ...props }) {
                       const match = /language-(\w+)/.exec(className || '')
                       return match ? (
-                        <div className="rounded-xl bg-surface border border-borderLight my-6 overflow-hidden shadow-2xl relative group/code">
-                          <div className="absolute top-0 left-0 w-full h-[1px] bg-white/10"></div>
-                          <div className="bg-surfaceHighlight px-4 py-2.5 text-xs text-textMuted border-b border-borderLight flex justify-between items-center shadow-sm">
-                            <div className="flex items-center gap-2">
-                              <div className="flex gap-1.5">
-                                <div className="w-2.5 h-2.5 rounded-full bg-red-500/20 border border-red-500/50"></div>
-                                <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20 border border-yellow-500/50"></div>
-                                <div className="w-2.5 h-2.5 rounded-full bg-green-500/20 border border-green-500/50"></div>
-                              </div>
-                              <span className="font-mono font-medium ml-2 text-gray-500">{match[1]}</span>
+                        <div className="rounded-xl bg-[#1e1e1e] border border-white/10 my-4 overflow-hidden shadow-lg relative group/code font-mono text-[13px]">
+                          <div className="flex items-center justify-between px-4 py-2 bg-[#2d2d2d] border-b border-white/5">
+                            <div className="flex gap-1.5">
+                              <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f56]"></div>
+                              <div className="w-2.5 h-2.5 rounded-full bg-[#ffbd2e]"></div>
+                              <div className="w-2.5 h-2.5 rounded-full bg-[#27c93f]"></div>
                             </div>
-                            <span className="text-[10px] uppercase opacity-50 font-bold tracking-wider">Terminal</span>
+                            <span className="text-xs text-white/40">{match[1]}</span>
                           </div>
-                          <pre className="p-5 overflow-x-auto text-sm font-mono leading-relaxed custom-scrollbar bg-black/5 shadow-inner">
+                          <pre className="p-4 overflow-x-auto custom-scrollbar text-gray-300">
                             <code className={className} {...props}>
                               {children}
                             </code>

@@ -72,10 +72,10 @@ export default function InstallPWA() {
         <>
             {/* Mini Banner / Badge if not installed */}
             {!showInstallModal && !hasDismissed && (
-                <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 animate-fade-in-up">
+                <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] mb-[env(safe-area-inset-bottom)] animate-fade-in-up">
                     <button
                         onClick={() => setShowInstallModal(true)}
-                        className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-full shadow-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
+                        className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-full shadow-lg hover:bg-emerald-700 transition-colors text-sm font-medium border border-white/10 backdrop-blur-md"
                     >
                         <Download size={16} />
                         Instalar Aplicativo

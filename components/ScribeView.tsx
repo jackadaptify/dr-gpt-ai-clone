@@ -20,6 +20,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
     // State for the two steps
     const [step, setStep] = useState<Step>('consultation');
     const [mode, setMode] = useState<Mode>('presential');
+    const [mobileTab, setMobileTab] = useState<'context' | 'transcript'>('transcript'); // NEW: Mobile Tab State
 
     // Medical Context Scenario
     const [selectedScenario, setSelectedScenario] = useState<Scenario>('evolution');
@@ -323,11 +324,27 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                 </div>
             </div>
 
-            {/* --- MAIN CONTENT (Two Columns) --- */}
+            {/* --- MOBILE TABS --- */}
+            <div className="flex md:hidden w-full bg-surface border border-borderLight rounded-xl p-1 mb-2 shrink-0">
+                <button
+                    onClick={() => setMobileTab('context')}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${mobileTab === 'context' ? 'bg-emerald-500 text-white shadow-sm' : 'text-textMuted hover:text-textMain'}`}
+                >
+                    Contexto e Arquivos
+                </button>
+                <button
+                    onClick={() => setMobileTab('transcript')}
+                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${mobileTab === 'transcript' ? 'bg-emerald-500 text-white shadow-sm' : 'text-textMuted hover:text-textMain'}`}
+                >
+                    Transcrição
+                </button>
+            </div>
+
+            {/* --- MAIN CONTENT (Two Columns / Tabs) --- */}
             <div className="flex flex-col md:flex-row flex-1 min-h-0 gap-4 md:gap-6 relative z-10">
 
                 {/* --- LEFTSIDE PANEL: CONTEXT --- */}
-                <div className="flex flex-col w-full md:w-1/2 h-full bg-[#141414] rounded-2xl md:rounded-3xl shadow-none overflow-hidden relative group">
+                <div className={`flex flex-col w-full md:w-1/2 h-full bg-[#141414] rounded-2xl md:rounded-3xl shadow-none overflow-hidden relative group ${mobileTab === 'transcript' ? 'hidden md:flex' : 'flex'}`}>
 
 
                     {/* Header */}
@@ -371,7 +388,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                 </div>
 
                 {/* --- RIGHTSIDE PANEL: TRANSCRIPTION --- */}
-                <div className="flex flex-col w-full md:w-1/2 h-full bg-[#141414] rounded-2xl md:rounded-3xl shadow-none overflow-hidden relative">
+                <div className={`flex flex-col w-full md:w-1/2 h-full bg-[#141414] rounded-2xl md:rounded-3xl shadow-none overflow-hidden relative ${mobileTab === 'context' ? 'hidden md:flex' : 'flex'}`}>
 
 
                     {/* Header */}
@@ -398,23 +415,23 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
             </div>
 
             {/* --- GLOBAL BOTTOM ACTION BAR (Footer) --- */}
-            <div className="w-full bg-[#09090b] p-4 md:px-8 md:py-5 shrink-0 flex items-center justify-end gap-3 z-50 rounded-2xl md:rounded-none mt-2 md:mt-0 shadow-2xl border-t border-white/5">
+            <div className="w-full bg-[#09090b] p-3 md:px-8 md:py-5 shrink-0 flex items-center justify-between md:justify-end gap-2 md:gap-3 z-50 rounded-t-2xl md:rounded-none mt-2 md:mt-0 shadow-2xl border-t border-white/5 pb-[calc(0.8rem+env(safe-area-inset-bottom))] md:pb-5">
 
                 {/* Trash (Visible only when content exists) */}
                 {(seconds > 0 || consultationTranscript) && (
                     <button
                         onClick={handleDiscard}
-                        className="p-2.5 rounded-lg text-textMuted hover:text-red-500 hover:bg-red-500/10 transition-all mr-2"
+                        className="p-3 md:p-2.5 rounded-lg text-textMuted hover:text-red-500 hover:bg-red-500/10 transition-all shrink-0"
                         title="Descartar"
                     >
-                        <Trash2 size={18} />
+                        <Trash2 size={20} className="md:w-[18px] md:h-[18px]" />
                     </button>
                 )}
 
-                {/* Timer Status */}
-                <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-white/5 bg-white/[0.02] mr-2">
+                {/* Timer Status - Compact on mobile */}
+                <div className="flex items-center gap-1.5 md:gap-3 px-2 md:px-4 py-2 md:py-2.5 rounded-lg border border-white/5 bg-white/[0.02] shrink-0">
                     {isRecording ? <Pause size={16} className="text-emerald-500 animate-pulse" /> : <Play size={16} className="text-textMuted" />}
-                    <span className="font-mono text-sm font-medium tracking-wider text-textMuted/80">
+                    <span className="font-mono text-xs md:text-sm font-medium tracking-wider text-textMuted/80">
                         {formatTime(seconds)}
                     </span>
                 </div>
@@ -423,7 +440,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                 <button
                     onClick={handleToggleRecording}
                     className={`
-                        flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm transition-all border
+                        flex-1 md:flex-none flex items-center justify-center gap-2 px-3 md:px-5 py-3 md:py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all border
                         ${isRecording
                             ? 'bg-[#1A1A1A] border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 hover:border-emerald-500'
                             : 'bg-[#1A1A1A] border-borderLight text-textMain hover:bg-surfaceHighlight'
@@ -432,11 +449,15 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                 >
                     {isRecording ? (
                         <>
-                            <Pause size={18} /> <span>Pausar gravação</span>
+                            <Pause size={18} />
+                            <span className="md:hidden whitespace-nowrap">Pausar</span>
+                            <span className="hidden md:inline whitespace-nowrap">Pausar gravação</span>
                         </>
                     ) : (
                         <>
-                            <Mic size={18} /> <span>{seconds > 0 ? "Retomar gravação" : "Iniciar gravação"}</span>
+                            <Mic size={18} />
+                            <span className="md:hidden whitespace-nowrap">{seconds > 0 ? "Retomar" : "Gravar"}</span>
+                            <span className="hidden md:inline whitespace-nowrap">{seconds > 0 ? "Retomar gravação" : "Iniciar gravação"}</span>
                         </>
                     )}
                 </button>
@@ -448,15 +469,16 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                     onClick={handleInitialGenerateClick}
                     disabled={(!consultationTranscript && !consultationBlob)}
                     className={`
-                        flex items-center gap-2 px-5 py-2.5 rounded-lg font-bold text-sm transition-all ml-2
+                        flex-1 md:flex-none flex items-center justify-center gap-2 px-3 md:px-5 py-3 md:py-2.5 rounded-xl font-bold text-xs md:text-sm transition-all
                         ${(consultationTranscript || consultationBlob)
                             ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 border border-emerald-500/20'
                             : 'bg-white/5 text-textMuted cursor-not-allowed opacity-50 border border-white/5'
                         }
                     `}
                 >
-                    <FileText size={16} />
-                    <span>Gerar documento</span>
+                    <FileText size={18} />
+                    <span className="md:hidden whitespace-nowrap">Gerar</span>
+                    <span className="hidden md:inline whitespace-nowrap">Gerar documento</span>
                 </button>
             </div>
 

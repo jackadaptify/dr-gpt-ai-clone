@@ -146,38 +146,41 @@ export default function ChatPage({
                 <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900/40 via-background to-background pointer-events-none z-0" />
             )}
 
-            {/* Top Floating Header */}
-            <header className="absolute top-0 left-0 right-0 h-20 flex items-center justify-between px-6 z-10 pointer-events-none">
-                <div className="flex items-center gap-3 pointer-events-auto">
+            {/* Top Floating Header - Minimalist & Glass */}
+            <header className="absolute top-0 left-0 right-0 h-16 md:h-20 flex items-center justify-between px-4 md:px-8 z-10 pointer-events-none">
+                <div className="flex items-center gap-4 pointer-events-auto w-full justify-between max-w-5xl mx-auto">
+                    {/* Mobile Menu */}
                     <button
                         onClick={() => setSidebarOpen(!sidebarOpen)}
-                        className="md:hidden p-2 rounded-xl bg-surface/50 backdrop-blur-md text-textMuted hover:text-textMain border border-borderLight shadow-lg"
+                        className="md:hidden p-2.5 rounded-xl bg-surface/50 backdrop-blur-xl text-textMuted hover:text-textMain border border-white/10 shadow-lg active:scale-95 transition-all"
                     >
-                        <IconMenu />
+                        <IconMenu className="w-5 h-5" />
                     </button>
-                    <div className="relative group shadow-2xl rounded-xl">
-                        {/* Model Selector or Clinical Badge */}
-                        {(activeMode === 'scribe' || activeMode === 'scribe-review') ? (
-                            <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-md shadow-sm ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-white border-emerald-100'}`}>
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                </span>
-                                <span className={`font-semibold text-xs md:text-sm tracking-wide ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
-                                    ⚡ AI Model: Clinical-Pro v1.0
-                                </span>
-                            </div>
 
-                        ) : (
-                            <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-md shadow-sm ${isDarkMode ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-white border-indigo-100'}`}>
-                                <span className="relative flex h-2 w-2">
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-                                </span>
-                                <span className={`font-semibold text-xs md:text-sm tracking-wide ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
-                                    Medpilot 1
-                                </span>
-                            </div>
-                        )}
+                    {/* Model Badge - Reverted to Original Style */}
+                    <div className="pointer-events-auto">
+                        <div className={`relative group shadow-2xl rounded-xl`}>
+                            {(activeMode === 'scribe' || activeMode === 'scribe-review') ? (
+                                <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-md shadow-sm ${isDarkMode ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-white border-emerald-100'}`}>
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                    </span>
+                                    <span className={`font-semibold text-xs md:text-sm tracking-wide ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                                        Clinical-Pro v1.0
+                                    </span>
+                                </div>
+                            ) : (
+                                <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-md shadow-sm ${isDarkMode ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-white border-indigo-100'}`}>
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                                    </span>
+                                    <span className={`font-semibold text-xs md:text-sm tracking-wide ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`}>
+                                        Medpilot 1
+                                    </span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </header>
@@ -212,18 +215,29 @@ export default function ChatPage({
                 )}
 
                 {!activeChat || activeChat.messages.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center w-full max-w-4xl px-4 mt-20 md:mt-0">
-                        <div className="text-center space-y-6 animate-in fade-in zoom-in duration-500">
+                    <div className="flex-1 flex flex-col items-center justify-center w-full max-w-2xl px-6 mt-10 md:mt-0 relative">
+                        {/* Background Decor */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
-                            <h2 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-teal-200">
-                                Olá, Doutor(a)
-                            </h2>
-                            <p className="text-textMuted max-w-lg mx-auto text-lg">
-                                Como posso auxiliar você hoje?
-                            </p>
+                        <div className="text-center space-y-6 animate-in fade-in zoom-in duration-700 relative z-0">
+                            <div className={`
+                                mx-auto w-20 h-20 rounded-3xl flex items-center justify-center mb-6 shadow-2xl rotate-3 transition-transform hover:rotate-6
+                                ${isDarkMode ? 'bg-gradient-to-br from-zinc-800 to-black border border-white/5' : 'bg-white border border-slate-100'}
+                            `}>
+                                <IconBrain className={`w-10 h-10 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                            </div>
+
+                            <div className="space-y-4">
+                                <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight">
+                                    <span className={`bg-clip-text text-transparent ${isDarkMode ? 'bg-gradient-to-b from-white to-white/60' : 'bg-gradient-to-b from-slate-900 to-slate-600'}`}>
+                                        Olá, Doutor(a)
+                                    </span>
+                                </h2>
+                                <p className={`max-w-lg mx-auto text-lg md:text-xl font-light leading-relaxed ${isDarkMode ? 'text-zinc-400' : 'text-slate-500'}`}>
+                                    Estou pronto para auxiliar com casos clínicos, pesquisas e transcrições hoje.
+                                </p>
+                            </div>
                         </div>
-
-
                     </div>
                 ) : (
                     <div className="w-full max-w-3xl px-2 md:px-0 pt-24 pb-48 space-y-6">
@@ -236,14 +250,13 @@ export default function ChatPage({
                         ))}
                         <div ref={messagesEndRef} />
                         {isGenerating && messages.length > 0 && messages[messages.length - 1].role === Role.USER && (
-                            <div className="flex justify-start w-full animate-in fade-in slide-in-from-bottom-2">
-                                <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-surface border border-borderLight shadow-sm">
-                                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                                    <span className="text-xs font-medium text-emerald-500 animate-pulse ml-2">
-                                        Pensando...
-                                    </span>
+                            <div className="w-full animate-in fade-in duration-500">
+                                <div className="m-auto w-full max-w-3xl px-4">
+                                    <div className="flex items-center gap-1 py-2">
+                                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -252,13 +265,14 @@ export default function ChatPage({
                 )}
             </main>
 
-            {/* Bottom Input Area */}
-            <footer className="absolute bottom-0 left-0 right-0 px-4 pt-4 pb-8 md:pb-4 z-20 pointer-events-none flex justify-center">
+            {/* Bottom Input Area - Floating Capsule */}
+            <footer className="absolute bottom-0 left-0 right-0 px-4 pt-2 pb-[calc(1.5rem+env(safe-area-inset-bottom))] z-20 pointer-events-none flex justify-center">
                 <div className={`
                     w-full max-w-3xl pointer-events-auto transition-all duration-300
-                    flex flex-col gap-2 p-2 rounded-[2rem] border shadow-2xl relative
-                    ${isDragging ? 'border-emerald-500 bg-emerald-500/10 scale-105' : isDarkMode ? 'bg-surface/90 border-white/10 shadow-black/50' : 'bg-white/90 border-slate-200 shadow-xl'}
-                    backdrop-blur-xl
+                    flex flex-col gap-2 p-1.5 rounded-[28px] border relative shadow-2xl
+                    ${isDragging ? 'border-emerald-500 bg-emerald-500/10 scale-105' :
+                        isDarkMode ? 'bg-black/60 border-white/10 shadow-black/80 backdrop-blur-xl' :
+                            'bg-white/80 border-white/40 shadow-xl backdrop-blur-xl'}
                 `}
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                     onDragLeave={() => setIsDragging(false)}
@@ -267,42 +281,29 @@ export default function ChatPage({
                         setIsDragging(false);
                         const files = Array.from(e.dataTransfer.files);
                         if (files.length > 0) {
-                            // Mock adding attachments for now, implementing handleFileSelect logic here would duplicate code
-                            // Ideally, handleFileSelect should accept FileList
-                            // For this refactor, we assume the parent passed a handler or we ignore drop for a sec
+                            // File drop logic would go here
                         }
                     }}
                 >
-                    {/* Drag Overlay */}
-                    {isDragging && (
-                        <div className="absolute inset-0 rounded-[2rem] bg-emerald-500/20 backdrop-blur-sm flex items-center justify-center z-50 border-2 border-emerald-500 border-dashed">
-                            <div className="bg-surface p-4 rounded-full shadow-lg animate-bounce">
-                                <IconPlus className="w-8 h-8 text-emerald-500" />
-                            </div>
-                            <span className="ml-4 font-bold text-emerald-500 text-lg">Solte para anexar</span>
-                        </div>
-                    )}
-
                     {/* Pending Attachments */}
                     {pendingAttachments.length > 0 && (
-                        <div className="flex gap-2 px-4 py-2 overflow-x-auto custom-scrollbar">
+                        <div className="flex gap-2 px-3 py-2 overflow-x-auto custom-scrollbar border-b border-white/5 mx-2 mb-1">
                             {pendingAttachments.map((att) => (
-                                <div key={att.id} className="relative group shrink-0">
-                                    <div className="w-16 h-16 rounded-xl border border-white/10 bg-black/20 overflow-hidden relative">
+                                <div key={att.id} className="relative group shrink-0 animate-in zoom-in duration-200">
+                                    <div className="w-14 h-14 rounded-xl border border-white/10 bg-black/20 overflow-hidden relative">
                                         {att.type === 'image' ? (
                                             <img src={att.previewUrl} alt="Preview" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="w-full h-full flex flex-col items-center justify-center text-xs text-textMuted">
-                                                <IconFile className="w-6 h-6 mb-1 opacity-50" />
-                                                <span className="uppercase text-[10px]">{att.file.name.split('.').pop()}</span>
+                                                <IconFile className="w-5 h-5 mb-1 opacity-50" />
+                                                <span className="uppercase text-[9px] truncate w-10 text-center">{att.file.name.split('.').pop()}</span>
                                             </div>
                                         )}
-                                        {/* Remove Button */}
                                         <button
                                             onClick={() => removeAttachment(pendingAttachments.findIndex(p => p.id === att.id))}
-                                            className="absolute top-0.5 right-0.5 bg-black/50 text-white rounded-full p-0.5 hover:bg-red-500 transition-colors"
+                                            className="absolute top-0.5 right-0.5 bg-black/60 text-white rounded-full p-0.5 hover:bg-red-500 transition-colors"
                                         >
-                                            <X size={12} />
+                                            <X size={10} />
                                         </button>
                                     </div>
                                 </div>
@@ -310,15 +311,20 @@ export default function ChatPage({
                         </div>
                     )}
 
-                    <div className="flex items-end gap-2 pl-2 pr-2">
+                    <div className="flex items-end gap-2 pl-2 pr-2 min-h-[52px]">
                         {/* Attach Button */}
-                        <div className="relative">
+                        <div className="relative pb-1.5">
                             <button
                                 ref={attachmentButtonRef}
                                 onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}
-                                className={`p-3 rounded-full transition-all duration-200 hover:rotate-90 ${isDarkMode ? 'bg-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-700' : 'bg-slate-100 text-slate-500 hover:text-slate-800 hover:bg-slate-200'}`}
+                                className={`
+                                    flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 
+                                    ${isAttachmentMenuOpen ? 'rotate-45 bg-emerald-500 text-white' :
+                                        isDarkMode ? 'bg-zinc-800/50 text-zinc-400 hover:bg-zinc-700 hover:text-white' :
+                                            'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'}
+                                `}
                             >
-                                <Plus size={20} />
+                                <Plus size={22} className="stroke-[2.5]" />
                             </button>
                             <input
                                 type="file"
@@ -327,7 +333,6 @@ export default function ChatPage({
                                 className="hidden"
                                 multiple
                             />
-                            {/* Attachment Menu */}
                             <AttachmentMenu
                                 isOpen={isAttachmentMenuOpen}
                                 onClose={() => setIsAttachmentMenuOpen(false)}
@@ -351,36 +356,47 @@ export default function ChatPage({
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
                             onPaste={handlePaste}
-                            placeholder={isListening ? "Ouvindo..." : activeMode === 'scribe' ? "Modo Transcrição (Use o microfone)..." : "Mensagem Dr. GPT..."}
+                            placeholder={isListening ? "Ouvindo..." : activeMode === 'scribe' ? "Modo Transcrição..." : "Digite uma mensagem..."}
                             className={`
-                                flex-1 max-h-48 min-h-[50px] py-3.5 px-4 rounded-xl resize-none outline-none text-base leading-relaxed
-                                font-sans placeholder-textMuted bg-transparent
-                                ${isDarkMode ? 'text-white' : 'text-slate-900'}
+                                flex-1 max-h-40 min-h-[44px] py-3.5 px-2 rounded-xl resize-none outline-none text-[15px] leading-relaxed
+                                font-medium placeholder-textMuted/60 bg-transparent
+                                ${isDarkMode ? 'text-white' : 'text-slate-800'}
                                 custom-scrollbar
                             `}
                             rows={1}
                             style={{ height: 'auto' }}
                         />
 
-                        {/* Right Actions */}
+                        {/* Right Actions - Mic or Send */}
                         <div className="flex items-center gap-2 pb-1.5">
-                            {!input.trim() && pendingAttachments.length === 0 && (
+                            {!input.trim() && pendingAttachments.length === 0 ? (
                                 <button
                                     onClick={handleMicClick}
-                                    className={`p-3 rounded-full transition-all duration-300 ${isListening ? 'bg-red-500/20 text-red-500 animate-pulse scale-110' : isDarkMode ? 'text-zinc-400 hover:bg-zinc-800' : 'text-slate-400 hover:bg-slate-100'}`}
+                                    className={`
+                                        flex items-center justify-center w-10 h-10 rounded-full transition-all duration-300
+                                        ${isListening
+                                            ? 'bg-red-500 text-white animate-pulse scale-110 shadow-glow-red'
+                                            : isDarkMode ? 'bg-zinc-800/50 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+                                                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}
+                                    `}
                                     title="Gravar áudio"
                                 >
-                                    <Mic size={24} />
+                                    {isListening ? (
+                                        <div className="w-4 h-4 rounded-sm bg-white animate-spin" />
+                                    ) : (
+                                        <Mic size={20} className="stroke-[2.5]" />
+                                    )}
                                 </button>
-                            )}
-
-                            {(input.trim() || pendingAttachments.length > 0) && (
+                            ) : (
                                 <button
                                     onClick={() => handleSend()}
                                     disabled={isGenerating}
-                                    className={`transition-colors duration-200 ${isDarkMode ? 'text-white' : 'text-black'}`}
+                                    className={`
+                                        flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200
+                                        bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg hover:shadow-emerald-500/20 hover:scale-105 active:scale-95
+                                    `}
                                 >
-                                    <IconSend />
+                                    <IconSend className="w-5 h-5 ml-0.5" />
                                 </button>
                             )}
                         </div>
