@@ -60,53 +60,14 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
     <div className={`group w-full text-textMain py-2 ${isUser ? '' : (isDarkMode ? 'bg-transparent' : 'bg-transparent')}`}>
       <div className={`m-auto w-full max-w-3xl p-4 md:p-6 flex gap-6 ${isUser ? 'flex-row-reverse' : ''}`}>
 
-        {/* Avatar 3D - Only for AI */}
-        {!isUser && (
-          <div className="flex-shrink-0 flex flex-col relative">
-            <div className={`
-            w-10 h-10 rounded-xl flex items-center justify-center shadow-lg border-t border-white/10
-            ${isDarkMode ? 'bg-gradient-to-br from-surfaceHighlight to-surface shadow-convex' : 'bg-white border border-gray-200'}
-          `}>
-              <div className="animate-in fade-in zoom-in duration-300 scale-90">
-                {/* 1. Custom Agent Avatar URL */}
-                {agent?.avatarUrl ? (
-                  <img src={agent.avatarUrl} alt={agent.name} className="w-full h-full object-cover rounded-xl" />
-                ) : agent?.icon && AGENT_ICONS[agent.icon] ? (
-                  /* 2. Specific Agent Icon */
-                  React.createElement(AGENT_ICONS[agent.icon], { className: `w-6 h-6 ${isDarkMode ? 'text-emerald-400' : 'text-emerald-600'}` })
-                ) : message.modelId ? (
-                  /* 3. Provider/Model Icon (Fallback) */
-                  getProviderIcon(
-                    AVAILABLE_MODELS.find(m => m.id === message.modelId)?.provider ||
-                    (message.modelId.includes('gpt') ? 'OpenAI' :
-                      message.modelId.includes('claude') ? 'Anthropic' :
-                        message.modelId.includes('gemini') ? 'Google' : 'DrPro')
-                  )
-                ) : (
-                  <IconBot className="text-emerald-500" />
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Content */}
-        <div className={`relative flex-1 overflow-hidden ${isUser ? 'flex justify-end' : 'pt-1.5'}`}>
+        {/* Content - Full Width Minimalist */}
+        <div className={`relative flex-1 overflow-hidden ${isUser ? 'flex justify-end' : 'pt-0.5'}`}>
           <div className={`
+            text-[16px] leading-relaxed relative
             ${isUser
-              ? 'bg-surfaceHighlight text-textMain border border-borderLight rounded-3xl rounded-tr-sm px-5 py-2.5 max-w-[85%] shadow-md'
-              : ''}
+              ? 'px-0 py-0 max-w-[90%] md:max-w-[85%] text-right'
+              : 'bg-transparent text-textMain px-0 py-0 max-w-none w-full'}
           `}>
-            {!isUser && (
-              <div className="font-bold text-sm mb-3 flex items-center gap-2">
-                <span className={`bg-clip-text text-transparent drop-shadow-sm tracking-wide ${isDarkMode ? 'bg-gradient-to-r from-emerald-400 to-teal-300' : 'bg-gradient-to-r from-emerald-600 to-teal-600'}`}>
-                  {agent ? agent.name : 'Dr. GPT'}
-                </span>
-                <span className="text-[10px] text-textMuted font-normal ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-            )}
 
             {/* Attachments */}
             {message.attachments && message.attachments.length > 0 && (
@@ -128,7 +89,12 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
               </div>
             )}
 
-            <div className={`prose ${isDarkMode ? 'prose-invert text-gray-300' : 'prose-slate text-textMain'} ${isUser ? 'prose-p:my-0' : 'prose-sm ai-response'} leading-relaxed prose-p:leading-relaxed prose-li:leading-relaxed prose-pre:bg-surface prose-pre:shadow-inner-depth prose-pre:border prose-pre:border-borderLight prose-pre:rounded-xl max-w-none font-normal tracking-wide select-text`}>
+            <div className={`prose ${isUser ? 'prose-invert text-textMain prose-p:text-textMain' : (isDarkMode ? 'prose-invert text-gray-300' : 'prose-slate text-slate-800')} 
+                ${isUser ? 'prose-p:my-0' : 'prose-sm ai-response'} 
+                leading-relaxed prose-p:leading-relaxed prose-li:leading-relaxed 
+                prose-pre:bg-black/50 prose-pre:shadow-inner prose-pre:border prose-pre:border-white/10 prose-pre:rounded-xl 
+                max-w-none font-normal tracking-wide select-text
+            `}>
               {/* Thinking State */}
               {message.isStreaming && !message.content && (
                 <div className="flex items-center gap-2 text-textMuted animate-pulse">
@@ -167,7 +133,7 @@ const MessageItem: React.FC<MessageItemProps> = React.memo(({ message, isDarkMod
                     img({ node, ...props }) {
                       const imgProps = props as any; // 🔧 FIX: Cast to any to avoid TS errors with react-markdown types
                       return (
-                        <span className="relative inline-block group/image my-4">
+                        <span className="relative pb-1.5 inline-block group/image my-4">
                           <img
                             {...imgProps}
                             loading="lazy" // 🔧 FIX: Native lazy loading

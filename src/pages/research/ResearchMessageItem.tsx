@@ -1,7 +1,7 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { User, Bot } from 'lucide-react';
+import { User, Bot, Search } from 'lucide-react';
 
 interface ResearchMessageProps {
     role: 'user' | 'model';
@@ -26,7 +26,7 @@ const ResearchMessageItem: React.FC<ResearchMessageProps> = ({ role, content, is
                             : (isDarkMode ? 'bg-gradient-to-br from-surfaceHighlight to-surface shadow-convex' : 'bg-white border border-gray-200')
                         }
                     `}>
-                        {isUser ? <User className="text-white w-6 h-6" /> : <Bot className="text-emerald-500 w-6 h-6" />}
+                        {isUser ? <User className="text-white w-6 h-6" /> : <Search className="text-emerald-500 w-6 h-6" />}
                     </div>
                 </div>
 

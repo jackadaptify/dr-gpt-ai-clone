@@ -84,25 +84,20 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, on
         <div className="flex flex-col md:flex-row w-full h-full overflow-hidden animate-in fade-in duration-300 bg-background">
 
             {/* Mobile Tabs */}
-            <div className="md:hidden flex border-b border-borderLight bg-surface">
-                {/* Back Button (Mobile Only in Tab Bar?? No, maybe better in header or above tabs) */}
-                {/* Actually, let's put a small back button to the left of tabs if needed, OR just rely on the main header back button which we are about to add */}
-
+            <div className="md:hidden flex p-1.5 bg-black/20 border-b border-white/5 shrink-0 backdrop-blur-sm z-20">
                 <button
                     onClick={() => setMobileTab('document')}
-                    className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${mobileTab === 'document'
-                        ? 'border-emerald-500 text-emerald-500'
-                        : 'border-transparent text-textMuted'
-                        }`}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 border active:scale-[0.98] ${mobileTab === 'document'
+                        ? 'bg-[#1A1A1A] text-emerald-400 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+                        : 'border-transparent text-textMuted/60 hover:text-textMain hover:bg-white/5'}`}
                 >
                     Documento
                 </button>
                 <button
                     onClick={() => setMobileTab('chat')}
-                    className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${mobileTab === 'chat'
-                        ? 'border-emerald-500 text-emerald-500'
-                        : 'border-transparent text-textMuted'
-                        }`}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 border active:scale-[0.98] ml-2 ${mobileTab === 'chat'
+                        ? 'bg-[#1A1A1A] text-emerald-400 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]'
+                        : 'border-transparent text-textMuted/60 hover:text-textMain hover:bg-white/5'}`}
                 >
                     Chat e Ajustes
                 </button>
@@ -111,50 +106,50 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, on
             {/* Left Column: SOAP Editor (60%) or Mobile 'document' tab */}
             <div className={`
                 ${mobileTab === 'document' ? 'flex' : 'hidden'} 
-                md:flex w-full md:w-[60%] flex-col border-r border-borderLight h-full relative 
+                md:flex w-full md:w-[60%] flex-col border-r border-white/5 h-full relative bg-[#09090b]
             `}>
 
                 {/* Header */}
-                <div className="h-16 flex items-center justify-between px-4 md:px-6 border-b border-borderLight shrink-0 bg-surface">
-                    <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
+                <div className="h-16 flex items-center justify-between px-4 md:px-6 border-b border-white/5 shrink-0 bg-white/[0.02] backdrop-blur-md">
+                    <div className="flex items-center gap-3 overflow-hidden">
                         {/* Back Button */}
                         {onClose && (
                             <button
                                 onClick={onClose}
-                                className="p-2 rounded-lg mr-1 transition-colors hover:bg-surfaceHighlight text-textMuted hover:text-textMain"
+                                className="p-2 rounded-xl transition-all duration-200 hover:bg-white/10 text-textMuted hover:text-white border border-transparent hover:border-white/10 active:scale-95"
                                 title="Voltar"
                             >
                                 <ArrowLeft size={20} />
                             </button>
                         )}
 
-                        <div className="p-1.5 md:p-2 rounded-lg shrink-0 bg-emerald-500/10 text-emerald-500">
+                        <div className="p-2 rounded-xl shrink-0 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-sm shadow-emerald-500/10">
                             <FileText size={18} />
                         </div>
-                        <h2 className="font-bold text-base md:text-lg truncate text-textMain">
+                        <h2 className="font-bold text-base md:text-lg truncate text-textMain tracking-tight">
                             {title}
                         </h2>
                         {isUpdating && (
-                            <span className="text-[10px] md:text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500">
-                                Atualizando...
+                            <span className="text-[10px] md:text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 animate-pulse font-medium">
+                                Gerando...
                             </span>
                         )}
                     </div>
 
-                    <div className="flex items-center shrink-0">
+                    <div className="flex items-center shrink-0 gap-2">
                         <button
                             onClick={handleCopy}
                             disabled={isUpdating}
                             className={`
-                                flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-all
+                                flex items-center gap-2 px-3 py-2 md:px-4 rounded-xl text-xs md:text-sm font-bold transition-all duration-200 active:scale-95 border
                                 ${copied
-                                    ? 'bg-emerald-500 text-white'
-                                    : 'bg-surfaceHighlight text-textMain border border-borderLight hover:bg-surface'
+                                    ? 'bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20'
+                                    : 'bg-white/5 text-textMuted hover:text-white border-white/5 hover:bg-white/10'
                                 }
                                 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}
                             `}
                         >
-                            {copied ? <Check size={14} /> : <Copy size={14} />}
+                            {copied ? <Check size={16} /> : <Copy size={16} />}
                             <span className="hidden sm:inline">{copied ? 'Copiado!' : 'Copiar'}</span>
                         </button>
 
@@ -162,15 +157,15 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, on
                             onClick={handleSave}
                             disabled={isUpdating}
                             className={`
-                                flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition-all ml-2
+                                flex items-center gap-2 px-3 py-2 md:px-4 rounded-xl text-xs md:text-sm font-bold transition-all duration-200 active:scale-95 border
                                 ${saving
-                                    ? 'bg-emerald-500 text-white'
-                                    : 'bg-surfaceHighlight text-textMain border border-borderLight hover:bg-surface'
+                                    ? 'bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-500/20'
+                                    : 'bg-emerald-600 text-white border-emerald-500 hover:bg-emerald-500 shadow-lg shadow-emerald-900/20'
                                 }
                                 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}
                             `}
                         >
-                            {saving ? <Check size={14} /> : <Save size={14} />}
+                            {saving ? <Check size={16} /> : <Save size={16} />}
                             <span className="hidden sm:inline">{saving ? 'Salvo!' : 'Salvar'}</span>
                         </button>
                     </div>
@@ -185,10 +180,10 @@ export default function ScribeReview({ isDarkMode, content, onChange, onSave, on
                         onChange={(e) => onChange(e.target.value)}
                         readOnly={isUpdating}
                         className={`
-                            w-full h-full p-4 md:p-6 text-sm md:text-base leading-relaxed resize-none text-left outline-none rounded-xl border
-                            font-mono bg-surface border-borderLight text-textMain placeholder-textMuted focus:border-emerald-500/50
+                            w-full h-full p-6 md:p-8 text-sm md:text-base leading-relaxed resize-none text-left outline-none rounded-2xl border
+                            font-mono bg-[#141414] border-white/5 text-slate-200 placeholder-textMuted focus:border-emerald-500/30 focus:ring-1 focus:ring-emerald-500/20 shadow-inner
                             ${isUpdating ? 'cursor-wait opacity-90' : ''}
-                            transition-all scrollbar-thin
+                            transition-all scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent
                         `}
                         placeholder="O prontuário gerado aparecerá aqui..."
                         spellCheck={false}

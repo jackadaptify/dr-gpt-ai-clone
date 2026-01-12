@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Menu, Plus, User, Bot, Search, Mic } from 'lucide-react';
+import { Send, Plus, User, Bot, Search, Mic } from 'lucide-react';
+import { IconMenu } from '../../../components/Icons';
 import ResearchMessageItem from './ResearchMessageItem';
 import ResearchResults from './ResearchResults';
 import { streamResearchChat, ResearchMessage as APIResearchMessage } from './services/researchService';
@@ -48,6 +49,14 @@ export default function ResearchPage({ isDarkMode, user, toggleSidebar }: Resear
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Auto-resize textarea
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+        }
+    }, [input]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -192,6 +201,13 @@ export default function ResearchPage({ isDarkMode, user, toggleSidebar }: Resear
             {/* Header */}
             <header className="absolute top-0 left-0 right-0 h-20 flex items-center justify-between px-4 md:px-6 z-10 pointer-events-none">
                 <div className="flex items-center gap-3 pointer-events-auto">
+
+                    <button
+                        onClick={toggleSidebar}
+                        className="md:hidden p-2 rounded-xl bg-surface/50 backdrop-blur-md text-textMuted hover:text-textMain border border-borderLight shadow-lg"
+                    >
+                        <IconMenu />
+                    </button>
 
                     <div className={`px-4 py-2 rounded-xl border flex items-center gap-2 backdrop-blur-md shadow-sm ${isDarkMode ? 'bg-indigo-500/10 border-indigo-500/20' : 'bg-white border-indigo-100'}`}>
                         <Search className={`w-4 h-4 ${isDarkMode ? 'text-indigo-400' : 'text-indigo-600'}`} />

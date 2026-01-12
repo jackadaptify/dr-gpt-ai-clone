@@ -268,7 +268,7 @@ export default function DashboardLayout() {
         if (activeMode === 'chat') {
             contextCreateNewChat(undefined, selectedModelId);
             navigate('/copilot');
-        } else if (activeMode === 'scribe') {
+        } else if (activeMode === 'scribe' || activeMode === 'scribe-review') {
             setIsScribeReview(false);
             setScribeContent('');
             navigate('/transcribe');
@@ -278,7 +278,7 @@ export default function DashboardLayout() {
 
     return (
         <div className="flex h-[100dvh] bg-background text-textMain font-sans overflow-hidden selection:bg-emerald-500/30">
-            {activeMode !== 'scribe-review' && activeMode !== 'admin' && (
+            {activeMode !== 'admin' && (
                 <Sidebar
                     chats={chats}
                     folders={folders}

@@ -312,7 +312,7 @@ export default function ChatPage({
 
                     <div className="flex items-end gap-2 pl-2 pr-2">
                         {/* Attach Button */}
-                        <div className="relative">
+                        <div className="relative pb-1.5">
                             <button
                                 ref={attachmentButtonRef}
                                 onClick={() => setIsAttachmentMenuOpen(!isAttachmentMenuOpen)}

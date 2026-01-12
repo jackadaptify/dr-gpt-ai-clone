@@ -157,7 +157,7 @@ export default function Sidebar({
                       if (window.innerWidth < 768) setIsOpen(false);
                     }}
                     className={`
-                    w-full flex items-center gap-3 px-3 py-3 text-sm rounded-xl transition-all text-left truncate relative group/item
+                    w-full flex items-center gap-3 px-3 py-3 text-sm rounded-xl transition-all duration-200 text-left truncate relative group/item active:scale-[0.98]
                     ${isActive
                         ? 'bg-gradient-to-r from-emerald-500/10 to-transparent border-l-2 border-emerald-500 text-textMain shadow-inner'
                         : 'text-textMuted hover:bg-surfaceHighlight hover:text-textMain border-l-2 border-transparent'}
@@ -176,114 +176,117 @@ export default function Sidebar({
                   </button>
 
                   {/* Context Menu */}
-                  {isMenuOpen && (
-                    <div
-                      ref={menuRef}
-                      className="fixed w-64 rounded-xl shadow-2xl border border-borderLight z-50 overflow-hidden backdrop-blur-xl bg-surface/95"
-                      style={{
-                        top: menuPosition?.top || 0,
-                        left: menuPosition?.left || 0,
-                        transform: 'translateX(10px)' // Little offset
-                      }}
-                    >
-                      <div className="p-1.5 space-y-0.5">
-                        <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-textMuted hover:bg-surfaceHighlight hover:text-textMain">
-                          <Share size={15} />
-                          Compartilhar
-                        </button>
-                        <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-textMuted hover:bg-surfaceHighlight hover:text-textMain">
-                          <Users size={15} />
-                          Iniciar um chat em grupo
-                        </button>
-                        <button
-                          onClick={() => {
-                            const newName = prompt('Novo nome:', chat.title);
-                            if (newName) onRenameChat(chat.id, newName);
-                            setOpenMenuChatId(null);
-                          }}
-                          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-textMuted hover:bg-surfaceHighlight hover:text-textMain"
-                        >
-                          <Edit2 size={15} />
-                          Renomear
-                        </button>
-
-                        {/* Move to Project Submenu Trigger */}
-                        <div className="relative">
+                  {
+                    isMenuOpen && (
+                      <div
+                        ref={menuRef}
+                        className="fixed w-64 rounded-xl shadow-2xl border border-borderLight z-50 overflow-hidden backdrop-blur-xl bg-surface/95"
+                        style={{
+                          top: menuPosition?.top || 0,
+                          left: menuPosition?.left || 0,
+                          transform: 'translateX(10px)' // Little offset
+                        }}
+                      >
+                        <div className="p-1.5 space-y-0.5">
+                          <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-textMuted hover:bg-surfaceHighlight hover:text-textMain">
+                            <Share size={15} />
+                            Compartilhar
+                          </button>
+                          <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-textMuted hover:bg-surfaceHighlight hover:text-textMain">
+                            <Users size={15} />
+                            Iniciar um chat em grupo
+                          </button>
                           <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowMoveSubmenu(!showMoveSubmenu);
+                            onClick={() => {
+                              const newName = prompt('Novo nome:', chat.title);
+                              if (newName) onRenameChat(chat.id, newName);
+                              setOpenMenuChatId(null);
                             }}
-                            className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors text-textMuted hover:bg-surfaceHighlight hover:text-textMain ${showMoveSubmenu ? 'bg-surfaceHighlight text-textMain' : ''}`}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-textMuted hover:bg-surfaceHighlight hover:text-textMain"
                           >
-                            <div className="flex items-center gap-2.5">
-                              <FolderInput size={15} />
-                              Mover para o projeto
-                            </div>
-                            <ChevronRight size={14} className={`transition-transform ${showMoveSubmenu ? 'rotate-90' : ''}`} />
+                            <Edit2 size={15} />
+                            Renomear
                           </button>
 
-                          {/* Nested Submenu */}
-                          {showMoveSubmenu && (
-                            <div className="mt-1 ml-2 pl-2 border-l border-borderLight space-y-0.5 animate-in slide-in-from-left-2 duration-200">
-                              <button
-                                onClick={() => {
-                                  onAssignChatToProject(chat.id, null);
-                                  setOpenMenuChatId(null);
-                                }}
-                                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-md transition-colors text-textMuted hover:bg-surfaceHighlight hover:text-textMain"
-                              >
-                                <CornerUpLeft size={12} />
-                                Remover do Projeto
-                              </button>
-                              {folders.map(f => (
+                          {/* Move to Project Submenu Trigger */}
+                          <div className="relative">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowMoveSubmenu(!showMoveSubmenu);
+                              }}
+                              className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-colors text-textMuted hover:bg-surfaceHighlight hover:text-textMain ${showMoveSubmenu ? 'bg-surfaceHighlight text-textMain' : ''}`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <FolderInput size={15} />
+                                Mover para o projeto
+                              </div>
+                              <ChevronRight size={14} className={`transition-transform ${showMoveSubmenu ? 'rotate-90' : ''}`} />
+                            </button>
+
+                            {/* Nested Submenu */}
+                            {showMoveSubmenu && (
+                              <div className="mt-1 ml-2 pl-2 border-l border-borderLight space-y-0.5 animate-in slide-in-from-left-2 duration-200">
                                 <button
-                                  key={f.id}
                                   onClick={() => {
-                                    onAssignChatToProject(chat.id, f.id);
+                                    onAssignChatToProject(chat.id, null);
                                     setOpenMenuChatId(null);
                                   }}
                                   className="w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-md transition-colors text-textMuted hover:bg-surfaceHighlight hover:text-textMain"
                                 >
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                  {f.name}
+                                  <CornerUpLeft size={12} />
+                                  Remover do Projeto
                                 </button>
-                              ))}
-                              {folders.length === 0 && (
-                                <div className="px-3 py-1.5 text-xs text-zinc-500 italic">Sem projetos criados</div>
-                              )}
-                            </div>
-                          )}
+                                {folders.map(f => (
+                                  <button
+                                    key={f.id}
+                                    onClick={() => {
+                                      onAssignChatToProject(chat.id, f.id);
+                                      setOpenMenuChatId(null);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-3 py-1.5 text-xs rounded-md transition-colors text-textMuted hover:bg-surfaceHighlight hover:text-textMain"
+                                  >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    {f.name}
+                                  </button>
+                                ))}
+                                {folders.length === 0 && (
+                                  <div className="px-3 py-1.5 text-xs text-zinc-500 italic">Sem projetos criados</div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-textMuted hover:bg-surfaceHighlight hover:text-textMain">
+                            <Archive size={15} />
+                            Arquivar
+                          </button>
+
+                          <div className="h-px my-1 bg-borderLight" />
+
+                          <button
+                            onClick={() => {
+                              if (confirm('Tem certeza que deseja excluir este chat?')) {
+                                onDeleteChat(chat.id);
+                                setOpenMenuChatId(null);
+                              }
+                            }}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-red-500 hover:bg-red-500/10`}
+                          >
+                            <Trash2 size={15} />
+                            Excluir
+                          </button>
                         </div>
-
-                        <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-textMuted hover:bg-surfaceHighlight hover:text-textMain">
-                          <Archive size={15} />
-                          Arquivar
-                        </button>
-
-                        <div className="h-px my-1 bg-borderLight" />
-
-                        <button
-                          onClick={() => {
-                            if (confirm('Tem certeza que deseja excluir este chat?')) {
-                              onDeleteChat(chat.id);
-                              setOpenMenuChatId(null);
-                            }
-                          }}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors text-red-500 hover:bg-red-500/10`}
-                        >
-                          <Trash2 size={15} />
-                          Excluir
-                        </button>
                       </div>
-                    </div>
-                  )}
+                    )
+                  }
                 </div>
               );
             })}
           </div>
-        )}
-      </div>
+        )
+        }
+      </div >
     );
   };
 
@@ -574,7 +577,7 @@ export default function Sidebar({
                 <button
                   onClick={onNewChat}
                   className={`
-                         w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                         w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95
                           text-textMain hover:bg-surfaceHighlight
                        `}
                   title={newLabel}
@@ -610,7 +613,7 @@ export default function Sidebar({
                   key={link.mode}
                   onClick={() => onModeChange(link.mode as AppMode)}
                   className={`
-                       w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                       w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 active:scale-95
                        ${isActive
                       ? 'bg-emerald-500/10 text-emerald-500 shadow-sm'
                       : 'text-textMuted hover:text-textMain hover:bg-surfaceHighlight'}
@@ -637,7 +640,7 @@ export default function Sidebar({
           <button
             onClick={() => onModeChange('settings')}
             className={`
-                    w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-3 rounded-xl transition-all duration-200
+                    w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-3 rounded-xl transition-all duration-200 active:scale-95
                     ${activeMode === 'settings'
                 ? 'bg-surfaceHighlight text-textMain'
                 : 'text-textMuted hover:bg-surfaceHighlight hover:text-textMain'}
