@@ -131,7 +131,7 @@ export default function InviteSignupPage({ defaultToken }: { defaultToken?: stri
     }
 
     return (
-        <div className="min-h-[100dvh] flex items-center justify-center bg-background text-textMain font-sans relative overflow-y-auto py-8">
+        <div className="min-h-[100dvh] flex items-center justify-center bg-background text-textMain font-sans relative overflow-y-auto py-12 px-4 sm:px-6">
 
 
             <div className="w-full max-w-md p-6 relative z-10 animate-in fade-in zoom-in-95 duration-500">

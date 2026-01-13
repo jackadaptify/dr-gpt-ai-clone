@@ -20,7 +20,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
     // State for the two steps
     const [step, setStep] = useState<Step>('consultation');
     const [mode, setMode] = useState<Mode>('presential');
-    const [mobileTab, setMobileTab] = useState<'context' | 'transcription'>('context');
+    const [mobileTab, setMobileTab] = useState<'context' | 'transcription'>('transcription');
 
     // Medical Context Scenario
     const [selectedScenario, setSelectedScenario] = useState<Scenario>('evolution');
@@ -327,16 +327,16 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
             {/* --- MOBILE TAB SWITCHER --- */}
             <div className="md:hidden flex p-1.5 bg-black/20 border border-white/5 rounded-xl shrink-0 backdrop-blur-sm mx-2 mb-1">
                 <button
-                    onClick={() => setMobileTab('context')}
-                    className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 border active:scale-[0.98] ${mobileTab === 'context' ? 'bg-[#1A1A1A] text-emerald-400 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-transparent text-textMuted/60 hover:text-textMain hover:bg-white/5'}`}
-                >
-                    Contexto
-                </button>
-                <button
                     onClick={() => setMobileTab('transcription')}
                     className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 border active:scale-[0.98] ${mobileTab === 'transcription' ? 'bg-[#1A1A1A] text-emerald-400 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-transparent text-textMuted/60 hover:text-textMain hover:bg-white/5'}`}
                 >
                     Transcrição
+                </button>
+                <button
+                    onClick={() => setMobileTab('context')}
+                    className={`flex-1 py-2.5 rounded-lg text-sm font-bold transition-all duration-200 border active:scale-[0.98] ${mobileTab === 'context' ? 'bg-[#1A1A1A] text-emerald-400 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]' : 'border-transparent text-textMuted/60 hover:text-textMain hover:bg-white/5'}`}
+                >
+                    Contexto
                 </button>
             </div>
 
@@ -419,23 +419,23 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                     </div>
 
                     {/* --- TRANSCRIPTION ACTIONS (Compact Footer "Floating") --- */}
-                    <div className="shrink-0 p-4 bg-black/40 backdrop-blur-md border-t border-white/[0.08] flex items-center justify-between gap-3 relative z-20">
+                    <div className="shrink-0 p-3 md:p-4 bg-black/40 backdrop-blur-md border-t border-white/[0.08] flex items-center justify-between gap-2 md:gap-3 relative z-20">
 
                         {/* Timer (Capsule) */}
-                        <div className={`flex items-center gap-2.5 px-3.5 py-2 rounded-full border transition-all duration-500 ${isRecording ? 'bg-red-500/10 border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.15)]' : 'bg-white/5 border-white/5'}`}>
+                        <div className={`flex items-center gap-2.5 px-3 py-2 md:px-3.5 rounded-full border transition-all duration-500 ${isRecording ? 'bg-red-500/10 border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.15)]' : 'bg-white/5 border-white/5'}`}>
                             <span className={`font-mono text-sm font-medium tabular-nums tracking-wider ${isRecording ? 'text-red-400' : 'text-zinc-500'}`}>
                                 {formatTime(seconds)}
                             </span>
                         </div>
 
                         {/* Controls Group */}
-                        <div className="flex items-center gap-2.5 flex-1 justify-end">
+                        <div className="flex items-center gap-2 md:gap-2.5 flex-1 justify-end">
 
                             {/* Trash (Ghost Button) */}
                             {(seconds > 0 || consultationTranscript) && (
                                 <button
                                     onClick={handleDiscard}
-                                    className="p-2.5 rounded-full text-zinc-500 hover:text-red-400 hover:bg-white/5 transition-all active:scale-95"
+                                    className="p-2 md:p-2.5 rounded-full text-zinc-500 hover:text-red-400 hover:bg-white/5 transition-all active:scale-95"
                                     title="Descartar"
                                 >
                                     <Trash2 size={18} />
@@ -446,7 +446,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                             <button
                                 onClick={handleToggleRecording}
                                 className={`
-                                flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-xs md:text-sm transition-all duration-300 border active:scale-95 active:duration-100 group
+                                flex items-center gap-2 px-3.5 py-2 md:px-5 md:py-2.5 rounded-full font-semibold text-xs md:text-sm transition-all duration-300 border active:scale-95 active:duration-100 group
                                 ${isRecording
                                         ? 'bg-transparent border-red-500/30 text-red-500 hover:bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.1)]'
                                         : 'bg-emerald-500 hover:bg-emerald-400 text-white border-transparent shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:shadow-[0_0_25px_rgba(16,185,129,0.4)]'
@@ -471,7 +471,7 @@ export default function ScribeView({ isDarkMode, onGenerate, toggleSidebar, onOp
                                 onClick={handleInitialGenerateClick}
                                 disabled={(!consultationTranscript && !consultationBlob)}
                                 className={`
-                                flex items-center gap-2 px-5 py-2.5 rounded-full font-semibold text-xs md:text-sm transition-all duration-300 border active:scale-95 active:duration-100
+                                flex items-center gap-2 px-3.5 py-2 md:px-5 md:py-2.5 rounded-full font-semibold text-xs md:text-sm transition-all duration-300 border active:scale-95 active:duration-100
                                 ${(consultationTranscript || consultationBlob)
                                         ? 'bg-gradient-to-r from-emerald-600 to-teal-500 text-white border-transparent shadow-[0_4px_20px_rgba(16,185,129,0.3)] hover:shadow-[0_4px_25px_rgba(16,185,129,0.4)] hover:-translate-y-0.5'
                                         : 'bg-white/5 text-zinc-600 border-white/5 cursor-not-allowed'
